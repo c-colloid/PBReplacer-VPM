@@ -15,7 +15,7 @@ Version 1.2.1
 #使い方
 1. 以下のいずれかの方法で拡張ウィンドウを表示
 	1.1 ツールバーのTools>PBReplacerを選択
-	1.2　Hierarchyで右クリックをしてPBReplacerを選択
+	1.2 Hierarchyで右クリックをしてPBReplacerを選択
 2. 開いたウィンドウにアバターをドラッグ＆ドロップ
 3. Applyボタンを押す
 
