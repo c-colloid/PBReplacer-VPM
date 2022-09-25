@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
   push:
     branches: main
-    paths: Packages/com.vrchat.demo-template/**
+    paths: Packages/jp.colloid.pbreplacer/**
 
 env:
-  packageName: "com.vrchat.demo-template"
+  packageName: "jp.colloid.pbreplacer"
 
 jobs:
   build:
