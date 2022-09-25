@@ -45,8 +45,7 @@ public class PBReplacer : EditorWindow
 	private void CreateGUI()
 	{
 		//UXMLからツリー構造を読み取り
-		var tree = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>("Assets/Editor/PBReplacer/Scripts/PBReplacer.uxml");
-		//var tree = Resources.Load<VisualTreeAsset>("PBReplacer");
+		var tree = Resources.Load<VisualTreeAsset>("PBReplacer");
 		var root = tree.CloneTree();
 		_root = root;
 		
@@ -78,7 +77,7 @@ public class PBReplacer : EditorWindow
 	private void OnClickApplyBtn()
 	{
 		//Debug.Log("ボタンが押されたよ");
-		_avatarDynamicsPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Editor/PBReplacer/Resources/AvatarDynamics.prefab");
+		_avatarDynamicsPrefab = Resources.Load<GameObject>("AvatarDynamics");
 		if (_vrcavatar == null)
 		{
 			return;
