@@ -1,5 +1,5 @@
 #PBReplacer
-Version 1.1
+Version 1.2.1
 
 #概要
 アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
@@ -13,12 +13,11 @@ Version 1.1
 服の子に付ければ服のオンオフアニメーションでPhysBoneも止めることができます。
 
 #使い方
-1. unitypackageをインポート
-2. 以下のいずれかの方法で拡張ウィンドウを表示
-	2.1 ツールバーのTools>PBReplacerを選択
-	2.2　Hierarchyで右クリックをしてPBReplacerを選択
-3. 開いたウィンドウにアバターをドラッグ＆ドロップ
-4. Applyボタンを押す
+1. 以下のいずれかの方法で拡張ウィンドウを表示
+	1.1 ツールバーのTools>PBReplacerを選択
+	1.2　Hierarchyで右クリックをしてPBReplacerを選択
+2. 開いたウィンドウにアバターをドラッグ＆ドロップ
+3. Applyボタンを押す
 
 #その他仕様
 ・RootTransformが設定されていないものは自動補完します。
