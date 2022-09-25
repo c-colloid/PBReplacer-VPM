@@ -148,6 +148,12 @@
       "source": "embedded",
       "dependencies": {}
     },
+    "jp.colloid.pbreplacer": {
+      "version": "file:jp.colloid.pbreplacer",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.modules.ai": {
       "version": "1.0.0",
       "depth": 0,
