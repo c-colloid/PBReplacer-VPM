@@ -1,0 +1,22 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements">
+    <uie:ObjectField label="Avater" name="AvatarFiled" binding-path="avatarfiledbind" tooltip="アバターを指定してください" style="flex-direction: column; align-items: flex-start; justify-content: space-between; margin-left: 3px; margin-right: 3px;">
+        <Style src="PBReplacer.uss" />
+    </uie:ObjectField>
+    <ui:Box style="min-height: 20px; display: flex; opacity: 1;">
+        <Style src="PBReplacer.uss" />
+        <ui:ListView focusable="true" name="PBListField" style="justify-content: space-around; align-items: stretch; flex-direction: column; flex-wrap: nowrap; height: 500px; min-height: 20px;">
+            <ui:Foldout text="PB List" name="PBList" value="true" tooltip="アバターにあるPBのリストです" style="height: auto;" />
+            <ui:Foldout text="PBC List" name="PBCList" value="true" tooltip="アバターにあるPBColliderのリストです" />
+        </ui:ListView>
+    </ui:Box>
+    <uie:Toolbar style="height: auto; min-height: 15px;">
+        <Style src="PBReplacer.uss" />
+        <ui:Label text="アバターをセットしてください" name="ToolBarLabel" style="color: rgb(0, 0, 0);" />
+    </uie:Toolbar>
+    <ui:Button name="ReloadButton" tooltip="リロード" text="↻" style="-unity-text-align: lower-center; white-space: normal; position: absolute; bottom: 4px; height: 19px; left: 5px; width: 19px; -unity-font-style: bold;">
+        <Style src="PBReplacer.uss" />
+    </ui:Button>
+    <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="-unity-text-align: middle-center; white-space: nowrap; opacity: 1; display: flex; left: auto; right: auto; position: relative; top: auto; width: 74px; align-items: auto; height: auto; margin-left: auto; margin-right: auto; margin-bottom: 5px; margin-top: 5px;">
+        <Style src="PBReplacer.uss" />
+    </ui:Button>
+</ui:UXML>
