@@ -1,5 +1,5 @@
 #PBReplacer
-Version 1.2.1
+Version 1.2.2
 
 #概要
 アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
