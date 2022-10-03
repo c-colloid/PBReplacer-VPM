@@ -92,7 +92,6 @@ public class PBReplacer : EditorWindow
 		ReplacePBC();
 		ReplacePB();
 		
-		
 		_root.Query<Label>("ToolBarLabel").First().text = "完了!!!";
 	}
 	
