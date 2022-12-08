@@ -8,6 +8,7 @@ using UnityEditor.UIElements;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
 using VRC.Dynamics;
+using System.Linq;
 
 public class PBReplacer : EditorWindow
 {
@@ -16,6 +17,7 @@ public class PBReplacer : EditorWindow
 	private VRCPhysBone[] _pbscript;
 	private VRCPhysBoneCollider[] _pbcscripts;
 	private GameObject _vrcavatar;
+	private GameObject _armature;
 	private GameObject _avatarDynamicsPrefab;
 	private GameObject _obj;
 	private VRC_AvatarDescriptor _evt;
@@ -32,6 +34,7 @@ public class PBReplacer : EditorWindow
 		//ウィンドウのタイトル
 		wnd.titleContent = new GUIContent("PBReplacer");
 		
+		//エラーでウィンドウが見つけられなくなった時に初期値に戻すために使用
 		//wnd.minSize = new Vector2(600,400);
 		//wnd.position = new Rect(0,0,0,0);
 	}
@@ -84,8 +87,8 @@ public class PBReplacer : EditorWindow
 		}
 		if (_vrcavatar.transform.Find("AvatarDynamics") != null)
 		{
-			_root.Query<Label>("ToolBarLabel").First().text = "既に実行しています。他のアバターを使用してください。";
-			return;
+			//_root.Query<Label>("ToolBarLabel").First().text = "既に実行しています。他のアバターを使用してください。";
+			//return;
 		}
 		
 		PlacePrefab();
@@ -106,8 +109,9 @@ public class PBReplacer : EditorWindow
 			_vrcavatar = vrcavatar.gameObject;
 			//Debug.Log("Avatarをセットしたよ"+_vrcavatar);
 			_root.Query<Label>("ToolBarLabel").First().text = "Applyを押してください";
-			_pbscript = vrcavatar.GetComponentsInChildren<VRCPhysBone>(true);
-			_pbcscripts = vrcavatar.GetComponentsInChildren<VRCPhysBoneCollider>(true);
+			FindArmarture();
+			_pbscript = _armature.GetComponentsInChildren<VRCPhysBone>(true);
+			_pbcscripts = _armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
 			
 			foreach (var item in _pbscript)
 			{
@@ -144,12 +148,42 @@ public class PBReplacer : EditorWindow
 			element.parent.Remove(element);
 		}
 	}
+	
+	//Avatar内からArmatureを検出
+	private void FindArmarture()
+	{
+		_armature = null;
+		IEnumerable<Transform> avatarDynamicsobjs = null;
+		
+		//AvatarDynamicsが既に分けられて要る場合、検索範囲から除外してArmatureを検出
+		if (_vrcavatar.transform.Find("AvatarDynamics") != null)
+		{
+			_obj = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
+			avatarDynamicsobjs = _obj.GetComponentsInChildren<Transform>();
+		}
+    	foreach (var item in _vrcavatar.GetComponentsInChildren<Transform>())
+    	{
+    		if (item == _vrcavatar.transform) continue;
+    		if (avatarDynamicsobjs != null && avatarDynamicsobjs.Contains<Transform>(item)) continue;
+    		if (!_armature) _armature = item.gameObject;
+    		var length = item.GetComponentsInChildren<Transform>().Length;
+    		if (length > _armature.GetComponentsInChildren<Transform>().Length)
+    		{
+    			_armature = item.gameObject;
+    		}
+    	}
+	}
 #endregion
 	
 #region Methods/replacePB Methods
 	//プレファブをアバターにセット
 	private void PlacePrefab()
 	{
+		if (_vrcavatar.transform.Find("AvatarDynamics") != null)
+		{
+			_obj = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
+			return;
+		}
 		_obj = PrefabUtility.InstantiatePrefab(_avatarDynamicsPrefab) as GameObject;
 		_obj.transform.SetParent(_vrcavatar.transform);
 		_obj.transform.localPosition = Vector3.zero;
