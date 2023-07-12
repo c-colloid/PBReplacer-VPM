@@ -28,10 +28,6 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
   
-env:
-  listPublishDirectory: Website
-  pathToCi: ci
-
 jobs:
   
   build-listing:
