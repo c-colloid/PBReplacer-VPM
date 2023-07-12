@@ -3,9 +3,8 @@
     "id":"jp.colloid.pbreplacer",
     "url":"https://c-colloid.github.io/PBReplacer-VPM/index.json",
     "author":{
-        "email":"",
         "name":"colloid",
-        "url":"https://c-colloid.github.io/PBReplacer.html"
+        "url":"https://c-colloid.github.io/"
     },
     "description":"Organize PhysBone and PhysBoneCollider components attached to avatars into 1 object = 1 component.",
     "infoLink":{
