@@ -3,7 +3,11 @@ guid: 61abaa584cc8033499e84f04bb86b1e0
 MonoImporter:
   externalObjects: {}
   serializedVersion: 2
-  defaultReferences: []
+  defaultReferences:
+  - m_ViewDataDictionary: {instanceID: 0}
+  - _tree: {fileID: 9197481963319205126, guid: c3691de464fb84b4b9219280afb90ca4, type: 3}
+  - _avatarDynamicsPrefab: {fileID: 2497369866793820428, guid: 1c01ee7fcc214744d84c882fdb50f8ed,
+      type: 3}
   executionOrder: 0
   icon: {instanceID: 0}
   userData: 

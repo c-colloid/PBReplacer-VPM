@@ -10,17 +10,27 @@ using VRC.SDKBase;
 using VRC.Dynamics;
 using System.Linq;
 
+#if MODULAR_AVATAR
+using nadena.dev.modular_avatar.core;
+#endif
+
+namespace colloid.EditorExpression
+{
+	
 public class PBReplacer : EditorWindow
 {
 #region Variables
+	[SerializeField]
+	private VisualTreeAsset _tree;
 	private TemplateContainer _root;
 	private VRCPhysBone[] _pbscript;
 	private VRCPhysBoneCollider[] _pbcscripts;
 	private GameObject _vrcavatar;
 	private GameObject _armature;
+	[SerializeField]
 	private GameObject _avatarDynamicsPrefab;
-	private GameObject _obj;
-	private VRC_AvatarDescriptor _evt;
+	private GameObject _avatarDynamicsObject;
+	private Component _selectObject;
 	private List<VRCPhysBoneColliderBase> _colliders;
 #endregion
 
@@ -48,26 +58,27 @@ public class PBReplacer : EditorWindow
 	private void CreateGUI()
 	{
 		//UXMLからツリー構造を読み取り
-		var tree = Resources.Load<VisualTreeAsset>("PBReplacer");
-		var root = tree.CloneTree();
+		if (_tree == null)
+			_tree = Resources.Load<VisualTreeAsset>("PBReplacer");
+		var root = _tree.CloneTree();
 		_root = root;
 		
 		//ApplyButtonが押された場合
-		root.Query<Button>("ApplyButton").First().clicked += () => {
-			OnClickApplyBtn();
-		};
+		root.Query<Button>("ApplyButton").First().clicked += () => OnClickApplyBtn();
+		
 		//ReloadButtonが押された場合
-		root.Query<Button>("ReloadButton").First().clicked += () => {
-			loadList();
-		};
+		root.Query<Button>("ReloadButton").First().clicked += () => loadList();
 		
 		//オブジェクトフィールドのタイプを設定
-		root.Query<ObjectField>("AvatarFiled").First().objectType = typeof(VRC_AvatarDescriptor);
+		var avatarField = root.Q<ObjectField>("AvatarFiled");
+		avatarField.objectType = typeof(VRC_AvatarDescriptor);
+		avatarField.Q<VisualElement>("","unity-object-field-display").AddManipulator(new OnDragAndDropItemChange());
+		avatarField.Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
 		
 		//オブジェクトフィールドが更新された場合
-		root.Q<ObjectField>("AvatarFiled").RegisterValueChangedCallback(evt =>
+		avatarField.RegisterValueChangedCallback(evt =>
 		{
-			_evt = evt.newValue as VRC_AvatarDescriptor;
+			_selectObject = evt.newValue as Component;
 			root = loadList();
 		});
 		
@@ -80,7 +91,9 @@ public class PBReplacer : EditorWindow
 	private void OnClickApplyBtn()
 	{
 		//Debug.Log("ボタンが押されたよ");
-		_avatarDynamicsPrefab = Resources.Load<GameObject>("AvatarDynamics");
+		if (_avatarDynamicsPrefab == null)
+			_avatarDynamicsPrefab = Resources.Load<GameObject>("AvatarDynamics");
+		
 		if (_vrcavatar == null)
 		{
 			return;
@@ -103,10 +116,10 @@ public class PBReplacer : EditorWindow
 	{
 		ResetList();
 	
-		var vrcavatar = _evt;
+		var vrcavatar = _selectObject?.gameObject;
 		if (vrcavatar != null)
 		{
-			_vrcavatar = vrcavatar.gameObject;
+			_vrcavatar = vrcavatar;
 			//Debug.Log("Avatarをセットしたよ"+_vrcavatar);
 			_root.Query<Label>("ToolBarLabel").First().text = "Applyを押してください";
 			FindArmarture();
@@ -133,6 +146,7 @@ public class PBReplacer : EditorWindow
 			_vrcavatar = null;
 			//Debug.Log("Avatarを外したよ");
 			_root.Query<Label>("ToolBarLabel").First().text = "アバターをセットしてください";
+			_root.Q<ObjectField>().Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
 		}
 		
 		return _root;
@@ -158,8 +172,8 @@ public class PBReplacer : EditorWindow
 		//AvatarDynamicsが既に分けられて要る場合、検索範囲から除外してArmatureを検出
 		if (_vrcavatar.transform.Find("AvatarDynamics") != null)
 		{
-			_obj = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
-			avatarDynamicsobjs = _obj.GetComponentsInChildren<Transform>();
+			_avatarDynamicsObject = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
+			avatarDynamicsobjs = _avatarDynamicsObject.GetComponentsInChildren<Transform>();
 		}
     	foreach (var item in _vrcavatar.GetComponentsInChildren<Transform>())
     	{
@@ -181,12 +195,12 @@ public class PBReplacer : EditorWindow
 	{
 		if (_vrcavatar.transform.Find("AvatarDynamics") != null)
 		{
-			_obj = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
+			_avatarDynamicsObject = _vrcavatar.transform.Find("AvatarDynamics").gameObject;
 			return;
 		}
-		_obj = PrefabUtility.InstantiatePrefab(_avatarDynamicsPrefab) as GameObject;
-		_obj.transform.SetParent(_vrcavatar.transform);
-		_obj.transform.localPosition = Vector3.zero;
+		_avatarDynamicsObject = PrefabUtility.InstantiatePrefab(_avatarDynamicsPrefab) as GameObject;
+		_avatarDynamicsObject.transform.SetParent(_vrcavatar.transform);
+		_avatarDynamicsObject.transform.localPosition = Vector3.zero;
 		//Debug.Log("Prefabを配置");
 	}
 	
@@ -201,7 +215,7 @@ public class PBReplacer : EditorWindow
 			}
 
 			GameObject obj = new GameObject(item.rootTransform.name);
-			Transform physBones = _obj.transform.Find("PhysBones");
+			Transform physBones = _avatarDynamicsObject.transform.Find("PhysBones");
 			obj.transform.SetParent(physBones);
 			if (item.rootTransform != item.transform)
 			{
@@ -243,7 +257,7 @@ public class PBReplacer : EditorWindow
 			}
 
 			GameObject obj = new GameObject(item.rootTransform.name);
-			Transform physBoneColliders = _obj.transform.Find("PhysBoneColliders");
+			Transform physBoneColliders = _avatarDynamicsObject.transform.Find("PhysBoneColliders");
 			obj.transform.SetParent(physBoneColliders);
 			if (item.rootTransform != item.transform)
 			{
@@ -290,4 +304,49 @@ public class PBReplacer : EditorWindow
 		}
 	}
 #endregion
+
+#region Manipulator
+	class OnDragAndDropItemChange : Manipulator
+	{
+		private GameObject targetObject;
+		private string title = "衣装用オプション";
+		private string message = "このオブジェクトにはAvatarDiscriptorがついていません\n衣装用オプションを適用しますか？\n\n" +
+			"※このオプションは想定外の挙動をする可能性があります\n※ツールの特性を理解したうえでご利用ください";
+		
+		protected override void RegisterCallbacksOnTarget() {
+			//throw new System.NotImplementedException();
+			target.RegisterCallback<DragUpdatedEvent>(OnDragItem);
+			target.RegisterCallback<DragPerformEvent>(OnDropItem);
+		}
+		
+		protected override void UnregisterCallbacksFromTarget() {
+			//throw new System.NotImplementedException();
+			target.UnregisterCallback<DragUpdatedEvent>(OnDragItem);
+			target.UnregisterCallback<DragPerformEvent>(OnDropItem);
+		}
+		
+		private void OnDragItem(DragUpdatedEvent evt){
+			targetObject = DragAndDrop.objectReferences[0] as GameObject;
+			if (!targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var component)) DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
+		}
+		
+		private void OnDropItem(DragPerformEvent evt){
+			if (targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var VRCcomponent)) return; 
+			#if MODULAR_AVATAR
+			if (targetObject.TryGetComponent<ModularAvatarMergeArmature>(out var MAcomponent)) {
+				var window = GetWindow<PBReplacer>();
+				window._root.Q<ObjectField>().value = MAcomponent;
+				return;
+			}
+			#endif
+			if (EditorUtility.DisplayDialog(title,message,"OK","Cancel"))
+			{
+				var window = GetWindow<PBReplacer>();
+				window._root.Q<ObjectField>().value = targetObject.transform;
+			}
+		}
+	}
+#endregion
+}
+
 }
