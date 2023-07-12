@@ -12,16 +12,8 @@
         "url":"http://github.com/c-colloid/PBReplacer-VPM",
         "text":"View on GitHub"
     },
-    "bannerUrl":"",
+    "bannerUrl":"banner.png",
     "githubRepos":[
         "c-colloid/PBReplacer-VPM"
-    ],
-    "packages":[
-        {
-            "name":"jp.colloid.pbreplacer",
-            "releases":[
-                ""
-            ]
-        }
     ]
 }
