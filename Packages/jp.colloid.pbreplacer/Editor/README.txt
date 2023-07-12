@@ -1,5 +1,5 @@
 #PBReplacer
-Version 1.3.0
+Version 1.4.0
 
 #概要
 アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
@@ -26,3 +26,4 @@ Version 1.3.0
 
 #連絡先
 Twitter @C_Colloid
+GitHub https://github.com/c-colloid/PBReplacer-VPM/issues

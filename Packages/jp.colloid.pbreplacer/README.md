@@ -1,1 +1,1 @@
-# jp.colloid.pbreplacer by chen
+# jp.colloid.pbreplacer by colloid
