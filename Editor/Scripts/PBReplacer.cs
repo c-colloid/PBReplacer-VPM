@@ -73,7 +73,10 @@ public class PBReplacer : EditorWindow
 		var avatarField = root.Q<ObjectField>("AvatarFiled");
 		avatarField.objectType = typeof(VRC_AvatarDescriptor);
 		avatarField.Q<VisualElement>("","unity-object-field-display").AddManipulator(new OnDragAndDropItemChange());
+		
+		#if MODULAR_AVATAR
 		avatarField.Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
+		#endif
 		
 		//オブジェクトフィールドが更新された場合
 		avatarField.RegisterValueChangedCallback(evt =>
@@ -146,7 +149,11 @@ public class PBReplacer : EditorWindow
 			_vrcavatar = null;
 			//Debug.Log("Avatarを外したよ");
 			_root.Query<Label>("ToolBarLabel").First().text = "アバターをセットしてください";
-			_root.Q<ObjectField>().Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
+			
+			#if MODULAR_AVATAR
+			_root.Q<Label>("","unity-object-field-display__label").text = 
+				"None (VRC_Avatar Descriptor or MA Marge Armature)";
+			#endif
 		}
 		
 		return _root;

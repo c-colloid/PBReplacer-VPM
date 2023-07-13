@@ -1,7 +1,7 @@
 {
   "name": "jp.colloid.pbreplacer",
   "displayName": "PBReplacer",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "PhysBone\u3068PhysBoneCollider\u3092\u6574\u7406\u3059\u308bUnity\u62e1\u5f35\n1\u30aa\u30d6\u30b8\u30a7\u30af\u30c8\uff1d1\u30b3\u30f3\u30dd\u30fc\u30cd\u30f3\u30c8\u306b\u7f6e\u63db",
   "author": {
     "name": "\uff7a\uff9b\uff72\uff84\uff9e"
@@ -12,5 +12,9 @@
   },
   "legacyFolders": {},
   "legacyFiles": {},
-  "type": "tool"
+  "type": "tool",
+  "dependencies": {
+    "com.vrchat.base": "3.2.1",
+    "com.vrchat.avatars": "3.2.1"
+  }
 }
