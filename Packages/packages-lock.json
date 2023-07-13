@@ -137,10 +137,7 @@
       "version": "file:jp.colloid.pbreplacer",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {
-        "com.vrchat.base": "3.2.1",
-        "com.vrchat.avatars": "3.2.1"
-      }
+      "dependencies": {}
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",
