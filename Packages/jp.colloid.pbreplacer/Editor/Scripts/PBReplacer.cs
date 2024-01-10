@@ -9,6 +9,7 @@ using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
 using VRC.Dynamics;
 using System.Linq;
+using System;
 
 #if MODULAR_AVATAR
 using nadena.dev.modular_avatar.core;
@@ -32,6 +33,18 @@ public class PBReplacer : EditorWindow
 	private GameObject _avatarDynamicsObject;
 	private Component _selectObject;
 	private List<VRCPhysBoneColliderBase> _colliders;
+	
+	#if UNITY_2021_3_OR_NEWER
+	Func<VisualElement> _makeItem = () => {
+		var l = new Label();
+		l.AddToClassList("myitem");
+		return l;
+	};
+	Action<VisualElement, int> _bindItem;
+	List<string> _itemSource = new List<string>();
+	#endif
+	ListView _pblist;
+	ListView _pbclist;
 #endregion
 
 #region Methods/Unity Methods
@@ -62,6 +75,9 @@ public class PBReplacer : EditorWindow
 			_tree = Resources.Load<VisualTreeAsset>("PBReplacer");
 		var root = _tree.CloneTree();
 		_root = root;
+		root.StretchToParentSize();
+		
+		InitListView();
 		
 		//ApplyButtonが押された場合
 		root.Query<Button>("ApplyButton").First().clicked += () => OnClickApplyBtn();
@@ -73,7 +89,6 @@ public class PBReplacer : EditorWindow
 		var avatarField = root.Q<ObjectField>("AvatarFiled");
 		avatarField.objectType = typeof(VRC_AvatarDescriptor);
 		avatarField.Q<VisualElement>("","unity-object-field-display").AddManipulator(new OnDragAndDropItemChange());
-		
 		#if MODULAR_AVATAR
 		avatarField.Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
 		#endif
@@ -90,6 +105,34 @@ public class PBReplacer : EditorWindow
 #endregion
 
 #region Methods/Other Methods
+	//ListViewの初期化
+	private void InitListView()
+	{
+		_pblist = _root.Query<ListView>("PBListField").First();
+		_pbclist = _root.Query<ListView>("PBCListField").First();
+		
+		#if UNITY_2019
+		var pblist = new Foldout(){text = "PBList",name = "PBList"};
+		var pbclist = new Foldout(){text = "PBCList",name = "PBCList"};
+		
+		_pblist.Add(pblist);
+		_pbclist.Add(pbclist);
+		#else
+		var listView = _root.Q<ListView>("PBListField");
+		listView.makeItem = _makeItem;
+		listView.bindItem = _bindItem = (e, i) => (e as Label).text = _itemSource[i];
+		listView.itemsSource = _itemSource;
+		
+		_pbclist.makeItem = () => {
+			var l = new Label();
+			l.AddToClassList("myitem");
+			return l;
+		};
+		_pbclist.itemsSource = new List<string>();
+		_pbclist.bindItem = (e, i) => (e as Label).text = (string)_pbclist.itemsSource[i];
+		#endif
+	}
+
 	//ApplyButtonがクリックされた場合
 	private void OnClickApplyBtn()
 	{
@@ -97,7 +140,7 @@ public class PBReplacer : EditorWindow
 		if (_avatarDynamicsPrefab == null)
 			_avatarDynamicsPrefab = Resources.Load<GameObject>("AvatarDynamics");
 		
-		if (_vrcavatar == null)
+		if (_vrcavatar == null || _pbscript == null && _pbcscripts == null)
 		{
 			return;
 		}
@@ -117,31 +160,44 @@ public class PBReplacer : EditorWindow
 	//リスト表示
 	private TemplateContainer loadList()
 	{
-		ResetList();
-	
 		var vrcavatar = _selectObject?.gameObject;
+	
+		ResetList();
+		
 		if (vrcavatar != null)
 		{
 			_vrcavatar = vrcavatar;
 			//Debug.Log("Avatarをセットしたよ"+_vrcavatar);
 			_root.Query<Label>("ToolBarLabel").First().text = "Applyを押してください";
 			FindArmarture();
-			_pbscript = _armature.GetComponentsInChildren<VRCPhysBone>(true);
-			_pbcscripts = _armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
+			_pbscript = _armature?.GetComponentsInChildren<VRCPhysBone>(true);
+			_pbcscripts = _armature?.GetComponentsInChildren<VRCPhysBoneCollider>(true);
+			if (_pbscript == null && _pbcscripts == null) {
+				_root.Query<Label>("ToolBarLabel").First().text = "Armature内にPhysBoneが見つかりません";
+				return _root;
+			}
 			
 			foreach (var item in _pbscript)
 			{
+				#if UNITY_2019
 				var _newLineLabel = new Label(item.name);
 				_newLineLabel.AddToClassList("myitem");
 				var list = _root.Query<Foldout>("PBList").First();
 				list.Add(_newLineLabel);
+				#else
+				_pblist.itemsSource.Add(item.name);
+				#endif
 			}
 			foreach (var item in _pbcscripts)
 			{
+				#if UNITY_2019
 				var _newLineLabel = new Label(item.name);
 				_newLineLabel.AddToClassList("myitem");
 				var list = _root.Query<Foldout>("PBCList").First();
 				list.Add(_newLineLabel);
+				#else
+				_pbclist.itemsSource.Add(item.name);
+				#endif
 			}
 		}
 		else
@@ -156,18 +212,27 @@ public class PBReplacer : EditorWindow
 			#endif
 		}
 		
+		#if UNITY_2021_3_OR_NEWER
+		_pblist.Rebuild();
+		_pbclist.Rebuild();
+		#endif
+		
 		return _root;
 	}
 	
 	//リスト表示のリセット
 	private void ResetList()
 	{
-		ListView foldout = _root.Query<ListView>("PBListField").First();
-		while (foldout.Query<VisualElement>(null,"myitem").Last() != null)
+		#if UNITY_2019
+		while (_root.Query<VisualElement>(null,"myitem").Last() != null)
 		{
-			var element = foldout.Query<VisualElement>(null,"myitem").Last();
+			var element = _root.Query<VisualElement>(null,"myitem").Last();
 			element.parent.Remove(element);
 		}
+		#else
+		_pblist.itemsSource.Clear();
+		_pbclist.itemsSource.Clear();
+		#endif
 	}
 	
 	//Avatar内からArmatureを検出

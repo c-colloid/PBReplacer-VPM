@@ -2,12 +2,10 @@
     <uie:ObjectField label="Avater" name="AvatarFiled" binding-path="avatarfiledbind" tooltip="アバターを指定してください" style="flex-direction: column; align-items: flex-start; justify-content: space-between; margin-left: 3px; margin-right: 3px;">
         <Style src="PBReplacer.uss" />
     </uie:ObjectField>
-    <ui:Box style="min-height: 20px; display: flex; opacity: 1;">
+    <ui:Box name="Box" style="display: flex; opacity: 1; flex-direction: row; height: 100%; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px;">
         <Style src="PBReplacer.uss" />
-        <ui:ListView focusable="true" name="PBListField" style="justify-content: space-around; align-items: stretch; flex-direction: column; flex-wrap: nowrap; height: 500px; min-height: 20px;">
-            <ui:Foldout text="PB List" name="PBList" value="true" tooltip="アバターにあるPBのリストです" style="height: auto;" />
-            <ui:Foldout text="PBC List" name="PBCList" value="true" tooltip="アバターにあるPBColliderのリストです" />
-        </ui:ListView>
+        <ui:ListView focusable="true" name="PBListField" show-foldout-header="true" show-add-remove-footer="false" header-title="PBList" reorder-mode="Animated" style="justify-content: space-around; align-items: stretch; flex-direction: column; flex-wrap: nowrap; height: 100%; width: 100%; border-right-color: rgba(0, 0, 0, 0.24); border-right-width: 0.01px;" />
+        <ui:ListView focusable="true" name="PBCListField" show-foldout-header="true" header-title="PBCList" reorder-mode="Animated" style="justify-content: space-around; width: 100%; height: 100%; border-left-color: rgba(0, 0, 0, 0.24); border-left-width: 0.01px;" />
     </ui:Box>
     <uie:Toolbar style="height: auto; min-height: 15px;">
         <Style src="PBReplacer.uss" />
