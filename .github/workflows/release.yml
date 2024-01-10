@@ -5,6 +5,9 @@ on:
   push:
     branches: main
     paths: Packages/jp.colloid.pbreplacer/**
+    
+env:    
+  fileName: "PBReplacer"
 
 jobs:
 
@@ -35,7 +38,6 @@ jobs:
     env:
       packagePath: Packages/${{ vars.PACKAGE_NAME }} 
       packageName: ${{ vars.PACKAGE_NAME }}
-      fileName: "BoneSelector"
     if: needs.config.outputs.config_package == 'true'
     steps:
     
