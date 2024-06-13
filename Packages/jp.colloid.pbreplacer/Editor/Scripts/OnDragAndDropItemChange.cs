@@ -6,6 +6,10 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using VRC.SDKBase;
 
+#if MODULAR_AVATAR
+using nadena.dev.modular_avatar.core;
+#endif
+
 namespace colloid.PBReplacer
 {
 	class OnDragAndDropItemChange : Manipulator
@@ -36,8 +40,8 @@ namespace colloid.PBReplacer
 			if (targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var VRCcomponent)) return; 
 			#if MODULAR_AVATAR
 			if (targetObject.TryGetComponent<ModularAvatarMergeArmature>(out var MAcomponent)) {
-			var window = GetWindow<PBReplacer>();
-			window._root.Q<ObjectField>().value = MAcomponent;
+			var window = PBReplacer.GetWindow<PBReplacer>();
+				window.rootVisualElement.Q<ObjectField>().value = MAcomponent;
 			return;
 			}
 			#endif
