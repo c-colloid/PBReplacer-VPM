@@ -169,7 +169,9 @@ public class PBReplacer : EditorWindow
 			_vrcavatar = vrcavatar;
 			//Debug.Log("Avatarをセットしたよ"+_vrcavatar);
 			_root.Query<Label>("ToolBarLabel").First().text = "Applyを押してください";
-			FindArmarture();
+			_armature = _vrcavatar.TryGetComponent<Animator>(out var vrcavatarAnimator) && vrcavatarAnimator.isHuman ?
+				vrcavatarAnimator.GetBoneTransform(HumanBodyBones.Hips).parent.gameObject :
+				FindArmarture();
 			_pbscript = _armature?.GetComponentsInChildren<VRCPhysBone>(true);
 			_pbcscripts = _armature?.GetComponentsInChildren<VRCPhysBoneCollider>(true);
 			if (_pbscript == null && _pbcscripts == null) {
@@ -236,7 +238,7 @@ public class PBReplacer : EditorWindow
 	}
 	
 	//Avatar内からArmatureを検出
-	private void FindArmarture()
+	private GameObject FindArmarture()
 	{
 		_armature = null;
 		IEnumerable<Transform> avatarDynamicsobjs = null;
@@ -258,6 +260,7 @@ public class PBReplacer : EditorWindow
     			_armature = item.gameObject;
     		}
     	}
+		return _armature;
 	}
 #endregion
 	
@@ -377,48 +380,6 @@ public class PBReplacer : EditorWindow
 	}
 #endregion
 
-//#region Manipulator
-//	class OnDragAndDropItemChange : Manipulator
-//	{
-//		private GameObject targetObject;
-//		private string title = "衣装用オプション";
-//		private string message = "このオブジェクトにはAvatarDiscriptorがついていません\n衣装用オプションを適用しますか？\n\n" +
-//			"※このオプションは想定外の挙動をする可能性があります\n※ツールの特性を理解したうえでご利用ください";
-		
-//		protected override void RegisterCallbacksOnTarget() {
-//			//throw new System.NotImplementedException();
-//			target.RegisterCallback<DragUpdatedEvent>(OnDragItem);
-//			target.RegisterCallback<DragPerformEvent>(OnDropItem);
-//		}
-		
-//		protected override void UnregisterCallbacksFromTarget() {
-//			//throw new System.NotImplementedException();
-//			target.UnregisterCallback<DragUpdatedEvent>(OnDragItem);
-//			target.UnregisterCallback<DragPerformEvent>(OnDropItem);
-//		}
-		
-//		private void OnDragItem(DragUpdatedEvent evt){
-//			targetObject = DragAndDrop.objectReferences[0] as GameObject;
-//			if (!targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var component)) DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
-//		}
-		
-//		private void OnDropItem(DragPerformEvent evt){
-//			if (targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var VRCcomponent)) return; 
-//			#if MODULAR_AVATAR
-//			if (targetObject.TryGetComponent<ModularAvatarMergeArmature>(out var MAcomponent)) {
-//				var window = GetWindow<PBReplacer>();
-//				window._root.Q<ObjectField>().value = MAcomponent;
-//				return;
-//			}
-//			#endif
-//			if (EditorUtility.DisplayDialog(title,message,"OK","Cancel"))
-//			{
-//				var window = GetWindow<PBReplacer>();
-//				window._root.Q<ObjectField>().value = targetObject.transform;
-//			}
-//		}
-//	}
-//#endregion
 }
 
 }
