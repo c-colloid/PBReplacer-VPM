@@ -7,5 +7,10 @@ VisualElement {
 
 .unity-toggle__text {
     -unity-font-style: bold;
-    color: rgba(82, 166, 0, 255);
+    color: rgb(82, 166, 0);
+}
+
+.unity-label:focus {
+    background-color: rgb(77, 106, 212);
+    color: rgba(255, 255, 255, 255);
 }
