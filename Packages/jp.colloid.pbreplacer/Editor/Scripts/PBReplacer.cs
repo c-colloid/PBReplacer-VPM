@@ -24,8 +24,8 @@ public class PBReplacer : EditorWindow
 	[SerializeField]
 	private VisualTreeAsset _tree;
 	private TemplateContainer _root;
-	private VRCPhysBone[] _pbscript;
-	private VRCPhysBoneCollider[] _pbcscripts;
+	private List<VRCPhysBone> _pbscripts = new List<VRCPhysBone>();
+	private List<VRCPhysBoneCollider> _pbcscripts = new List<VRCPhysBoneCollider>();
 	private GameObject _vrcavatar;
 	private GameObject _armature;
 	[SerializeField]
@@ -34,17 +34,18 @@ public class PBReplacer : EditorWindow
 	private Component _selectObject;
 	private List<VRCPhysBoneColliderBase> _colliders;
 	
-	#if UNITY_2021_3_OR_NEWER
 	Func<VisualElement> _makeItem = () => {
 		var l = new Label();
-		l.AddToClassList("myitem");
+		l.AddToClassList("listitem");
 		return l;
 	};
+	#if UNITY_2021_3_OR_NEWER
 	Action<VisualElement, int> _bindItem;
 	List<string> _itemSource = new List<string>();
 	#endif
 	ListView _pblist;
 	ListView _pbclist;
+	string _listItemClassName = "listitem";
 #endregion
 
 #region Methods/Unity Methods
@@ -58,8 +59,16 @@ public class PBReplacer : EditorWindow
 		wnd.titleContent = new GUIContent("PBReplacer");
 		
 		//エラーでウィンドウが見つけられなくなった時に初期値に戻すために使用
-		//wnd.minSize = new Vector2(600,400);
+		//wnd.minSize = new Vector2(300,200);
 		//wnd.position = new Rect(0,0,0,0);
+	}
+	
+	public static void ShowSelectedWindow()
+	{
+		ShowWindow();
+		var wnd = GetWindow<PBReplacer>();
+		wnd.rootVisualElement.Q<ObjectField>("AvatarFiled").value = Selection.activeGameObject;
+		Debug.Log(wnd.rootVisualElement.Q<ObjectField>("AvatarFiled").value);
 	}
 	
 	private void OnEnable()
@@ -112,24 +121,54 @@ public class PBReplacer : EditorWindow
 		_pbclist = _root.Query<ListView>("PBCListField").First();
 		
 		#if UNITY_2019
-		var pblist = new Foldout(){text = "PBList",name = "PBList"};
-		var pbclist = new Foldout(){text = "PBCList",name = "PBCList"};
+		var pblist = new Foldout(){text = "PBList",name = "PBList",style = {flexGrow = 1}};
+		var pbclist = new Foldout(){text = "PBCList",name = "PBCList",style = {flexGrow = 1}};
 		
-		_pblist.Add(pblist);
-		_pbclist.Add(pbclist);
+		pblist.contentContainer.style.flexGrow = 1;
+		pblist.contentContainer.style.marginLeft = 1;
+		pbclist.contentContainer.style.flexGrow = 1;
+		pbclist.contentContainer.style.marginLeft = 1;
+		
+		_pblist.parent.Insert(0,pblist);
+		pblist.Add(_pblist);
+		_pbclist.parent.Add(pbclist);
+		pbclist.Add(_pbclist);
 		#else
-		var listView = _root.Q<ListView>("PBListField");
-		listView.makeItem = _makeItem;
-		listView.bindItem = _bindItem = (e, i) => (e as Label).text = _itemSource[i];
-		listView.itemsSource = _itemSource;
+		//var listView = _root.Q<ListView>("PBListField");
+		//listView.makeItem = _makeItem;
+		//listView.bindItem = _bindItem = (e, i) => (e as Label).text = _itemSource[i];
+		//listView.itemsSource = _itemSource;
 		
-		_pbclist.makeItem = () => {
-			var l = new Label();
-			l.AddToClassList("myitem");
-			return l;
+		//_pbclist.makeItem = () => {
+		//	var l = new Label();
+		//	l.AddToClassList("myitem");
+		//	return l;
+		//};
+		//_pbclist.itemsSource = new List<string>();
+		//_pbclist.bindItem = (e, i) => (e as Label).text = (string)_pbclist.itemsSource[i];
+		#endif
+		
+		_pblist.itemsSource = _pbscripts;
+		_pblist.makeItem = _makeItem;
+		_pblist.bindItem = (e,i) => {
+			(e as Label).text = (_pblist.itemsSource[i] as VRCPhysBone) ? (_pblist.itemsSource[i] as VRCPhysBone).name : "List is empty";
+			e.style.paddingLeft = (_pblist.itemsSource[i] as VRCPhysBone) ? default : 6;
+			_pblist.selectionType = (_pblist.itemsSource[i] as VRCPhysBone) ? SelectionType.Single : SelectionType.None;
 		};
-		_pbclist.itemsSource = new List<string>();
-		_pbclist.bindItem = (e, i) => (e as Label).text = (string)_pbclist.itemsSource[i];
+		_pbclist.itemsSource = _pbcscripts;
+		_pbclist.makeItem = _makeItem;
+		_pbclist.bindItem = (e,i) => (e as Label).text = (_pbclist.itemsSource[i] as VRCPhysBoneCollider).name;
+		
+		#if UNITY_2019
+		_pblist.onSelectionChanged += o => 
+			Selection.activeObject = o.Single(t => t as VRCPhysBone) as UnityEngine.Object;
+		_pbclist.onSelectionChanged += o => 
+			Selection.activeObject = o.Single(t => t as VRCPhysBoneCollider) as UnityEngine.Object;
+		#else
+		_pblist.onSelectionChange += o => 
+			Selection.activeObject = o.Single(t => t as VRCPhysBone) as UnityEngine.Object;
+		_pbclist.onSelectionChange += o => 
+			Selection.activeObject = o.Single(t => t as VRCPhysBoneCollider) as UnityEngine.Object;
 		#endif
 	}
 
@@ -140,7 +179,7 @@ public class PBReplacer : EditorWindow
 		if (_avatarDynamicsPrefab == null)
 			_avatarDynamicsPrefab = Resources.Load<GameObject>("AvatarDynamics");
 		
-		if (_vrcavatar == null || _pbscript == null && _pbcscripts == null)
+		if (_vrcavatar == null || _pbscripts == null && _pbcscripts == null)
 		{
 			return;
 		}
@@ -172,33 +211,37 @@ public class PBReplacer : EditorWindow
 			_armature = _vrcavatar.TryGetComponent<Animator>(out var vrcavatarAnimator) && vrcavatarAnimator.isHuman ?
 				vrcavatarAnimator.GetBoneTransform(HumanBodyBones.Hips).parent.gameObject :
 				FindArmarture();
-			_pbscript = _armature?.GetComponentsInChildren<VRCPhysBone>(true);
-			_pbcscripts = _armature?.GetComponentsInChildren<VRCPhysBoneCollider>(true);
-			if (_pbscript == null && _pbcscripts == null) {
+			_pbscripts.AddRange(_armature?.GetComponentsInChildren<VRCPhysBone>(true));
+			_pbcscripts.AddRange(_armature?.GetComponentsInChildren<VRCPhysBoneCollider>(true));
+			if (_pbscripts.Count <= 0 && _pbcscripts.Count <= 0) {
+				_pbscripts.Add(new VRCPhysBone());
 				_root.Query<Label>("ToolBarLabel").First().text = "Armature内にPhysBoneが見つかりません";
+				
+				#if UNITY_2019
+				_pblist.Refresh();
+				_pbclist.Refresh();
+				#elif UNITY_2021_3_OR_NEWER
+				_pblist.Rebuild();
+				_pbclist.Rebuild();
+				#endif
+				
 				return _root;
 			}
 			
-			foreach (var item in _pbscript)
+			foreach (var item in _pbscripts)
 			{
 				#if UNITY_2019
-				var _newLineLabel = new Label(item.name);
-				_newLineLabel.AddToClassList("myitem");
-				var list = _root.Query<Foldout>("PBList").First();
-				list.Add(_newLineLabel);
+				//AddLabel(item.gameObject,"PBList");
 				#else
-				_pblist.itemsSource.Add(item.name);
+				//_pblist.itemsSource.Add(item.name);
 				#endif
 			}
 			foreach (var item in _pbcscripts)
 			{
 				#if UNITY_2019
-				var _newLineLabel = new Label(item.name);
-				_newLineLabel.AddToClassList("myitem");
-				var list = _root.Query<Foldout>("PBCList").First();
-				list.Add(_newLineLabel);
+				//AddLabel(item.gameObject,"PBCList");
 				#else
-				_pbclist.itemsSource.Add(item.name);
+				//_pbclist.itemsSource.Add(item.name);
 				#endif
 			}
 		}
@@ -214,7 +257,10 @@ public class PBReplacer : EditorWindow
 			#endif
 		}
 		
-		#if UNITY_2021_3_OR_NEWER
+		#if UNITY_2019
+		_pblist.Refresh();
+		_pbclist.Refresh();
+		#elif UNITY_2021_3_OR_NEWER
 		_pblist.Rebuild();
 		_pbclist.Rebuild();
 		#endif
@@ -226,16 +272,29 @@ public class PBReplacer : EditorWindow
 	private void ResetList()
 	{
 		#if UNITY_2019
-		while (_root.Query<VisualElement>(null,"myitem").Last() != null)
-		{
-			var element = _root.Query<VisualElement>(null,"myitem").Last();
-			element.parent.Remove(element);
-		}
+		//while (_root.Query<VisualElement>(null,_listItemClassName).Last() != null)
+		//{
+		//	var element = _root.Query<VisualElement>(null,_listItemClassName).Last();
+		//	element.parent.Remove(element);
+		//}
 		#else
+		#endif
 		_pblist.itemsSource.Clear();
 		_pbclist.itemsSource.Clear();
-		#endif
 	}
+	
+	//private void AddLabel(GameObject target, string targetTypeName)
+	//{
+	//	var newLineLabel = new Label(target.name);
+	//	newLineLabel.AddToClassList(_listItemClassName);
+	//	newLineLabel.focusable = true;
+	//	newLineLabel.RegisterCallback<MouseDownEvent>(evt => {
+	//		Selection.activeGameObject = target;
+	//		newLineLabel.Focus();
+	//	});
+	//	var list = _root.Query<Foldout>(targetTypeName).First();
+	//	list.Add(newLineLabel);
+	//}
 	
 	//Avatar内からArmatureを検出
 	private GameObject FindArmarture()
@@ -282,7 +341,7 @@ public class PBReplacer : EditorWindow
 	//PBを再配置
 	private void ReplacePB()
 	{
-		foreach (var item in _pbscript)
+		foreach (var item in _pbscripts)
 		{
 			if (item.rootTransform == null)
 			{
@@ -365,7 +424,7 @@ public class PBReplacer : EditorWindow
 			}
 			
 			//PBのコライダーを付け替え
-			foreach (var pb in _pbscript)
+			foreach (var pb in _pbscripts)
 			{
 				var index = pb.colliders.IndexOf(item);
 				if (index >= 0)
