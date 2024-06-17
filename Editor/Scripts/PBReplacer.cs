@@ -17,7 +17,7 @@ using nadena.dev.modular_avatar.core;
 
 namespace colloid.PBReplacer
 {
-	
+
 public class PBReplacer : EditorWindow
 {
 #region Variables
@@ -159,23 +159,21 @@ public class PBReplacer : EditorWindow
 		BindListView(_pblist,_pbscripts);
 		BindListView(_pbclist,_pbcscripts);
 		
-		
+		UnityEngine.Object[] select = null;
 		void SelectList(List<object> obj)
 		{
-			Selection.objects = obj.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
-			Selection.activeObject = obj.Select(t => t as VRCPhysBone).First() as UnityEngine.Object;
+			select = obj.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
 		}
 		#if UNITY_2019
-		_pblist.onSelectionChanged += o =>
-			Selection.objects = o.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
-		_pbclist.onSelectionChanged += o => 
-			Selection.objects = o.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
+		_pblist.onSelectionChanged += o => SelectList(o);
+		_pbclist.onSelectionChanged += o => SelectList(o);
 		#else
-		_pblist.onSelectionChange += o => 
-			Selection.activeObject = o.Single(t => t as VRCPhysBone) as UnityEngine.Object;
-		_pbclist.onSelectionChange += o => 
-			Selection.activeObject = o.Single(t => t as VRCPhysBoneCollider) as UnityEngine.Object;
+		_pblist.onSelectionChange += o => SelectList(o);
+		_pbclist.onSelectionChange += o => SelectList(o);
 		#endif
+
+		_pblist.RegisterCallback<MouseUpEvent>(evt => Selection.objects = select);
+		_pbclist.RegisterCallback<MouseUpEvent>(evt => Selection.objects = select);
 	}
 	
 	//ApplyButtonがクリックされた場合
