@@ -24,8 +24,8 @@ public class PBReplacer : EditorWindow
 	[SerializeField]
 	private VisualTreeAsset _tree;
 	private TemplateContainer _root;
-	private List<VRCPhysBone> _pbscripts = new List<VRCPhysBone>();
-	private List<VRCPhysBoneCollider> _pbcscripts = new List<VRCPhysBoneCollider>();
+	private List<Component> _pbscripts = new List<Component>();
+	private List<Component> _pbcscripts = new List<Component>();
 	private GameObject _vrcavatar;
 	private GameObject _armature;
 	[SerializeField]
@@ -36,16 +36,27 @@ public class PBReplacer : EditorWindow
 	
 	Func<VisualElement> _makeItem = () => {
 		var l = new Label();
-		l.AddToClassList("listitem");
+		l.AddToClassList(_listItemClassName);
 		return l;
 	};
-	#if UNITY_2021_3_OR_NEWER
 	Action<VisualElement, int> _bindItem;
-	List<string> _itemSource = new List<string>();
+	List<string> _itemSource;
+	#if UNITY_2021_3_OR_NEWER
 	#endif
 	ListView _pblist;
 	ListView _pbclist;
-	string _listItemClassName = "listitem";
+	const string _listItemClassName = "listitem";
+#endregion
+
+#region Propaty
+	public List<VRCPhysBone> PBscripts {
+		get => _pbscripts.Select(o => o as VRCPhysBone).ToList();
+		set => _pbscripts = value.Select(o => o as Component).ToList();
+	}
+	public List<VRCPhysBoneCollider> PBCscripts {
+		get => _pbcscripts.Select(o => o as VRCPhysBoneCollider).ToList();
+		set => _pbcscripts = value.Select(o => o as Component).ToList();
+	}
 #endregion
 
 #region Methods/Unity Methods
@@ -92,7 +103,7 @@ public class PBReplacer : EditorWindow
 		root.Query<Button>("ApplyButton").First().clicked += () => OnClickApplyBtn();
 		
 		//ReloadButtonが押された場合
-		root.Query<Button>("ReloadButton").First().clicked += () => loadList();
+		root.Query<Button>("ReloadButton").First().clicked += () => LoadList();
 		
 		//オブジェクトフィールドのタイプを設定
 		var avatarField = root.Q<ObjectField>("AvatarFiled");
@@ -106,8 +117,10 @@ public class PBReplacer : EditorWindow
 		avatarField.RegisterValueChangedCallback(evt =>
 		{
 			_selectObject = evt.newValue as Component;
-			root = loadList();
+			root = LoadList();
 		});
+		
+		Undo.undoRedoPerformed += () => LoadList();
 		
 		rootVisualElement.Add(root);
 	}
@@ -134,30 +147,16 @@ public class PBReplacer : EditorWindow
 		_pbclist.parent.Add(pbclist);
 		pbclist.Add(_pbclist);
 		#else
-		//var listView = _root.Q<ListView>("PBListField");
-		//listView.makeItem = _makeItem;
-		//listView.bindItem = _bindItem = (e, i) => (e as Label).text = _itemSource[i];
-		//listView.itemsSource = _itemSource;
-		
-		//_pbclist.makeItem = () => {
-		//	var l = new Label();
-		//	l.AddToClassList("myitem");
-		//	return l;
-		//};
-		//_pbclist.itemsSource = new List<string>();
-		//_pbclist.bindItem = (e, i) => (e as Label).text = (string)_pbclist.itemsSource[i];
 		#endif
-		
-		_pblist.itemsSource = _pbscripts;
-		_pblist.makeItem = _makeItem;
-		_pblist.bindItem = (e,i) => {
-			(e as Label).text = (_pblist.itemsSource[i] as VRCPhysBone) ? (_pblist.itemsSource[i] as VRCPhysBone).name : "List is empty";
-			e.style.paddingLeft = (_pblist.itemsSource[i] as VRCPhysBone) ? default : 6;
-			_pblist.selectionType = (_pblist.itemsSource[i] as VRCPhysBone) ? SelectionType.Single : SelectionType.None;
-		};
-		_pbclist.itemsSource = _pbcscripts;
-		_pbclist.makeItem = _makeItem;
-		_pbclist.bindItem = (e,i) => (e as Label).text = (_pbclist.itemsSource[i] as VRCPhysBoneCollider).name;
+				
+		void BindListView(ListView listview, List<Component> list)
+		{
+			listview.itemsSource = list;
+			listview.makeItem = _makeItem;
+			listview.bindItem = (e,i) =>(e as Label).text = (listview.itemsSource[i] as Component).name;
+		}
+		BindListView(_pblist,_pbscripts);		
+		BindListView(_pbclist,_pbcscripts);
 		
 		#if UNITY_2019
 		_pblist.onSelectionChanged += o => 
@@ -171,7 +170,7 @@ public class PBReplacer : EditorWindow
 			Selection.activeObject = o.Single(t => t as VRCPhysBoneCollider) as UnityEngine.Object;
 		#endif
 	}
-
+	
 	//ApplyButtonがクリックされた場合
 	private void OnClickApplyBtn()
 	{
@@ -192,12 +191,13 @@ public class PBReplacer : EditorWindow
 		PlacePrefab();
 		ReplacePBC();
 		ReplacePB();
+		LoadList();
 		
 		_root.Query<Label>("ToolBarLabel").First().text = "完了!!!";
 	}
 	
 	//リスト表示
-	private TemplateContainer loadList()
+	private TemplateContainer LoadList()
 	{
 		var vrcavatar = _selectObject?.gameObject;
 	
@@ -211,23 +211,18 @@ public class PBReplacer : EditorWindow
 			_armature = _vrcavatar.TryGetComponent<Animator>(out var vrcavatarAnimator) && vrcavatarAnimator.isHuman ?
 				vrcavatarAnimator.GetBoneTransform(HumanBodyBones.Hips).parent.gameObject :
 				FindArmarture();
+				
 			_pbscripts.AddRange(_armature?.GetComponentsInChildren<VRCPhysBone>(true));
 			_pbcscripts.AddRange(_armature?.GetComponentsInChildren<VRCPhysBoneCollider>(true));
 			if (_pbscripts.Count <= 0 && _pbcscripts.Count <= 0) {
-				_pbscripts.Add(new VRCPhysBone());
 				_root.Query<Label>("ToolBarLabel").First().text = "Armature内にPhysBoneが見つかりません";
 				
-				#if UNITY_2019
-				_pblist.Refresh();
-				_pbclist.Refresh();
-				#elif UNITY_2021_3_OR_NEWER
-				_pblist.Rebuild();
-				_pbclist.Rebuild();
-				#endif
+				RepaintList();
 				
 				return _root;
 			}
 			
+			/*
 			foreach (var item in _pbscripts)
 			{
 				#if UNITY_2019
@@ -244,6 +239,7 @@ public class PBReplacer : EditorWindow
 				//_pbclist.itemsSource.Add(item.name);
 				#endif
 			}
+			*/
 		}
 		else
 		{
@@ -257,6 +253,13 @@ public class PBReplacer : EditorWindow
 			#endif
 		}
 		
+		RepaintList();
+		
+		return _root;
+	}
+	
+	private void RepaintList()
+	{
 		#if UNITY_2019
 		_pblist.Refresh();
 		_pbclist.Refresh();
@@ -264,13 +267,12 @@ public class PBReplacer : EditorWindow
 		_pblist.Rebuild();
 		_pbclist.Rebuild();
 		#endif
-		
-		return _root;
 	}
 	
 	//リスト表示のリセット
 	private void ResetList()
 	{
+		/*
 		#if UNITY_2019
 		//while (_root.Query<VisualElement>(null,_listItemClassName).Last() != null)
 		//{
@@ -279,8 +281,11 @@ public class PBReplacer : EditorWindow
 		//}
 		#else
 		#endif
+		*/
 		_pblist.itemsSource.Clear();
 		_pbclist.itemsSource.Clear();
+		
+		RepaintList();
 	}
 	
 	//private void AddLabel(GameObject target, string targetTypeName)
@@ -336,12 +341,14 @@ public class PBReplacer : EditorWindow
 		_avatarDynamicsObject.transform.SetParent(_vrcavatar.transform);
 		_avatarDynamicsObject.transform.localPosition = Vector3.zero;
 		//Debug.Log("Prefabを配置");
+		
+		Undo.RegisterCreatedObjectUndo(_avatarDynamicsObject,"生成したAvatarDynamics");
 	}
 	
 	//PBを再配置
-	private void ReplacePB()
+	private void ReplacePB() // VRCPhysBone
 	{
-		foreach (var item in _pbscripts)
+		foreach (VRCPhysBone item in _pbscripts)
 		{
 			if (item.rootTransform == null)
 			{
@@ -378,12 +385,12 @@ public class PBReplacer : EditorWindow
 			{
 				field.SetValue(newphysbone, field.GetValue(item));
 			}
-			DestroyImmediate(item);
+			Undo.DestroyObjectImmediate(item);
 		}
 	}
-	private void ReplacePBC()
+	private void ReplacePBC() // VRCPhysBoneCollider
 	{
-		foreach (var item in _pbcscripts)
+		foreach (VRCPhysBoneCollider item in _pbcscripts)
 		{
 			if (item.rootTransform == null)
 			{
@@ -413,7 +420,7 @@ public class PBReplacer : EditorWindow
 			
 			var newphysbonecollider = obj.AddComponent<VRCPhysBoneCollider>();
 			
-			System.Type type = item.GetType();
+			Type type = item.GetType();
 			
 			FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
 			foreach (var field in fields)
@@ -424,7 +431,7 @@ public class PBReplacer : EditorWindow
 			}
 			
 			//PBのコライダーを付け替え
-			foreach (var pb in _pbscripts)
+			foreach (VRCPhysBone pb in _pbscripts) // VRCPhysBone
 			{
 				var index = pb.colliders.IndexOf(item);
 				if (index >= 0)
@@ -434,7 +441,7 @@ public class PBReplacer : EditorWindow
 				
 			}
 			
-			DestroyImmediate(item);
+			Undo.DestroyObjectImmediate(item);
 		}
 	}
 #endregion
