@@ -65,3 +65,5 @@ crashlytics-build.properties
 Assets/PackageMakerWindowData.asset*
 .idea
 .vscode
+/Packages/com.vrchat.core.vpm-resolver*
+/ProjectSettings
