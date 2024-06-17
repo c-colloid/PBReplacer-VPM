@@ -154,15 +154,22 @@ public class PBReplacer : EditorWindow
 			listview.itemsSource = list;
 			listview.makeItem = _makeItem;
 			listview.bindItem = (e,i) =>(e as Label).text = (listview.itemsSource[i] as Component).name;
+			listview.selectionType = SelectionType.Multiple;
 		}
-		BindListView(_pblist,_pbscripts);		
+		BindListView(_pblist,_pbscripts);
 		BindListView(_pbclist,_pbcscripts);
 		
+		
+		void SelectList(List<object> obj)
+		{
+			Selection.objects = obj.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
+			Selection.activeObject = obj.Select(t => t as VRCPhysBone).First() as UnityEngine.Object;
+		}
 		#if UNITY_2019
-		_pblist.onSelectionChanged += o => 
-			Selection.activeObject = o.Single(t => t as VRCPhysBone) as UnityEngine.Object;
+		_pblist.onSelectionChanged += o =>
+			Selection.objects = o.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
 		_pbclist.onSelectionChanged += o => 
-			Selection.activeObject = o.Single(t => t as VRCPhysBoneCollider) as UnityEngine.Object;
+			Selection.objects = o.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
 		#else
 		_pblist.onSelectionChange += o => 
 			Selection.activeObject = o.Single(t => t as VRCPhysBone) as UnityEngine.Object;
