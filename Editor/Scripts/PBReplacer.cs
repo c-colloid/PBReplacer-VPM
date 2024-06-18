@@ -45,6 +45,8 @@ public class PBReplacer : EditorWindow
 	#endif
 	ListView _pblist;
 	ListView _pbclist;
+	
+	const string _avatarFieldDefaultTextwithMA = "None (VRC_Avatar Descriptor or MA Setuped Object)";
 	const string _listItemClassName = "listitem";
 #endregion
 
@@ -108,9 +110,9 @@ public class PBReplacer : EditorWindow
 		//オブジェクトフィールドのタイプを設定
 		var avatarField = root.Q<ObjectField>("AvatarFiled");
 		avatarField.objectType = typeof(VRC_AvatarDescriptor);
-		avatarField.Q<VisualElement>("","unity-object-field-display").AddManipulator(new OnDragAndDropItemChange());
+		avatarField.Q<VisualElement>("","unity-object-field-display").AddManipulator(new OnAvatarFieldDragAndDropItemChange());
 		#if MODULAR_AVATAR
-		avatarField.Q<Label>("","unity-object-field-display__label").text = "None (VRC_Avatar Descriptor or MA Marge Armature)";
+		avatarField.Q<Label>("","unity-object-field-display__label").text = _avatarFieldDefaultTextwithMA;
 		#endif
 		
 		//オブジェクトフィールドが更新された場合

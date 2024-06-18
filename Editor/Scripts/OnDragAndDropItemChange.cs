@@ -12,11 +12,11 @@ using nadena.dev.modular_avatar.core;
 
 namespace colloid.PBReplacer
 {
-	class OnDragAndDropItemChange : Manipulator
+	class OnAvatarFieldDragAndDropItemChange : Manipulator
 	{
-		private GameObject targetObject;
-		private string title = "衣装用オプション";
-		private string message = "このオブジェクトにはAvatarDiscriptorがついていません\n衣装用オプションを適用しますか？\n\n" +
+		private GameObject _targetObject;
+		private const string title = "衣装用オプション";
+		private const string message = "このオブジェクトにはAvatarDiscriptorがついていません\n衣装用オプションを適用しますか？\n\n" +
 			"※このオプションは想定外の挙動をする可能性があります\n※ツールの特性を理解したうえでご利用ください";
 		
 		protected override void RegisterCallbacksOnTarget() {
@@ -32,14 +32,29 @@ namespace colloid.PBReplacer
 		}
 		
 		private void OnDragItem(DragUpdatedEvent evt){
-			targetObject = DragAndDrop.objectReferences[0] as GameObject;
-			if (!targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var component)) DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
+			_targetObject = DragAndDrop.objectReferences[0] as GameObject;
+			if (!_targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var component)) DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
 		}
 		
 		private void OnDropItem(DragPerformEvent evt){
-			if (targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var VRCcomponent)) return; 
+			if (_targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var VRCcomponent)) return; 
+			
+			if (_targetObject.TryGetComponent<Animator>(out var AvatarAnimatorcomponent)) {
+				var window = PBReplacer.GetWindow<PBReplacer>();
+				window.rootVisualElement.Q<ObjectField>().value = AvatarAnimatorcomponent;
+				return;
+			}
+			
 			#if MODULAR_AVATAR
-			if (targetObject.TryGetComponent<ModularAvatarMergeArmature>(out var MAcomponent)) {
+			var resultList = new List<ModularAvatarMergeArmature>();
+			_targetObject.transform.GetComponentsInChildren<ModularAvatarMergeArmature>(true,resultList);
+			if (resultList.Count > 0){
+				var window = PBReplacer.GetWindow<PBReplacer>();
+				window.rootVisualElement.Q<ObjectField>().value = _targetObject.transform;
+				return;
+			}
+			
+			if (_targetObject.TryGetComponent<ModularAvatarMergeArmature>(out var MAcomponent)) {
 			var window = PBReplacer.GetWindow<PBReplacer>();
 				window.rootVisualElement.Q<ObjectField>().value = MAcomponent;
 			return;
@@ -48,7 +63,7 @@ namespace colloid.PBReplacer
 			if (EditorUtility.DisplayDialog(title,message,"OK","Cancel"))
 			{
 				var window = PBReplacer.GetWindow<PBReplacer>();
-				window.rootVisualElement.Q<ObjectField>().value = targetObject.transform;
+				window.rootVisualElement.Q<ObjectField>().value = _targetObject.transform;
 			}
 		}
 	}
