@@ -215,7 +215,9 @@ public class PBReplacer : EditorWindow
 			_vrcavatar = vrcavatar;
 			//Debug.Log("Avatarをセットしたよ"+_vrcavatar);
 			_root.Query<Label>("ToolBarLabel").First().text = "Applyを押してください";
-			_armature = _vrcavatar.TryGetComponent<Animator>(out var vrcavatarAnimator) && vrcavatarAnimator.isHuman ?
+			Animator vrcavatarAnimator;
+			_armature = _vrcavatar.TryGetComponent<Animator>(out vrcavatarAnimator) &&
+				vrcavatarAnimator.GetBoneTransform(HumanBodyBones.Hips) ?
 				vrcavatarAnimator.GetBoneTransform(HumanBodyBones.Hips).parent.gameObject :
 				FindArmarture();
 				
