@@ -1,6 +1,3 @@
-VisualElement {
-}
-
 .unity-base-field__label {
     -unity-font-style: bold-and-italic;
 }
