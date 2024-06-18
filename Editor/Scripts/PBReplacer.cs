@@ -59,6 +59,7 @@ public class PBReplacer : EditorWindow
 		get => _pbcscripts.Select(o => o as VRCPhysBoneCollider).ToList();
 		set => _pbcscripts = value.Select(o => o as Component).ToList();
 	}
+	public GameObject Armature { get => _armature; set => _armature = value; }
 #endregion
 
 #region Methods/Unity Methods
@@ -135,6 +136,11 @@ public class PBReplacer : EditorWindow
 		_pblist = _root.Query<ListView>("PBListField").First();
 		_pbclist = _root.Query<ListView>("PBCListField").First();
 		
+		//_pblist.AddManipulator(new OnListViewDragAndDropItemChange());
+		//_pbclist.AddManipulator(new OnListViewDragAndDropItemChange());
+		VisualElementExtensions.AddManipulator(_pblist,new OnListViewDragAndDropItemChange());
+		VisualElementExtensions.AddManipulator(_pbclist,new OnListViewDragAndDropItemChange());
+		
 		#if UNITY_2019
 		var pblist = new Foldout(){text = "PBList",name = "PBList",style = {flexGrow = 1}};
 		var pbclist = new Foldout(){text = "PBCList",name = "PBCList",style = {flexGrow = 1}};
@@ -151,20 +157,28 @@ public class PBReplacer : EditorWindow
 		#else
 		#endif
 				
+		bool isSelectList = false;
+		UnityEngine.Object[] select = null;
 		void BindListView(ListView listview, List<Component> list)
 		{
 			listview.itemsSource = list;
 			listview.makeItem = _makeItem;
-			listview.bindItem = (e,i) =>(e as Label).text = (listview.itemsSource[i] as Component).name;
+			listview.bindItem = (e,i) => {
+				(e as Label).text = (listview.itemsSource[i] as Component).name;
+				e.RegisterCallback<PointerDownEvent>(evt => {
+					DragAndDrop.PrepareStartDrag();
+					isSelectList = true;
+				});
+			};
 			listview.selectionType = SelectionType.Multiple;
 		}
 		BindListView(_pblist,_pbscripts);
 		BindListView(_pbclist,_pbcscripts);
 		
-		UnityEngine.Object[] select = null;
 		void SelectList(List<object> obj)
 		{
 			select = obj.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
+			
 		}
 		#if UNITY_2019
 		_pblist.onSelectionChanged += o => SelectList(o);
@@ -173,9 +187,28 @@ public class PBReplacer : EditorWindow
 		_pblist.onSelectionChange += o => SelectList(o);
 		_pbclist.onSelectionChange += o => SelectList(o);
 		#endif
-
-		_pblist.RegisterCallback<MouseUpEvent>(evt => Selection.objects = select);
-		_pbclist.RegisterCallback<MouseUpEvent>(evt => Selection.objects = select);
+		
+		void ListOnDrag(PointerMoveEvent evt)
+		{
+			if (Event.current.type != EventType.MouseDrag) return;
+			if (!isSelectList) return;
+			Debug.Log("Drag");
+			//DragAndDrop.SetGenericData("DragListViewItem",select);
+			DragAndDrop.objectReferences = select;
+			DragAndDrop.StartDrag(string.Empty);
+			isSelectList = false;
+		}
+		_pblist.RegisterCallback<PointerMoveEvent>(ListOnDrag);
+		_pbclist.RegisterCallback<PointerMoveEvent>(ListOnDrag);
+		
+		void SelectListMouseUp(PointerUpEvent evt)
+		{
+			if (!isSelectList) return;
+			Selection.objects = select;
+			isSelectList = false;
+		}
+		_pblist.RegisterCallback<PointerUpEvent>(SelectListMouseUp);
+		_pbclist.RegisterCallback<PointerUpEvent>(SelectListMouseUp);
 	}
 	
 	//ApplyButtonがクリックされた場合
@@ -204,7 +237,7 @@ public class PBReplacer : EditorWindow
 	}
 	
 	//リスト表示
-	private TemplateContainer LoadList()
+	public TemplateContainer LoadList()
 	{
 		var vrcavatar = _selectObject?.gameObject;
 	
