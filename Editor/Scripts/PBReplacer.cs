@@ -184,8 +184,8 @@ public class PBReplacer : EditorWindow
 		_pblist.onSelectionChanged += o => SelectList(o);
 		_pbclist.onSelectionChanged += o => SelectList(o);
 		#else
-		_pblist.onSelectionChange += o => SelectList(o);
-		_pbclist.onSelectionChange += o => SelectList(o);
+		_pblist.selectionChanged += o => SelectList(o.ToList());
+		_pbclist.selectionChanged += o => SelectList(o.ToList());
 		#endif
 		
 		void ListOnDrag(PointerMoveEvent evt)
