@@ -1,4 +1,6 @@
-﻿using System.Runtime.Versioning;
+﻿using System;
+using System.Linq;
+using System.Runtime.Versioning;
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEngine;
@@ -8,8 +10,6 @@ using UnityEditor.UIElements;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
 using VRC.Dynamics;
-using System.Linq;
-using System;
 
 #if MODULAR_AVATAR
 using nadena.dev.modular_avatar.core;
@@ -26,6 +26,8 @@ public class PBReplacer : EditorWindow
 	private TemplateContainer _root;
 	private List<Component> _pbscripts = new List<Component>();
 	private List<Component> _pbcscripts = new List<Component>();
+	private List<Component> _temppbscripts = new List<Component>();
+	private List<Component> _temppbcscripts = new List<Component>();
 	private GameObject _vrcavatar;
 	private GameObject _armature;
 	[SerializeField]
@@ -41,10 +43,9 @@ public class PBReplacer : EditorWindow
 	};
 	Action<VisualElement, int> _bindItem;
 	List<string> _itemSource;
-	#if UNITY_2021_3_OR_NEWER
-	#endif
 	ListView _pblist;
 	ListView _pbclist;
+	OnListViewDragAndDropItemChange _pbManipulator,_pbcManipulator;
 	
 	const string _avatarFieldDefaultTextwithMA = "None (VRC_Avatar Descriptor or MA Setuped Object)";
 	const string _listItemClassName = "listitem";
@@ -89,6 +90,19 @@ public class PBReplacer : EditorWindow
 	{
 		//初期化
 		_vrcavatar = null;
+	}
+	
+	private void OnDisable()
+	{
+		//_pbManipulator.OnDisable();
+		//_pbcManipulator.OnDisable();
+		_pblist.RemoveManipulator(_pbManipulator);
+		_pbclist.RemoveManipulator(_pbcManipulator);
+	}
+	
+	private void OnDestroy()
+	{
+		
 	}
 	
 	private void CreateGUI()
@@ -136,10 +150,12 @@ public class PBReplacer : EditorWindow
 		_pblist = _root.Query<ListView>("PBListField").First();
 		_pbclist = _root.Query<ListView>("PBCListField").First();
 		
-		//_pblist.AddManipulator(new OnListViewDragAndDropItemChange());
-		//_pbclist.AddManipulator(new OnListViewDragAndDropItemChange());
-		VisualElementExtensions.AddManipulator(_pblist,new OnListViewDragAndDropItemChange());
-		VisualElementExtensions.AddManipulator(_pbclist,new OnListViewDragAndDropItemChange());
+		_pbManipulator = new OnListViewDragAndDropItemChange();
+		_pbcManipulator = new OnListViewDragAndDropItemChange();
+		_pblist.AddManipulator(_pbManipulator);
+		_pbclist.AddManipulator(_pbcManipulator);
+		//VisualElementExtensions.AddManipulator(_pblist,new OnListViewDragAndDropItemChange());
+		//VisualElementExtensions.AddManipulator(_pbclist,new OnListViewDragAndDropItemChange());
 		
 		#if UNITY_2019
 		var pblist = new Foldout(){text = "PBList",name = "PBList",style = {flexGrow = 1}};
@@ -167,7 +183,7 @@ public class PBReplacer : EditorWindow
 				(e as Label).text = (listview.itemsSource[i] as Component).name;
 				e.RegisterCallback<PointerDownEvent>(evt => {
 					DragAndDrop.PrepareStartDrag();
-					isSelectList = true;
+					
 				});
 			};
 			listview.selectionType = SelectionType.Multiple;
@@ -178,7 +194,7 @@ public class PBReplacer : EditorWindow
 		void SelectList(List<object> obj)
 		{
 			select = obj.Select(t => (t as Component).gameObject).ToArray() as UnityEngine.Object[];
-			
+			isSelectList = true;
 		}
 		#if UNITY_2019
 		_pblist.onSelectionChanged += o => SelectList(o);
@@ -197,18 +213,26 @@ public class PBReplacer : EditorWindow
 			DragAndDrop.objectReferences = select;
 			DragAndDrop.StartDrag(string.Empty);
 			isSelectList = false;
+			
+			PointerCaptureHelper.CapturePointer(evt.target,evt.pointerId);
 		}
 		_pblist.RegisterCallback<PointerMoveEvent>(ListOnDrag);
 		_pbclist.RegisterCallback<PointerMoveEvent>(ListOnDrag);
 		
 		void SelectListMouseUp(PointerUpEvent evt)
 		{
+			PointerCaptureHelper.ReleasePointer(evt.target,evt.pointerId);
+			
 			if (!isSelectList) return;
 			Selection.objects = select;
 			isSelectList = false;
 		}
 		_pblist.RegisterCallback<PointerUpEvent>(SelectListMouseUp);
 		_pbclist.RegisterCallback<PointerUpEvent>(SelectListMouseUp);
+		
+		_pblist.RegisterCallback<PointerCaptureOutEvent>(evt => {
+			Debug.Log("Capture is Out");
+		});
 	}
 	
 	//ApplyButtonがクリックされた場合
@@ -300,7 +324,7 @@ public class PBReplacer : EditorWindow
 		return _root;
 	}
 	
-	private void RepaintList()
+	public void RepaintList()
 	{
 		#if UNITY_2019
 		_pblist.Refresh();

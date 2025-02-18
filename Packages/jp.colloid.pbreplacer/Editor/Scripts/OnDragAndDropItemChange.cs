@@ -72,6 +72,7 @@ namespace colloid.PBReplacer
 	
 	class OnListViewDragAndDropItemChange : Manipulator
 	{
+		GameObject _tempRootObject;
 		private GameObject[] _targetObjects;
 		PBReplacer _window;
 		System.Type _componentType;
@@ -79,6 +80,12 @@ namespace colloid.PBReplacer
 		public OnListViewDragAndDropItemChange()
 		{
 			_window = PBReplacer.GetWindow<PBReplacer>();
+			_tempRootObject = new GameObject("LitVewTempRoot");
+		}
+		
+		public void OnDisable()
+		{
+			Object.DestroyImmediate(_tempRootObject);
 		}
 		
 		protected override void RegisterCallbacksOnTarget() {
@@ -93,6 +100,8 @@ namespace colloid.PBReplacer
 		
 		protected override void UnregisterCallbacksFromTarget() {
 			//throw new System.NotImplementedException();
+			Debug.Log("Unregistar");
+			Object.DestroyImmediate(_tempRootObject);
 			target.UnregisterCallback<DragEnterEvent>(OnDragEnter);
 			target.UnregisterCallback<DragLeaveEvent>(OnDragLeave);
 			_window.rootVisualElement.panel.visualTree.UnregisterCallback<MouseLeaveWindowEvent>(OnLeave);
