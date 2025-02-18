@@ -104,7 +104,6 @@ namespace colloid.PBReplacer
 			Object.DestroyImmediate(_tempRootObject);
 			target.UnregisterCallback<DragEnterEvent>(OnDragEnter);
 			target.UnregisterCallback<DragLeaveEvent>(OnDragLeave);
-			_window.rootVisualElement.panel.visualTree.UnregisterCallback<MouseLeaveWindowEvent>(OnLeave);
 			target.UnregisterCallback<DragUpdatedEvent>(OnDragItem);
 			target.UnregisterCallback<DragPerformEvent>(OnDropItem);
 		}
@@ -139,24 +138,6 @@ namespace colloid.PBReplacer
 				}
 			});
 			Undo.IncrementCurrentGroup();
-			_window.LoadList();
-		}
-		
-		private void OnLeave(MouseLeaveWindowEvent evt){
-			if (_window.Armature == null) return;
-			_targetObjects = DragAndDrop.objectReferences.Length > 0 ?
-				DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray() :
-			(DragAndDrop.GetGenericData("DragListViewItem") as Object[]) != null ?
-			(DragAndDrop.GetGenericData("DragListViewItem") as Object[]).Select(o => o as GameObject).ToArray() :
-				null;
-			if (_targetObjects == null) return;
-			Debug.Log($"{_targetObjects.Length}");
-			_targetObjects.ToList().ForEach(o => {
-				if (!o.TryGetComponent(_componentType,out var component)) return;
-				Debug.Log(component);
-				Undo.DestroyObjectImmediate(component);
-				Undo.IncrementCurrentGroup();
-			});
 			_window.LoadList();
 		}
 		
