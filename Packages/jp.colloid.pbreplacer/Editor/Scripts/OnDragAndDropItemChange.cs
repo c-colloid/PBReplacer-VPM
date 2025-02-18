@@ -114,6 +114,14 @@ namespace colloid.PBReplacer
 			if (target.layout.Contains(evt.localMousePosition)) return;
 			
 			_targetObjects = DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray();
+			_targetObjects.Where(o => !o.TryGetComponent(_componentType,out var component))
+				.ToList().ForEach(o => {
+					var component = new GameObject(o.name).AddComponent(_componentType);
+					component.transform.SetParent(_tempRootObject.transform);
+					component.hideFlags = HideFlags.HideAndDontSave;
+					(target as ListView).itemsSource.Add(component);
+				});
+			_window.RepaintList();
 		}
 		
 		private void OnDragLeave(DragLeaveEvent evt){
@@ -167,6 +175,17 @@ namespace colloid.PBReplacer
 		
 		private void OnDropItem(DragPerformEvent evt){
 			Debug.Log("Perform");
+			_targetObjects.Where(o => 
+				o.TryGetComponent(_componentType,out var component)
+				&& component.hideFlags == HideFlags.HideAndDontSave
+			)
+				.Select(o => o.GetComponent(_componentType)).ToList()
+				.ForEach(o => UnityEngine.Object.DestroyImmediate(o));
+			foreach (Transform child in _tempRootObject.transform)
+			{
+				Object.DestroyImmediate(child.gameObject);
+			}
+			
 			_targetObjects.Where(o => !o.TryGetComponent(_componentType,out var component))
 				.All(o => Undo.AddComponent(o,_componentType));
 			_window.LoadList();
