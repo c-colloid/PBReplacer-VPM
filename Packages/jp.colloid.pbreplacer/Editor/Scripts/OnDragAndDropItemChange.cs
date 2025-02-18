@@ -93,7 +93,6 @@ namespace colloid.PBReplacer
 			//throw new System.NotImplementedException();
 			target.RegisterCallback<DragEnterEvent>(OnDragEnter);
 			target.RegisterCallback<DragLeaveEvent>(OnDragLeave);
-			//_window.rootVisualElement.panel.visualTree.RegisterCallback<MouseLeaveWindowEvent>(OnLeave);
 			target.RegisterCallback<DragUpdatedEvent>(OnDragItem);
 			target.RegisterCallback<DragPerformEvent>(OnDropItem);
 		}
@@ -130,6 +129,7 @@ namespace colloid.PBReplacer
 			
 			//if (DragAndDrop.GetGenericData("DragListViewItem") == null)return;
 			//_targetObjects = (DragAndDrop.GetGenericData("DragListViewItem") as Object[]).Select(o => o as GameObject).ToArray();
+			
 			_targetObjects = DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray();
 			_targetObjects.ToList().ForEach(o => {
 				if (o.TryGetComponent(_componentType,out var component))
@@ -147,10 +147,10 @@ namespace colloid.PBReplacer
 			_targetObjects = DragAndDrop.objectReferences.Length > 0 ?
 				DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray() :
 			(DragAndDrop.GetGenericData("DragListViewItem") as Object[]) != null ?
-				(DragAndDrop.GetGenericData("DragListViewItem") as Object[]).Select(o => o as GameObject).ToArray() :
+			(DragAndDrop.GetGenericData("DragListViewItem") as Object[]).Select(o => o as GameObject).ToArray() :
 				null;
 			if (_targetObjects == null) return;
-			if (_targetObjects.All(o => !o.TryGetComponent(_componentType,out var component) && o.transform.IsChildOf(_window.Armature.transform)))
+			if (_targetObjects.All(o => /*!o.TryGetComponent(_componentType,out var component) &&*/ o.transform.IsChildOf(_window.Armature.transform)))
 				DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
 		}
 		
