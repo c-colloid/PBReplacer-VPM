@@ -110,13 +110,17 @@ namespace colloid.PBReplacer
 		}
 		
 		private void OnDragEnter(DragEnterEvent evt){
-			//_targetObjects = DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray();
-			//if (!_targetObjects.All(o => o.TryGetComponent<VRCPhysBone>(out var component)))
-			//	DragAndDrop.visualMode = DragAndDropVisualMode.Generic;
+			PointerCaptureHelper.CapturePointer(evt.target,0);
+			if (target.layout.Contains(evt.localMousePosition)) return;
+			
+			_targetObjects = DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray();
 		}
 		
 		private void OnDragLeave(DragLeaveEvent evt){
-			Debug.Log($"Leave");
+			evt.StopPropagation();
+			Debug.Log($"Leave {evt.localMousePosition}");
+			if (target.layout.Contains(evt.localMousePosition)) return;
+			
 			//if (DragAndDrop.GetGenericData("DragListViewItem") == null)return;
 			//_targetObjects = (DragAndDrop.GetGenericData("DragListViewItem") as Object[]).Select(o => o as GameObject).ToArray();
 			_targetObjects = DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray();
@@ -150,6 +154,7 @@ namespace colloid.PBReplacer
 		
 		private void OnDragItem(DragUpdatedEvent evt){
 			if (_window.Armature == null) return;
+			if (!target.layout.Contains(evt.localMousePosition)) return;
 			_targetObjects = DragAndDrop.objectReferences.Length > 0 ?
 				DragAndDrop.objectReferences.Select(o => o as GameObject).ToArray() :
 			(DragAndDrop.GetGenericData("DragListViewItem") as Object[]) != null ?
@@ -165,6 +170,8 @@ namespace colloid.PBReplacer
 			_targetObjects.Where(o => !o.TryGetComponent(_componentType,out var component))
 				.All(o => Undo.AddComponent(o,_componentType));
 			_window.LoadList();
+			
+			PointerCaptureHelper.ReleasePointer(evt.target,0);
 		}
 	}
 }
