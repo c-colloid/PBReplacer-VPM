@@ -7,6 +7,8 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
+using VRC.Dynamics;
+using VRC.SDK3.Dynamics.Constraint.Components;
 
 #if MODULAR_AVATAR
 using nadena.dev.modular_avatar.core;
@@ -31,8 +33,17 @@ namespace colloid.PBReplacer
 		private Box _physBoneBox;
 		private Box _constraintBox;
 		private Box _contactBox;
-		private ListView _pbListView;
-		private ListView _pbcListView;
+		
+		// ListView群
+		private ListView 
+		// PB
+			_pbListView, _pbcListView,
+		// Constraint
+			_positionListView, _rotationListView, _sizeListView, _parentListView, _LookAtListView, _AimListView,
+		// Contact
+			_contactSenderListView, _contactReciverListView;
+			
+		private List<ListView> _constraintListViewList;
         
 		// リストドラッグ処理用
 		private ListViewDragHandler _pbListDragHandler;
@@ -171,6 +182,11 @@ namespace colloid.PBReplacer
 			_contactBox = _root.Query<Box>("ContactBox").First();
 			_pbListView = _root.Query<ListView>("PBListField").First();
 			_pbcListView = _root.Query<ListView>("PBCListField").First();
+			
+			_constraintListViewList = _constraintBox.Query<ListView>().ToList();
+			
+			_contactSenderListView = _contactBox.Q<ListView>(nameof(_contactSenderListView).Replace("_contact",""));
+			_contactReciverListView = _contactBox.Q<ListView>(nameof(_contactReciverListView).Replace("_contact",""));
 		}
 
 		/// <summary>
@@ -233,6 +249,13 @@ namespace colloid.PBReplacer
             
 			// PhysBoneColliderリストビューの初期化
 			InitializeListView(_pbcListView, "PhysBoneCollider");
+			
+			// Constraint群リストビューの初期化
+			_constraintListViewList.ForEach(listview => InitializeListView(listview,"constraint"));
+			
+			// Contactリストビューの初期化
+			InitializeListView(_contactSenderListView, "ContactSender");
+			InitializeListView(_contactReciverListView, "ContactReciver");
             
 			// ドラッグ&ドロップハンドラーの作成
 			_pbListDragHandler = new ListViewDragHandler(_pbListView, typeof(VRCPhysBone));
@@ -520,6 +543,8 @@ namespace colloid.PBReplacer
 			_dataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
 			_dataManager.OnProcessingComplete += OnProcessingComplete;
+			
+			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 		}
         
 		/// <summary>
@@ -534,6 +559,8 @@ namespace colloid.PBReplacer
 			_dataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
 			_dataManager.OnProcessingComplete -= OnProcessingComplete;
+			
+			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 		}
         
 		/// <summary>
@@ -588,6 +615,40 @@ namespace colloid.PBReplacer
                 
 				// リストビューを再描画
 				RepaintListView(_pbcListView);
+			};
+		}
+		
+		/// <summary>
+		/// Constraintデータ変更時の処理
+		/// </summary>
+		private void OnVRCConstraintsDataChanged(List<VRCConstraintBase> constraints)
+		{
+			if (_constraintListViewList.Any(list => list == null)) return;
+            
+			// UIスレッドで更新
+			EditorApplication.delayCall += () => {
+				// リストビューのアイテムソースを更新
+				_constraintListViewList.ForEach(list =>
+				{
+					switch (_constraintListViewList.IndexOf(list))
+					{
+					case 0: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCParentConstraint));
+						break;
+					case 1: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCRotationConstraint));
+						break;
+					case 2: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCScaleConstraint));
+						break;
+					case 3: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCParentConstraint));
+						break;
+					case 4: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCLookAtConstraint));
+						break;
+					case 5: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCAimConstraint));
+						break;
+					}
+                
+					// リストビューを再描画
+					RepaintListView(list);
+				});
 			};
 		}
         
