@@ -8,6 +8,9 @@ EditorUserSettings:
     RecentlyUsedSceneGuid-0:
       value: 0252055f53010d5f0c080f7a45715b4445151d2e7f2a716578784430bbb76769
       flags: 0
+    UIBuilder.DisableMouseWheelZooming:
+      value: 2550581500
+      flags: 0
     UIBuilder.EditorExtensionModeKey:
       value: 37434103
       flags: 0
