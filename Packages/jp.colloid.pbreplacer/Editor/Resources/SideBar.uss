@@ -51,3 +51,11 @@
     border-bottom-left-radius: 2px;
     display: none;
 }
+
+.unity-toggle__input {
+    display: none;
+}
+
+.unity-toggle:checked {
+    background-color: rgb(255, 0, 0);
+}
