@@ -30,7 +30,11 @@ namespace colloid.PBReplacer
         #region Properties
 		// 現在のアバターデータ
 		private AvatarData _currentAvatar;
-		public AvatarData CurrentAvatar => _currentAvatar;
+		public AvatarData CurrentAvatar
+		{
+			get => _currentAvatar;
+			set => _currentAvatar = value;
+		}
 
 		// PhysBoneとPhysBoneColliderのコンポーネントリスト
 		private List<VRCPhysBone> _physBones = new List<VRCPhysBone>();
@@ -64,6 +68,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		/// <param name="avatarObject">アバターのGameObject</param>
 		/// <returns>成功した場合はtrue</returns>
+		/**
 		public bool SetAvatar(GameObject avatarObject)
 		{
 			if (avatarObject == null)
@@ -100,6 +105,7 @@ namespace colloid.PBReplacer
 					return false;
 				}
 		}
+		**/
 
 		/// <summary>
 		/// PhysBoneコンポーネントを再配置する処理を実行
@@ -210,7 +216,7 @@ namespace colloid.PBReplacer
 			{
 				// 現在のアバターを保持したまま再ロード
 				GameObject currentAvatar = _currentAvatar.AvatarObject;
-				SetAvatar(currentAvatar);
+				AvatarFieldHelper.SetAvatar(currentAvatar);
 			}
 		}
 
@@ -227,13 +233,11 @@ namespace colloid.PBReplacer
 			OnPhysBonesChanged?.Invoke(_physBones);
 			OnPhysBoneCollidersChanged?.Invoke(_physBoneColliders);
 		}
-        #endregion
-
-        #region Private Methods
+		
 		/// <summary>
 		/// PhysBoneとPhysBoneColliderのコンポーネントを読み込む
 		/// </summary>
-		private void LoadPhysBoneComponents()
+		public void LoadPhysBoneComponents()
 		{
 			_physBones.Clear();
 			_physBoneColliders.Clear();
@@ -281,6 +285,15 @@ namespace colloid.PBReplacer
 				}
 			}
 		}
+		
+		public void InvokeChanged()
+		{
+			OnPhysBonesChanged?.Invoke(_physBones);
+			OnPhysBoneCollidersChanged?.Invoke(_physBoneColliders);
+		}
+        #endregion
+
+        #region Private Methods
 
 		/// <summary>
 		/// ステータスメッセージの通知
