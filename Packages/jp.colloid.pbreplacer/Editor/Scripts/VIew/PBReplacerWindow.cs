@@ -314,7 +314,16 @@ namespace colloid.PBReplacer
 			listView.selectionType = SelectionType.Multiple;
             
 			// 選択変更イベントの登録
+			listView.onSelectionChange += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+			// 選択変更イベント(ダブルクリック)の登録
 			listView.onItemsChosen += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+			
+			void SelectGameObject(IEnumerable<object> selectedItems)
+			{
 				if (selectedItems == null || selectedItems.ToList().Count == 0) return;
                 
 				// 選択したアイテムのGameObjectをUnityの選択に反映
@@ -323,7 +332,7 @@ namespace colloid.PBReplacer
 					.Select(c => c.gameObject)
 					.Cast<UnityEngine.Object>()
 					.ToArray();
-			};
+			}
 		}
         
 		/// <summary>
