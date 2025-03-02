@@ -12,7 +12,7 @@ using VRC.SDK3.Dynamics.PhysBone.Components;
 using nadena.dev.modular_avatar.core;
 #endif
 
-namespace colloid.PBReplacer
+namespace colloid.PBReplacer.legacy
 {
 	class OnAvatarFieldDragAndDropItemChange : Manipulator
 	{

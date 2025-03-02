@@ -15,7 +15,7 @@ using VRC.Dynamics;
 using nadena.dev.modular_avatar.core;
 #endif
 
-namespace colloid.PBReplacer
+namespace colloid.PBReplacer.legacy
 {
 
 public class PBReplacer : EditorWindow
