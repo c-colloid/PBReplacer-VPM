@@ -137,6 +137,15 @@ public class PBReplacer : EditorWindow
 			root = LoadList();
 		});
 		
+		var sideBar = root.Q<VerticalTabContainer>();
+		sideBar.value = 0;
+		
+		sideBar.RegisterValueChangedCallback(evt => 
+		{
+			root.Query<Box>().ForEach(b => b.style.display = DisplayStyle.None);
+			root.Query<Box>().ToList().ElementAt(evt.newValue).style.display = DisplayStyle.Flex;
+		});
+		
 		Undo.undoRedoPerformed += () => LoadList();
 		
 		rootVisualElement.Add(root);
