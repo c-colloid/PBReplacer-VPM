@@ -42,6 +42,7 @@ namespace colloid.PBReplacer
         #region Data References
 		// データマネージャーへの参照
 		private PhysBoneDataManager _dataManager => PhysBoneDataManager.Instance;
+		private ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
         
 		// 設定への参照
 		private PBReplacerSettings _settings;
@@ -202,7 +203,7 @@ namespace colloid.PBReplacer
 		private void InitializeAvatarField()
 		{
 			// オブジェクトの型を設定
-			_avatarField.objectType = typeof(GameObject);
+			//_avatarField.objectType = typeof(GameObject);
             
 			// アバターフィールドへのドラッグ&ドロップ処理を追加
 			var fieldDisplay = _avatarField.Q<VisualElement>("", "unity-object-field-display");
@@ -384,15 +385,15 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnAvatarFieldValueChanged(ChangeEvent<UnityEngine.Object> evt)
 		{
-			GameObject avatarObject = evt.newValue as GameObject;
+			var avatarObject = evt.newValue as Component;
             
 			// アバターの設定を実行
 			if (avatarObject != null)
 			{
-				_dataManager.SetAvatar(avatarObject);
+				AvatarFieldHelper.SetAvatar(avatarObject.gameObject);
                 
 				// 設定に保存
-				_settings.SaveLastAvatarGUID(avatarObject);
+				_settings.SaveLastAvatarGUID(avatarObject.gameObject);
 			}
 			else
 			{
@@ -514,10 +515,10 @@ namespace colloid.PBReplacer
             
 			UnregisterDataManagerEvents(); // 重複登録を防止
             
-			_dataManager.OnAvatarChanged += OnAvatarDataChanged;
+			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 			_dataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
 			_dataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
-			_dataManager.OnStatusMessageChanged += OnStatusMessageChanged;
+			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
 			_dataManager.OnProcessingComplete += OnProcessingComplete;
 		}
         
@@ -528,10 +529,10 @@ namespace colloid.PBReplacer
 		{
 			if (_dataManager == null) return;
             
-			_dataManager.OnAvatarChanged -= OnAvatarDataChanged;
+			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			_dataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
 			_dataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
-			_dataManager.OnStatusMessageChanged -= OnStatusMessageChanged;
+			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
 			_dataManager.OnProcessingComplete -= OnProcessingComplete;
 		}
         
