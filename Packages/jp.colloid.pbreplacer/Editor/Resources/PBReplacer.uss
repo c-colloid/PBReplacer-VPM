@@ -1,5 +1,5 @@
 .unity-base-field__label {
-    -unity-font-style: bold-and-italic;
+    -unity-font-style: bold;
 }
 
 .unity-toggle__text {
