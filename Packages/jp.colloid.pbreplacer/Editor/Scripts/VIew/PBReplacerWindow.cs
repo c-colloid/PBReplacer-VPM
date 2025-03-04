@@ -52,7 +52,7 @@ namespace colloid.PBReplacer
 
         #region Data References
 		// データマネージャーへの参照
-		private PhysBoneDataManager _dataManager => PhysBoneDataManager.Instance;
+		private PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
 		private ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
         
 		// 設定への参照
@@ -272,7 +272,7 @@ namespace colloid.PBReplacer
 		private void OnPhysBoneListDrop(List<GameObject> objects)
 		{
 			// データが変更されたためリスト更新をリクエスト
-			_dataManager.ReloadData();
+			_pbDataManager.ReloadData();
 		}
         
 		/// <summary>
@@ -281,7 +281,7 @@ namespace colloid.PBReplacer
 		private void OnPhysBoneColliderListDrop(List<GameObject> objects)
 		{
 			// データが変更されたためリスト更新をリクエスト
-			_dataManager.ReloadData();
+			_pbDataManager.ReloadData();
 		}
         
 		/// <summary>
@@ -429,7 +429,7 @@ namespace colloid.PBReplacer
 			}
 			else
 			{
-				_dataManager.ClearData();
+				_pbDataManager.ClearData();
 				_statusLabel.text = STATUS_SET_AVATAR;
 			}
 		}
@@ -465,7 +465,7 @@ namespace colloid.PBReplacer
 		private void OnApplyButtonClicked()
 		{
 			// アバターが設定されているか確認
-			if (_dataManager.CurrentAvatar == null)
+			if (_pbDataManager.CurrentAvatar == null)
 			{
 				EditorUtility.DisplayDialog("エラー", "アバターが設定されていません", "OK");
 				return;
@@ -492,7 +492,7 @@ namespace colloid.PBReplacer
 			try
 			{
 				// データマネージャーに処理を依頼
-				_dataManager.ProcessReplacement();
+				_pbDataManager.ProcessReplacement();
 			}
 				catch (Exception ex)
 				{
@@ -515,7 +515,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnReloadButtonClicked()
 		{
-			_dataManager.ReloadData();
+			_pbDataManager.ReloadData();
 		}
         
 		/// <summary>
@@ -533,7 +533,7 @@ namespace colloid.PBReplacer
 		private void OnUndoRedo()
 		{
 			// データの再読み込み
-			_dataManager.ReloadData();
+			_pbDataManager.ReloadData();
 		}
         #endregion
 
@@ -543,15 +543,15 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void RegisterDataManagerEvents()
 		{
-			if (_dataManager == null) return;
+			if (_pbDataManager == null) return;
             
 			UnregisterDataManagerEvents(); // 重複登録を防止
             
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
-			_dataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
-			_dataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
+			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
-			_dataManager.OnProcessingComplete += OnProcessingComplete;
+			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 		}
@@ -561,13 +561,13 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void UnregisterDataManagerEvents()
 		{
-			if (_dataManager == null) return;
+			if (_pbDataManager == null) return;
             
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
-			_dataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
-			_dataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
+			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
-			_dataManager.OnProcessingComplete -= OnProcessingComplete;
+			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 		}
