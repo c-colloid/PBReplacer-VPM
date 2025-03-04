@@ -19,6 +19,8 @@ namespace colloid.PBReplacer
         
 		// ドラッグ対象のコンポーネントの種類
 		private Type _componentType;
+		
+		private Label _dropArea;
         
 		// 一時オブジェクトのルート（ドラッグ&ドロップ処理用）
 		private GameObject _tempRootObject;
@@ -31,6 +33,9 @@ namespace colloid.PBReplacer
         
 		// データマネージャへの参照
 		private PhysBoneDataManager _dataManager => PhysBoneDataManager.Instance;
+		
+		// イベントの多重発生を防止
+		private bool _event = false;
         #endregion
 
         #region Events
@@ -60,6 +65,23 @@ namespace colloid.PBReplacer
 		{
 			_listView = listView;
 			_componentType = componentType;
+			
+			var dropAreaElement = _dropArea = new Label("DropArea")
+			{
+				name = "dropArea",
+				//pickingMode = PickingMode.Ignore,
+				style = 
+				{
+					flexGrow = 1,
+					backgroundColor = Color.gray * 0.25f,
+					unityTextAlign = TextAnchor.MiddleCenter,
+					fontSize = 20,
+					unityFontStyleAndWeight = FontStyle.Bold,
+					color = Color.gray,
+					visibility = Visibility.Hidden
+				}
+			};
+			_listView.parent.Q<VisualElement>("DropAreaContainer").Add(dropAreaElement);
             
 			// 一時オブジェクトの作成
 			_tempRootObject = new GameObject("ListViewTempRoot");
@@ -92,16 +114,19 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void RegisterEvents()
 		{
+			// 重複登録の防止
+			UnregisterEvents();
+			
 			// ポインタイベントの登録
-			_listView.RegisterCallback<PointerDownEvent>(HandlePointerDown);
-			_listView.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
-			_listView.RegisterCallback<PointerUpEvent>(HandlePointerUp);
+			//_dropArea.RegisterCallback<PointerDownEvent>(HandlePointerDown);
+			//_dropArea.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
+			//_dropArea.RegisterCallback<PointerUpEvent>(HandlePointerUp);
             
 			// ドラッグイベントの登録
 			_listView.RegisterCallback<DragEnterEvent>(HandleDragEnterEvent);
-			_listView.RegisterCallback<DragLeaveEvent>(HandleDragLeaveEvent);
-			_listView.RegisterCallback<DragUpdatedEvent>(HandleDragUpdatedEvent);
-			_listView.RegisterCallback<DragPerformEvent>(HandleDragPerformEvent);
+			_dropArea.RegisterCallback<DragLeaveEvent>(HandleDragLeaveEvent);
+			_dropArea.RegisterCallback<DragUpdatedEvent>(HandleDragUpdatedEvent);
+			_dropArea.RegisterCallback<DragPerformEvent>(HandleDragPerformEvent);
 		}
 
 		/// <summary>
@@ -112,15 +137,15 @@ namespace colloid.PBReplacer
 			if (_listView == null) return;
             
 			// ポインタイベントの登録解除
-			_listView.UnregisterCallback<PointerDownEvent>(HandlePointerDown);
-			_listView.UnregisterCallback<PointerMoveEvent>(HandlePointerMove);
-			_listView.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
+			//_dropArea.UnregisterCallback<PointerDownEvent>(HandlePointerDown);
+			//_dropArea.UnregisterCallback<PointerMoveEvent>(HandlePointerMove);
+			//_dropArea.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
             
 			// ドラッグイベントの登録解除
 			_listView.UnregisterCallback<DragEnterEvent>(HandleDragEnterEvent);
-			_listView.UnregisterCallback<DragLeaveEvent>(HandleDragLeaveEvent);
-			_listView.UnregisterCallback<DragUpdatedEvent>(HandleDragUpdatedEvent);
-			_listView.UnregisterCallback<DragPerformEvent>(HandleDragPerformEvent);
+			_dropArea.UnregisterCallback<DragLeaveEvent>(HandleDragLeaveEvent);
+			_dropArea.UnregisterCallback<DragUpdatedEvent>(HandleDragUpdatedEvent);
+			_dropArea.UnregisterCallback<DragPerformEvent>(HandleDragPerformEvent);
 		}
         #endregion
 
@@ -174,6 +199,13 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void HandleDragEnterEvent(DragEnterEvent evt)
 		{
+			// イベントの同レーム内の発生を1回に制限
+			if (_event) return;
+			EditorApplication.delayCall += () => _event = false;
+			_event = true;
+			
+			_dropArea.style.visibility = Visibility.Visible;
+			
 			// ドラッグ中のオブジェクト参照を取得
 			var draggedObjects = GetDraggedObjects();
 			if (draggedObjects.Count == 0) return;
@@ -195,6 +227,13 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void HandleDragLeaveEvent(DragLeaveEvent evt)
 		{
+			// イベントの同レーム内の発生を1回に制限
+			if (_event) return;
+			EditorApplication.delayCall += () => _event = false;
+			_event = true;
+			
+			_dropArea.style.visibility = Visibility.Hidden;
+			
 			// 一時的なコンポーネントをクリーンアップ
 			CleanupTemporaryComponents();
             
@@ -329,7 +368,7 @@ namespace colloid.PBReplacer
 		{
 			foreach (var obj in objects)
 			{
-				if (obj == null) continue;
+				if (obj == null || _tempRootObject.transform.childCount > 0) continue;
                 
 				// 既にコンポーネントがあるかチェック
 				if (obj.GetComponent(_componentType) != null) continue;
@@ -342,8 +381,8 @@ namespace colloid.PBReplacer
 				// コンポーネントを追加
 				var component = tempObj.AddComponent(_componentType);
                 
-				// リストのアイテムソースに追加
 				var listSource = _listView.itemsSource as List<Component>;
+				// リストのアイテムソースに追加
 				if (listSource != null)
 				{
 					listSource.Add(component);
