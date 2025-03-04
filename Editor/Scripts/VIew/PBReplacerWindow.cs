@@ -695,6 +695,9 @@ namespace colloid.PBReplacer
 		{
 			RepaintListView(_pbListView);
 			RepaintListView(_pbcListView);
+			_constraintListViewList.ForEach(list => RepaintListView(list));
+			RepaintListView(_contactSenderListView);
+			RepaintListView(_contactReciverListView);
 		}
         
 		/// <summary>
