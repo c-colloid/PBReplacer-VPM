@@ -204,7 +204,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => _event = false;
 			_event = true;
 			
-			_dropArea.style.visibility = Visibility.Visible;
+			VisibleDropArea();
 			
 			// ドラッグ中のオブジェクト参照を取得
 			var draggedObjects = GetDraggedObjects();
@@ -232,7 +232,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => _event = false;
 			_event = true;
 			
-			_dropArea.style.visibility = Visibility.Hidden;
+			HiddenDropArea();
 			
 			// 一時的なコンポーネントをクリーンアップ
 			CleanupTemporaryComponents();
@@ -270,6 +270,8 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void HandleDragPerformEvent(DragPerformEvent evt)
 		{
+			HiddenDropArea();
+			
 			// ドラッグされているオブジェクトを取得
 			var draggedObjects = GetDraggedObjects();
 			if (draggedObjects.Count == 0) return;
@@ -472,6 +474,16 @@ namespace colloid.PBReplacer
             #else
 			_listView.Refresh();
             #endif
+		}
+		
+		private void VisibleDropArea()
+		{
+			_dropArea.style.visibility = Visibility.Visible;
+		}
+		
+		private void HiddenDropArea()
+		{
+			_dropArea.style.visibility = Visibility.Hidden;
 		}
         #endregion
 	}

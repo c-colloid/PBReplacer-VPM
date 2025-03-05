@@ -18,8 +18,8 @@ namespace colloid.PBReplacer
 		
 		#region Data References
 		// データマネージャーへの参照
-		private static PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
-		private static ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
+		//private static PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
+		//private static ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
 		
 		// 設定への参照
 		private static PBReplacerSettings _settings;
@@ -44,43 +44,58 @@ namespace colloid.PBReplacer
 		{
 			if (avatarObject == null)
 			{
-				_pbDataManager.ClearData();
-				OnStatusMessageChanged.Invoke("アバターをセットしてください");
+				ClearAvatar();
+				NotifyStatusMessage("アバターをセットしてください");
 				return false;
 			}
 
 			try
 			{
 				// アバターデータを生成
-				_currentAvatar
-					= _pbDataManager.CurrentAvatar
-					= _constraintDataManager.CurrentAvatar
-					= new AvatarData(avatarObject);
+				_currentAvatar = new AvatarData(avatarObject);
                 
 				// PhysBoneとPhysBoneColliderを取得
-				_pbDataManager.LoadPhysBoneComponents();
-				_constraintDataManager.LoadPhysBoneComponents();
+				//_pbDataManager.LoadPhysBoneComponents();
+				//_constraintDataManager.LoadComponents();
 				
                 
 				// 変更通知
 				OnAvatarChanged.Invoke(_currentAvatar);
-				_pbDataManager.InvokeChanged();
-				_constraintDataManager.InvokeChanged();
+				//_pbDataManager.InvokeChanged();
+				//_constraintDataManager.InvokeChanged();
                 
-				OnStatusMessageChanged.Invoke(_pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0 ? 
-					"Applyを押してください" : 
-					"Armature内にPhysBoneが見つかりません");
+				//OnStatusMessageChanged.Invoke(_pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0 ? 
+				//	"Applyを押してください" : 
+				//	"Armature内にPhysBoneが見つかりません");
                 
 				return true;
 			}
 				catch (Exception ex)
 				{
 					Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
-					_pbDataManager.ClearData();
+					ClearAvatar();
 					OnStatusMessageChanged.Invoke($"エラー: {ex.Message}");
 					return false;
 				}
 		}
+		
+		public static void ClearAvatar()
+		{
+			_currentAvatar = null;
+			OnAvatarChanged?.Invoke(null);
+		}
+		
+		public static void Cleanup()
+		{
+			_currentAvatar = null;
+			OnAvatarChanged = null;
+			OnStatusMessageChanged = null;
+		}
 		#endregion
+		
+		private static void NotifyStatusMessage(string message)
+		{
+			OnStatusMessageChanged?.Invoke(message);
+		}
 	}	
 }

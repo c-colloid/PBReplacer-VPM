@@ -9,6 +9,7 @@ using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDKBase;
 using VRC.Dynamics;
 using VRC.SDK3.Dynamics.Constraint.Components;
+using VRC.SDK3.Dynamics.Contact.Components;
 
 #if MODULAR_AVATAR
 using nadena.dev.modular_avatar.core;
@@ -46,8 +47,12 @@ namespace colloid.PBReplacer
 		private List<ListView> _constraintListViewList;
         
 		// リストドラッグ処理用
-		private ListViewDragHandler _pbListDragHandler;
-		private ListViewDragHandler _pbcListDragHandler;
+		private ListViewDragHandler 
+			_pbListDragHandler, _pbcListDragHandler,
+			_constraintDragHandler,
+			_contactSenderDragHandler, _contactReciverDragHandler;
+			
+		private List<ListViewDragHandler> _constraintDragHandlerList;
         #endregion
 
         #region Data References
@@ -230,7 +235,7 @@ namespace colloid.PBReplacer
             #if MODULAR_AVATAR
 			fieldLabel.text = AVATAR_FIELD_LABEL_MA;
             #else
-			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT;
+			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT + "Test";
             #endif
             
 			Debug.Log(fieldLabel.text);
@@ -260,6 +265,18 @@ namespace colloid.PBReplacer
 			// ドラッグ&ドロップハンドラーの作成
 			_pbListDragHandler = new ListViewDragHandler(_pbListView, typeof(VRCPhysBone));
 			_pbcListDragHandler = new ListViewDragHandler(_pbcListView, typeof(VRCPhysBoneCollider));
+			_constraintDragHandlerList = new List<ListViewDragHandler>();
+			_constraintListViewList.Select((list,index)=>(list,index)).ToList().ForEach(item => 
+			{
+				var type = 
+					item.index == 0 ? typeof(VRCPositionConstraint) : 
+					item.index == 1 ? typeof(VRCRotationConstraint) : 
+					item.index == 2 ? typeof(VRCScaleConstraint) :
+					item.index == 3 ? typeof(VRCParentConstraint) :
+					item.index == 4 ? typeof(VRCLookAtConstraint) :
+					typeof(VRCAimConstraint);
+				_constraintDragHandlerList.Add(new ListViewDragHandler(item.list, type));
+			});
             
 			// ドラッグ&ドロップハンドラーのイベント登録
 			_pbListDragHandler.OnDrop += OnPhysBoneListDrop;
@@ -486,18 +503,30 @@ namespace colloid.PBReplacer
 			// 処理中のプログレスバーを表示（設定で無効化可能）
 			if (_settings.ShowProgressBar)
 			{
-				EditorUtility.DisplayProgressBar("処理中", "PhysBoneを処理しています...", 0.5f);
+				EditorUtility.DisplayProgressBar("処理中", "コンポーネントを処理しています...", 0.5f);
 			}
             
 			try
 			{
 				// データマネージャーに処理を依頼
-				_pbDataManager.ProcessReplacement();
+				switch (_tabContainer.value)
+				{
+				case 0: // PhysBone
+					_pbDataManager.ProcessReplacement();
+					break;
+				case 1: // Constraint
+					_constraintDataManager.ProcessConstraints();
+					break;
+				case 2: // Contact
+					// コンタクト処理を実装する場合はここに追加
+					EditorUtility.DisplayDialog("情報", "コンタクト処理は現在準備中です", "OK");
+					break;
+				}
 			}
 				catch (Exception ex)
 				{
 					// エラーハンドリング
-					Debug.LogError($"PhysBone処理中にエラーが発生しました: {ex.Message}");
+					Debug.LogError($"コンポーネント処理中にエラーが発生しました: {ex.Message}");
 					EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {ex.Message}", "OK");
 				}
 				finally

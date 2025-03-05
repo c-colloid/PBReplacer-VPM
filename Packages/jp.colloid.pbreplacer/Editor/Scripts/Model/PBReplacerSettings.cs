@@ -37,6 +37,31 @@ namespace colloid.PBReplacer
         
 		// Animatorがないオブジェクトでもアーマチュアを検出するかどうか
 		public bool DetectNonAnimatorArmature = true;
+		
+		/// <summary>
+		/// ProcessorSettings関連
+		/// </summary>
+		// 親オブジェクト設定
+		public string RootObjectName { get; set; } = "AvatarDynamics";
+		public string RootPrefabName { get; set; } = "AvatarDynamics";
+    
+		// PhysBone関連設定
+		public string PhysBonesFolder { get; set; } = "PhysBones";
+		public string PhysBoneCollidersFolder { get; set; } = "PhysBoneColliders";
+    
+		// コンストレイント関連設定
+		public string ConstraintsFolder { get; set; } = "Constraints";
+		public string PositionConstraintsFolder { get; set; } = "Position";
+		public string RotationConstraintsFolder { get; set; } = "Rotation";
+		public string ScaleConstraintsFolder { get; set; } = "Scale";
+		public string ParentConstraintsFolder { get; set; } = "Parent";
+		public string LookAtConstraintsFolder { get; set; } = "LookAt";
+		public string AimConstraintsFolder { get; set; } = "Aim";
+    
+		// コンタクト関連設定
+		public string ContactsFolder { get; set; } = "Contacts";
+		public string SenderFolder { get; set; } = "Sender";
+		public string ReceiverFolder { get; set; } = "Receiver";
         
 		// 設定を保存
 		public void Save()
@@ -136,6 +161,31 @@ namespace colloid.PBReplacer
 				}
             
 			return null;
+		}
+		
+		// ProcessorSettings相当のインスタンスを取得するメソッド
+		public ProcessorSettings GetProcessorSettings()
+		{
+			return new ProcessorSettings
+			{
+				ShowProgressBar = this.ShowProgressBar,
+				PreserveHierarchy = this.PreserveHierarchy,
+				ShowConfirmDialog = this.ShowConfirmDialog,
+				RootObjectName = this.RootObjectName,
+				RootPrefabName = this.RootPrefabName,
+				PhysBonesFolder = this.PhysBonesFolder,
+				PhysBoneCollidersFolder = this.PhysBoneCollidersFolder,
+				ConstraintsFolder = this.ConstraintsFolder,
+				PositionConstraintsFolder = this.PositionConstraintsFolder,
+				RotationConstraintsFolder = this.RotationConstraintsFolder,
+				ScaleConstraintsFolder = this.ScaleConstraintsFolder,
+				ParentConstraintsFolder = this.ParentConstraintsFolder,
+				LookAtConstraintsFolder = this.LookAtConstraintsFolder,
+				AimConstraintsFolder = this.AimConstraintsFolder,
+				ContactsFolder = this.ContactsFolder,
+				SenderFolder = this.SenderFolder,
+				ReceiverFolder = this.ReceiverFolder
+			};
 		}
 	}
 }

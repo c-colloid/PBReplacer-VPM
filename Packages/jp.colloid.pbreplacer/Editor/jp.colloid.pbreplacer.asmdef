@@ -20,7 +20,8 @@
         "VRC.SDK3.Dynamics.PhysBone.dll",
         "VRC.Dynamics.dll",
         "VRCSDKBase.dll",
-        "VRC.SDK3.Dynamics.Constraint.dll"
+        "VRC.SDK3.Dynamics.Constraint.dll",
+        "VRC.SDK3.Dynamics.Contact.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [],
