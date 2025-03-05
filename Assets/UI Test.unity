@@ -1684,8 +1684,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 3
-  latestValidExecutionGroupIndex: 3
+  cachedExecutionGroupIndex: 1
+  latestValidExecutionGroupIndex: 1
   RotationAtRest: {x: 0, y: 0, z: 0}
   RotationOffset: {x: 0, y: 0, z: 0}
   AffectsRotationX: 1
@@ -1902,8 +1902,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 1
-  latestValidExecutionGroupIndex: 1
+  cachedExecutionGroupIndex: 3
+  latestValidExecutionGroupIndex: 3
   PositionAtRest: {x: 0, y: 0, z: 0}
   AffectsPositionX: 1
   AffectsPositionY: 1
