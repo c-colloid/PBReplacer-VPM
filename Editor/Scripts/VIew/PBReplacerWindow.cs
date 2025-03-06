@@ -421,7 +421,7 @@ namespace colloid.PBReplacer
 		/// <summary>
 		/// アバターがドロップされた時の処理
 		/// </summary>
-		private void OnAvatarDrop(GameObject avatar)
+		private void OnAvatarDrop(Component avatar)
 		{
 			// 既に_avatarFieldの値変更イベントで処理されるため、
 			// ここでは追加処理が必要な場合のみ実装
@@ -436,19 +436,19 @@ namespace colloid.PBReplacer
 		{
 			var avatarObject = evt.newValue as Component;
             
-			// アバターの設定を実行
-			if (avatarObject != null)
-			{
-				AvatarFieldHelper.SetAvatar(avatarObject.gameObject);
+			AvatarFieldHelper.SetAvatar(avatarObject?.gameObject);
                 
-				// 設定に保存
-				_settings.SaveLastAvatarGUID(avatarObject.gameObject);
-			}
-			else
-			{
-				_pbDataManager.ClearData();
-				_statusLabel.text = STATUS_SET_AVATAR;
-			}
+			// 設定に保存
+			_settings.SaveLastAvatarGUID(avatarObject?.gameObject);
+			// アバターの設定を実行
+			//if (avatarObject != null)
+			//{
+			//}
+			//else
+			//{
+			//	_pbDataManager.ClearData();
+			//	_statusLabel.text = STATUS_SET_AVATAR;
+			//}
 		}
         
 		/// <summary>

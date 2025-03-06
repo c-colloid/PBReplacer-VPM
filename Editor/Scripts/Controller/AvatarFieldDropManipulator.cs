@@ -24,7 +24,7 @@ namespace colloid.PBReplacer
 		private ObjectField _objectField;
         
 		// ドロップ完了時のコールバック
-		private Action<GameObject> _onDropCallback;
+		private Action<Component> _onDropCallback;
         
 		// ダイアログタイトル
 		private const string DIALOG_TITLE = "衣装用オプション";
@@ -42,7 +42,7 @@ namespace colloid.PBReplacer
 		/// コンストラクタ
 		/// </summary>
 		/// <param name="callback">ドロップ完了時のコールバック</param>
-		public AvatarFieldDropManipulator(Action<GameObject> callback = null)
+		public AvatarFieldDropManipulator(Action<Component> callback = null)
 		{
 			_onDropCallback = callback;
 		}
@@ -125,7 +125,7 @@ namespace colloid.PBReplacer
 				return;
 			}
             
-			bool isAvatarDescriptor = _targetObject.GetComponent<VRC_AvatarDescriptor>() != null;
+			bool isAvatarDescriptor = _targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var avatardescriptor);
             
 			// アバターディスクリプタを持たない場合は確認処理
 			if (!isAvatarDescriptor)
@@ -135,28 +135,28 @@ namespace colloid.PBReplacer
 				bool hasMergeArmature = HasModularAvatarMergeArmature(_targetObject);
 				if (hasMergeArmature)
 				{
-				AcceptObject(_targetObject);
+				AcceptObject(_targetObject.transform);
 				return;
 				}
                 #endif
                 
 				// アニメーターを持つ場合
-				if (_targetObject.GetComponent<Animator>() != null)
+				if (_targetObject.TryGetComponent<Animator>(out var animator))
 				{
-					AcceptObject(_targetObject);
+					AcceptObject(animator);
 					return;
 				}
                 
 				// 警告ダイアログを表示
 				if (EditorUtility.DisplayDialog(DIALOG_TITLE, DIALOG_MESSAGE, "OK", "Cancel"))
 				{
-					AcceptObject(_targetObject);
+					AcceptObject(_targetObject.transform);
 				}
 			}
 			else
 			{
 				// AvatarDescriptorがある場合は直接受け入れ
-				AcceptObject(_targetObject);
+				AcceptObject(avatardescriptor);
 			}
             
 			evt.StopPropagation();
@@ -203,8 +203,10 @@ namespace colloid.PBReplacer
 		/// <summary>
 		/// オブジェクトをフィールドに設定
 		/// </summary>
-		private void AcceptObject(GameObject obj)
+		private void AcceptObject(Component obj)
 		{
+			Debug.Log($"{_objectField}:{obj}");
+			
 			if (_objectField != null)
 			{
 				_objectField.value = obj;
