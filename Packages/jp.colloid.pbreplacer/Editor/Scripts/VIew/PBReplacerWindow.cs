@@ -130,7 +130,7 @@ namespace colloid.PBReplacer
 		}
 
 		private void CreateGUI()
-		{
+		{		
 			// UXMLからレイアウトを読み込み
 			LoadUXMLLayout();
 
@@ -232,13 +232,9 @@ namespace colloid.PBReplacer
 			var fieldDisplay = _avatarField.Q<VisualElement>("", "unity-object-field-display");
 			fieldDisplay.AddManipulator(new AvatarFieldDropManipulator(OnAvatarDrop));
             
-			// デフォルトラベル設定
+			InitializeAvatarFieldLabel();
 			var fieldLabel = _avatarField.Q<Label>("", "unity-object-field-display__label");
-            #if MODULAR_AVATAR
-			fieldLabel.text = AVATAR_FIELD_LABEL_MA;
-            #else
-			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT + "Test";
-            #endif
+			fieldLabel.RegisterValueChangedCallback(OnAvatarFieldLabelChanged);
             
 			// 値変更イベントの登録
 			_avatarField.RegisterValueChangedCallback(OnAvatarFieldValueChanged);
@@ -277,7 +273,7 @@ namespace colloid.PBReplacer
 					typeof(VRCAimConstraint);
 				_constraintDragHandlerList.Add(new ListViewDragHandler(item.list, type));
 			});
-            
+			
 			// ドラッグ&ドロップハンドラーのイベント登録
 			_pbListDragHandler.OnDrop += OnPhysBoneListDrop;
 			_pbcListDragHandler.OnDrop += OnPhysBoneColliderListDrop;
@@ -449,6 +445,26 @@ namespace colloid.PBReplacer
 			//	_pbDataManager.ClearData();
 			//	_statusLabel.text = STATUS_SET_AVATAR;
 			//}
+			
+			if (avatarObject != null) return;
+			InitializeAvatarFieldLabel();
+		}
+		
+		private void OnAvatarFieldLabelChanged(ChangeEvent<string> evt)
+		{
+			if (_avatarField.value != null) return;
+			InitializeAvatarFieldLabel();
+		}
+		
+		private void InitializeAvatarFieldLabel()
+		{
+			// デフォルトラベル設定
+			var fieldLabel = _avatarField.Q<Label>("", "unity-object-field-display__label");
+            #if MODULAR_AVATAR
+			fieldLabel.text = AVATAR_FIELD_LABEL_MA;
+            #else
+			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT + "Test";
+            #endif
 		}
         
 		/// <summary>
