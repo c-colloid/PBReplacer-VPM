@@ -96,29 +96,30 @@ namespace colloid.PBReplacer
 			if (CurrentAvatar?.Armature == null) return;
 
 			// アーマチュア内のコンポーネントを取得
-			var vrcConstraintComponents = CurrentAvatar.Armature.GetComponentsInChildren<T>(true);
+			var targetComponents = CurrentAvatar.Armature.GetComponentsInChildren<T>(true);
 
-			_components.AddRange(vrcConstraintComponents);
+			_components.AddRange(targetComponents);
             
 			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
-			if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
-			{
-				var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
+			//if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
+			//{
+			//	var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
                 
-				// VRCConstraintを検索して追加
-				if (avatarDynamics.transform.Find(FolderName) != null)
-				{
-					var vrcConstraintParent = avatarDynamics.transform.Find(FolderName);
-					var additionalVRCConstraints = vrcConstraintParent.GetComponentsInChildren<T>(true);
-					foreach (var constraint in additionalVRCConstraints)
-					{
-						if (!_components.Contains(constraint))
-						{
-							_components.Add(constraint);
-						}
-					}
-				}
-			}
+			//	// コンポーネントを検索して追加
+			//	if (avatarDynamics.transform.Find(FolderName) != null)
+			//	{
+			//		var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
+			//		var additionalComponents = componentsParentFolder.GetComponentsInChildren<T>(true);
+			//		foreach (var constraint in additionalComponents)
+			//		{
+			//			if (!_components.Contains(constraint))
+			//			{
+			//				_components.Add(constraint);
+			//			}
+			//		}
+			//	}
+			//}
+			_components.AddRange(GetAvatarDynamicsComponent<T>());
 			
 			InvokeChanged();
 		}
@@ -127,6 +128,28 @@ namespace colloid.PBReplacer
 		public abstract bool ProcessComponents();
     
 		// ヘルパーメソッド
+		protected List<TComponent> GetAvatarDynamicsComponent<TComponent>() where TComponent : Component
+		{
+			var result = new List<TComponent>();
+			
+			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
+			if (CurrentAvatar?.AvatarObject == null) return result;
+    
+			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
+			if (avatarDynamicsTransform == null) return result;
+    
+			var avatarDynamics = avatarDynamicsTransform.gameObject;
+    
+			// コンポーネントを検索
+			var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
+			if (componentsParentFolder == null) return result;
+    
+			// 該当するコンポーネントをすべて収集
+			result.AddRange(componentsParentFolder.GetComponentsInChildren<TComponent>(true));
+    
+			return result;
+		}
+		
 		protected virtual void NotifyComponentsChanged()
 		{
 			OnComponentsChanged?.Invoke(_components);
