@@ -30,6 +30,8 @@ namespace colloid.PBReplacer
 		//private List<VRCConstraintBase> _components = new List<VRCConstraintBase>();
 
 		public List<VRCConstraintBase> VRCConstraints => _components;
+		
+		public override string FolderName => "Constraints";
 
 		/**
 		// PhysBone処理クラスへの参照
@@ -70,36 +72,37 @@ namespace colloid.PBReplacer
 		/// </summary>
 		public override void LoadComponents()
 		{
-			_components.Clear();
+			base.LoadComponents();
+			//_components.Clear();
 
-			if (CurrentAvatar?.Armature == null) return;
+			//if (CurrentAvatar?.Armature == null) return;
 
-			// アーマチュア内のコンポーネントを取得
-			var vrcConstraintComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCConstraintBase>(true);
+			//// アーマチュア内のコンポーネントを取得
+			//var vrcConstraintComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCConstraintBase>(true);
 
-			_components.AddRange(vrcConstraintComponents);
+			//_components.AddRange(vrcConstraintComponents);
             
-			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
-			if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
-			{
-				var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
+			//// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
+			//if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
+			//{
+			//	var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
                 
-				// VRCConstraintを検索して追加
-				if (avatarDynamics.transform.Find("Constraints") != null)
-				{
-					var vrcConstraintParent = avatarDynamics.transform.Find("Constraints");
-					var additionalVRCConstraints = vrcConstraintParent.GetComponentsInChildren<VRCConstraintBase>(true);
-					foreach (var constraint in additionalVRCConstraints)
-					{
-						if (!_components.Contains(constraint))
-						{
-							_components.Add(constraint);
-						}
-					}
-				}
-			}
+			//	// VRCConstraintを検索して追加
+			//	if (avatarDynamics.transform.Find("Constraints") != null)
+			//	{
+			//		var vrcConstraintParent = avatarDynamics.transform.Find("Constraints");
+			//		var additionalVRCConstraints = vrcConstraintParent.GetComponentsInChildren<VRCConstraintBase>(true);
+			//		foreach (var constraint in additionalVRCConstraints)
+			//		{
+			//			if (!_components.Contains(constraint))
+			//			{
+			//				_components.Add(constraint);
+			//			}
+			//		}
+			//	}
+			//}
 			
-			InvokeChanged();
+			//InvokeChanged();
 		}
 		
 		public override bool ProcessComponents()

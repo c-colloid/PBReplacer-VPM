@@ -27,6 +27,8 @@ namespace colloid.PBReplacer
 		public List<T> Components => _components;
     
 		public AvatarData CurrentAvatar => AvatarFieldHelper.CurrentAvatar;
+		
+		public virtual string FolderName => "AvatarDinamics";
     
 		// コンストラクタ
 		protected ComponentManagerBase()
@@ -87,8 +89,41 @@ namespace colloid.PBReplacer
 			NotifyComponentsChanged();
 		}
 		
+		public virtual void LoadComponents()
+		{
+			_components.Clear();
+
+			if (CurrentAvatar?.Armature == null) return;
+
+			// アーマチュア内のコンポーネントを取得
+			var vrcConstraintComponents = CurrentAvatar.Armature.GetComponentsInChildren<T>(true);
+
+			_components.AddRange(vrcConstraintComponents);
+            
+			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
+			if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
+			{
+				var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
+                
+				// VRCConstraintを検索して追加
+				if (avatarDynamics.transform.Find(FolderName) != null)
+				{
+					var vrcConstraintParent = avatarDynamics.transform.Find(FolderName);
+					var additionalVRCConstraints = vrcConstraintParent.GetComponentsInChildren<T>(true);
+					foreach (var constraint in additionalVRCConstraints)
+					{
+						if (!_components.Contains(constraint))
+						{
+							_components.Add(constraint);
+						}
+					}
+				}
+			}
+			
+			InvokeChanged();
+		}
+		
 		// 抽象メソッド
-		public abstract void LoadComponents();
 		public abstract bool ProcessComponents();
     
 		// ヘルパーメソッド
