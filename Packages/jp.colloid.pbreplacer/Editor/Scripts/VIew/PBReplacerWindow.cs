@@ -59,6 +59,7 @@ namespace colloid.PBReplacer
 		// データマネージャーへの参照
 		private PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
 		private ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
+		private ContactDataManager _contactDataManager => ContactDataManager.Instance;
         
 		// 設定への参照
 		private PBReplacerSettings _settings;
@@ -549,7 +550,8 @@ namespace colloid.PBReplacer
 					break;
 				case 2: // Contact
 					// コンタクト処理を実装する場合はここに追加
-					EditorUtility.DisplayDialog("情報", "コンタクト処理は現在準備中です", "OK");
+					_contactDataManager.ProcessComponents();
+					//EditorUtility.DisplayDialog("情報", "コンタクト処理は現在準備中です", "OK");
 					break;
 				}
 			}
@@ -613,6 +615,8 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
+			
+			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
 		}
         
 		/// <summary>
@@ -629,6 +633,8 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
+			
+			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
 		}
         
 		/// <summary>
@@ -717,6 +723,25 @@ namespace colloid.PBReplacer
 					// リストビューを再描画
 					RepaintListView(list);
 				});
+			};
+		}
+		
+		/// <summary>
+		/// Contactデータ変更時の処理
+		/// </summary>
+		private void OnVRCContactsDataChanged(List<Component> contacts)
+		{
+			if (_contactSenderListView == null || _contactReciverListView == null) return;
+            
+			// UIスレッドで更新
+			EditorApplication.delayCall += () => {
+				// リストビューのアイテムソースを更新
+				_contactSenderListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactSender));
+				_contactReciverListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactReceiver));
+				
+				// リストビューを再描画
+				RepaintListView(_contactSenderListView);
+				RepaintListView(_contactReciverListView);
 			};
 		}
         

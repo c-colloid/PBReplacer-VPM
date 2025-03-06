@@ -217,6 +217,22 @@ namespace colloid.PBReplacer
         
         #endregion
         
+        #region コンタクト特有の処理メソッド
+        
+	    /// <summary>
+	    /// ContactSenderを処理するメソッド
+	    /// </summary>
+	    public ProcessingResult ProcessContacts<T>(
+		    GameObject avatar,
+		    List<T> contacts,
+		    string subfolder) where T : Component
+	    {
+		    // 処理をヘルパーに委譲
+		    return ComponentProcessingHelper.ProcessContacts(this, avatar, contacts, subfolder);
+	    }
+        
+        #endregion
+        
         #region ユーティリティメソッド
         
         /// <summary>
