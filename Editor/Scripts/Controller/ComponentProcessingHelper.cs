@@ -4,6 +4,7 @@ using UnityEngine;
 using UnityEditor;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Constraint.Components;
+using VRC.SDK3.Dynamics.Contact.Components;
 using VRC.Dynamics;
 
 namespace colloid.PBReplacer
@@ -212,7 +213,21 @@ namespace colloid.PBReplacer
                 contacts, 
                 folderPath,
                 (oldContact, newContact, newObj, res) => {
-                    // コンタクト固有の追加処理があればここに実装
+	                // コンタクト固有の追加処理があればここに実装
+	                if (oldContact is VRCContactSender)
+	                {
+	                	if ((oldContact as VRCContactSender).rootTransform == null)
+	                	{
+	                		(newContact as VRCContactSender).rootTransform = oldContact.transform;
+	                	}
+	                }
+	                if (oldContact is VRCContactReceiver)
+	                {
+	                	if ((oldContact as VRCContactReceiver).rootTransform == null)
+	                	{
+	                		(newContact as VRCContactReceiver).rootTransform = oldContact.transform;
+	                	}
+	                }
                 });
         }
         
