@@ -69,8 +69,10 @@ namespace colloid.PBReplacer
 		private const string AVATAR_FIELD_LABEL_DEFAULT = "None (VRC_Avatar Descriptor)";
 		private const string LIST_ITEM_CLASS_NAME = "listitem";
 		private const string WINDOW_TITLE = "PBReplacer";
-		private const string APPLY_DIALOG_TITLE = "PhysBoneを処理します";
-		private const string APPLY_DIALOG_MESSAGE = "PhysBoneとPhysBoneColliderを処理します。この操作はUndo可能です。";
+		private const string APPLY_DIALOG_TITLE = "コンポーネントを処理します";
+		private const string APPLY_DIALOG_MESSAGE = 
+		@"コンポーネントを処理します
+この操作はUndo可能です";
 		private const string APPLY_DIALOG_OK = "続行";
 		private const string APPLY_DIALOG_CANCEL = "キャンセル";
 		private const string STATUS_SET_AVATAR = "アバターをセットしてください";
@@ -491,9 +493,23 @@ namespace colloid.PBReplacer
 			// 確認ダイアログを表示（設定で無効化可能）
 			if (_settings.ShowConfirmDialog)
 			{
+				string componentname = null;
+				switch (_tabContainer.value)
+				{
+				case 0: // PhysBone
+					componentname = "PhysBone";
+					break;
+				case 1: // Constraint
+					componentname = "Constraint";
+					break;
+				case 2: // Contact
+					componentname = "Contact";
+					break;
+				}
+				
 				bool proceed = EditorUtility.DisplayDialog(
-					APPLY_DIALOG_TITLE,
-					APPLY_DIALOG_MESSAGE,
+					componentname + APPLY_DIALOG_TITLE,
+					componentname + APPLY_DIALOG_MESSAGE,
 					APPLY_DIALOG_OK, 
 					APPLY_DIALOG_CANCEL);
                 
