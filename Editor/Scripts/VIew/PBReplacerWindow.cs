@@ -240,8 +240,6 @@ namespace colloid.PBReplacer
 			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT + "Test";
             #endif
             
-			Debug.Log(fieldLabel.text);
-            
 			// 値変更イベントの登録
 			_avatarField.RegisterValueChangedCallback(OnAvatarFieldValueChanged);
 		}
