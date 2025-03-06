@@ -121,6 +121,8 @@ namespace colloid.PBReplacer
 			//_dropArea.RegisterCallback<PointerDownEvent>(HandlePointerDown);
 			//_dropArea.RegisterCallback<PointerMoveEvent>(HandlePointerMove);
 			//_dropArea.RegisterCallback<PointerUpEvent>(HandlePointerUp);
+			
+			AvatarFieldHelper.OnAvatarChanged += OnAvatarChanged;
             
 			// ドラッグイベントの登録
 			_listView.RegisterCallback<DragEnterEvent>(HandleDragEnterEvent);
@@ -140,6 +142,8 @@ namespace colloid.PBReplacer
 			//_dropArea.UnregisterCallback<PointerDownEvent>(HandlePointerDown);
 			//_dropArea.UnregisterCallback<PointerMoveEvent>(HandlePointerMove);
 			//_dropArea.UnregisterCallback<PointerUpEvent>(HandlePointerUp);
+			
+			AvatarFieldHelper.OnAvatarChanged -= OnAvatarChanged;
             
 			// ドラッグイベントの登録解除
 			_listView.UnregisterCallback<DragEnterEvent>(HandleDragEnterEvent);
@@ -293,6 +297,20 @@ namespace colloid.PBReplacer
         #endregion
 
         #region Helper Methods
+		private void OnAvatarChanged(AvatarData obj)
+		{
+			if (obj != null)
+			{
+				// 一時オブジェクトの作成
+				//_tempRootObject = new GameObject("ListViewTempRoot");
+				//_tempRootObject.hideFlags = HideFlags.HideAndDontSave;
+			}
+			else
+			{
+				//CleanupTemporaryComponents();
+			}
+		}
+        
 		/// <summary>
 		/// 選択されたアイテムを内部キャッシュに保存
 		/// </summary>
