@@ -498,7 +498,7 @@ namespace colloid.PBReplacer
 		private void OnApplyButtonClicked()
 		{
 			// アバターが設定されているか確認
-			if (_pbDataManager.CurrentAvatar == null)
+			if (AvatarFieldHelper.CurrentAvatar == null)
 			{
 				EditorUtility.DisplayDialog("エラー", "アバターが設定されていません", "OK");
 				return;
