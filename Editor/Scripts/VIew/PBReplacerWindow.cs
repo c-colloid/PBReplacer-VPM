@@ -480,7 +480,7 @@ namespace colloid.PBReplacer
             #if MODULAR_AVATAR
 			fieldLabel.text = AVATAR_FIELD_LABEL_MA;
             #else
-			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT + "Test";
+			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT;
             #endif
 		}
         
