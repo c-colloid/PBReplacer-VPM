@@ -36,7 +36,7 @@ namespace colloid.PBReplacer
 		
 		#region Public Methods
 		/// <summary>
-		/// アバターを設定し、PhysBoneコンポーネントを読み込む
+		/// アバターを設定し、コンポーネントを読み込む
 		/// </summary>
 		/// <param name="avatarObject">アバターのGameObject</param>
 		/// <returns>成功した場合はtrue</returns>
@@ -64,7 +64,7 @@ namespace colloid.PBReplacer
 				//_pbDataManager.InvokeChanged();
 				//_constraintDataManager.InvokeChanged();
                 
-				//OnStatusMessageChanged.Invoke(_pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0 ? 
+				//NotifyStatusMessage(_pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0 ? 
 				//	"Applyを押してください" : 
 				//	"Armature内にPhysBoneが見つかりません");
                 
