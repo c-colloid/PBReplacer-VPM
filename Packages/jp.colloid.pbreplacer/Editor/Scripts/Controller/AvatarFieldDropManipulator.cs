@@ -204,9 +204,7 @@ namespace colloid.PBReplacer
 		/// オブジェクトをフィールドに設定
 		/// </summary>
 		private void AcceptObject(Component obj)
-		{
-			Debug.Log($"{_objectField}:{obj}");
-			
+		{	
 			if (_objectField != null)
 			{
 				_objectField.value = obj;
