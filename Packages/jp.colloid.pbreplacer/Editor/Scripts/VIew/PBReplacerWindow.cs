@@ -435,18 +435,36 @@ namespace colloid.PBReplacer
                 
 			// 設定に保存
 			_settings.SaveLastAvatarGUID(avatarObject?.gameObject);
-			// アバターの設定を実行
-			//if (avatarObject != null)
-			//{
-			//}
-			//else
-			//{
-			//	_pbDataManager.ClearData();
-			//	_statusLabel.text = STATUS_SET_AVATAR;
-			//}
+			 //アバターの設定を実行
+			if (avatarObject != null)
+			{
+				OnStatusMessageChanged(ComponentCountStatus());
+			}
+			else
+			{
+				_statusLabel.text = STATUS_SET_AVATAR;
+			}
 			
 			if (avatarObject != null) return;
 			InitializeAvatarFieldLabel();
+		}
+		
+		private string ComponentCountStatus()
+		{
+			bool isValid = true;
+			switch (_tabContainer.value)
+			{
+			case 0: // PhysBone
+				isValid = _pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0;
+				break;
+			case 1: // Constraint
+				isValid = _constraintDataManager.Components.Count > 0;
+				break;
+			case 2: // Contact
+				isValid = _contactDataManager.Components.Count > 0;
+				break;
+			}
+			return isValid ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
 		}
 		
 		private void OnAvatarFieldLabelChanged(ChangeEvent<string> evt)
@@ -489,6 +507,9 @@ namespace colloid.PBReplacer
 				_contactBox.style.display = DisplayStyle.Flex;
 				break;
 			}
+			
+			if (_avatarField.value == null) return;
+			OnStatusMessageChanged(ComponentCountStatus());
 		}
         
 		/// <summary>
