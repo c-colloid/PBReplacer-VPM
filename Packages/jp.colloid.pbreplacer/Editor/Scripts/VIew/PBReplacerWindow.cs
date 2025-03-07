@@ -119,6 +119,8 @@ namespace colloid.PBReplacer
 		{
 			// イベント登録解除
 			UnregisterDataManagerEvents();
+			
+			SaveAvatarData();
             
 			// ドラッグハンドラーのクリーンアップ
 			CleanupDragHandlers();
@@ -391,6 +393,12 @@ namespace colloid.PBReplacer
 			{
 				_avatarField.value = lastAvatar;
 			}
+		}
+		
+		private void SaveAvatarData()
+		{
+			// 設定に保存
+			//_settings.SaveLastAvatarGUID((_avatarField?.value as Component)?.gameObject);
 		}
         
 		/// <summary>
