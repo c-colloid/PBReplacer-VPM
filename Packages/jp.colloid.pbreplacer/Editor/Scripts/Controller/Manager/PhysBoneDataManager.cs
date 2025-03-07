@@ -113,7 +113,11 @@ namespace colloid.PBReplacer
 			_components.Clear();
 			_physBoneColliders.Clear();
 
-			if (CurrentAvatar?.Armature == null) return;
+			if (CurrentAvatar?.Armature == null)
+			{
+				InvokeChanged();
+				return;
+			}
 
 			// アーマチュア内のコンポーネントを取得
 			var pbComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBone>(true);

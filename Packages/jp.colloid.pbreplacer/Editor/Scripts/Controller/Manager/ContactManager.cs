@@ -44,7 +44,11 @@ namespace colloid.PBReplacer
 		{
 			_components.Clear();
 
-			if (CurrentAvatar?.Armature == null) return;
+			if (CurrentAvatar?.Armature == null)
+			{
+				InvokeChanged();
+				return;
+			}
 
 			// アーマチュア内のコンポーネントを取得
 			var senderComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCContactSender>(true);
