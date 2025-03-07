@@ -422,8 +422,6 @@ namespace colloid.PBReplacer
 		{
 			// 既に_avatarFieldの値変更イベントで処理されるため、
 			// ここでは追加処理が必要な場合のみ実装
-			
-			//_avatarField.objectType = avatar.GetType();
 		}
         
 		/// <summary>
