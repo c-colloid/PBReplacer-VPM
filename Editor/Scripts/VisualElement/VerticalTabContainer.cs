@@ -1,12 +1,14 @@
 ﻿using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEditor;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Properties;
+using UnityEngine.Pool;
 
 namespace colloid.PBReplacer
 {
-	using Unity.Properties;
 	/// <summary>
 	/// A container for vertical tabs that manages their grouping and selection.
 	/// Similar to RadioButtonGroup but for vertical tabs.
@@ -57,6 +59,8 @@ namespace colloid.PBReplacer
 		private EventCallback<VerticalTabElement.ValueChangedEvent> m_TabValueChangedCallback;
 		private bool m_UpdatingTabs;
 		private UQueryBuilder<VerticalTabElement> m_GetAllTabsQuery;
+		
+		private IVisualElementScheduledItem m_TabUpdateSchedule;
 
 		/// <summary>
 		/// Gets the currently selected tab element.
@@ -93,6 +97,7 @@ namespace colloid.PBReplacer
 			}
 			set
 			{
+				
 				if (value == null || !value.Any<string>())
 				{
 					Clear();
@@ -182,13 +187,34 @@ namespace colloid.PBReplacer
             
 			// Register for child attachment events
 			RegisterCallback<AttachToPanelEvent>(OnAttachToPanel);
+			//RegisterCallback<DetachFromPanelEvent>(OnDetachFromPanel);
 		}
 
+		
 		private void OnAttachToPanel(AttachToPanelEvent evt)
 		{
 			// When panel is attached, find any existing VerticalTabElement children
 			// and make sure they're properly handled
-			ScheduleTabUpdate();
+			//
+			UpdateTabs();
+		}
+		
+		
+		private void OnDetachFromPanel(DetachFromPanelEvent evt)
+		{
+			// スケジュールされたタスクをキャンセル
+			if (m_TabUpdateSchedule != null)
+			{
+				try {
+					m_TabUpdateSchedule?.Pause();
+					Debug.Log("Pause");
+				}
+				catch (System.Exception e)
+				{
+					Debug.Log(e);
+				}
+				m_TabUpdateSchedule = null;
+			}
 		}
 
 		/// <summary>
@@ -203,12 +229,14 @@ namespace colloid.PBReplacer
 			if (evt.newValue)
 			{
 				var tab = evt.target as VerticalTabElement;
+				/*
 				// Get all tabs
 				List<VerticalTabElement> tabList = new List<VerticalTabElement>();
 				GetAllTabs(tabList);
+				*/
                 
 				// Set the value to the index of the selected tab
-				value = tabList.IndexOf(tab);
+				value = m_RegisteredTabs.IndexOf(tab);
                 
 				// Stop propagation after handling
 				evt.StopPropagation();
@@ -220,8 +248,8 @@ namespace colloid.PBReplacer
 		/// </summary>
 		public override void SetValueWithoutNotify(int newValue)
 		{
-			if (base.value == newValue)
-				return;
+			//if (base.value == newValue)
+			//	return;
 			base.SetValueWithoutNotify(newValue);
 			UpdateTabs();
 		}
@@ -256,17 +284,16 @@ namespace colloid.PBReplacer
 				m_SelectedTab = tabList[value];
 				m_SelectedTab.value = true;
 			}
-            
-			// Deselect all other tabs
-			foreach (var tab in tabList)
+			else
 			{
-				if (tab != m_SelectedTab)
+				// Deselect all other tabs
+				foreach (var tab in tabList)
 				{
-					tab.value = false;
+					tab.value = false;		
 				}
 			}
             
-			m_UpdatingTabs = false;
+			//m_UpdatingTabs = false;
 		}
 
 		/// <summary>
@@ -277,7 +304,14 @@ namespace colloid.PBReplacer
 			if (m_UpdatingTabs)
 				return;
                 
-			schedule.Execute(UpdateTabs);
+			try {
+				m_TabUpdateSchedule = schedule.Execute(UpdateTabs);
+			}
+			catch (System.Exception e)
+			{
+				Debug.Log(e);
+				UpdateTabs();
+			}
 			m_UpdatingTabs = true;
 		}
 
@@ -291,7 +325,7 @@ namespace colloid.PBReplacer
                 
 			m_RegisteredTabs.Add(tab);
 			tab.RegisterCallback(m_TabValueChangedCallback);
-			ScheduleTabUpdate();
+			//ScheduleTabUpdate();
 		}
 
 		/// <summary>
@@ -312,7 +346,7 @@ namespace colloid.PBReplacer
 				value = -1;
 			}
             
-			ScheduleTabUpdate();
+			//ScheduleTabUpdate();
 		}
 
 		/// <summary>

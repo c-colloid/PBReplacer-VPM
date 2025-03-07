@@ -84,6 +84,9 @@ namespace colloid.PBReplacer
 		
 		private VisualElement m_conteiner = new VisualElement(){style = {justifyContent = Justify.Center}};
 
+		private IVisualElementScheduledItem m_ContainerSizeSchedule;
+		private IVisualElementScheduledItem m_TabHeightSchedule;
+		
 		// プロパティ
 		public string text
 		{
@@ -236,7 +239,7 @@ namespace colloid.PBReplacer
 			}
 			
 			Add(m_conteiner);
-			schedule.Execute(UpdateContainerSize);
+			m_ContainerSizeSchedule = schedule.Execute(UpdateContainerSize);
             
 			// Register for mouse events
 			RegisterCallback<ClickEvent>(OnClick);
@@ -401,7 +404,7 @@ namespace colloid.PBReplacer
 				// そうでなければ次のフレームで更新をスケジュール
 				else
 				{
-					schedule.Execute(UpdateTabHeight);
+					m_TabHeightSchedule = schedule.Execute(UpdateTabHeight);
 				}
 			}
 		}
@@ -429,13 +432,16 @@ namespace colloid.PBReplacer
 			if (m_AutoHeight)
 			{
 				// パネルにアタッチされたときに高さを計算
-				schedule.Execute(UpdateTabHeight);
+				m_TabHeightSchedule = schedule.Execute(UpdateTabHeight);
 			}
 		}
 
 		private void OnDetachFromPanel(DetachFromPanelEvent evt)
 		{
 			GroupBoxUtility.UnregisterGroupBoxOption(this);
+			
+			m_ContainerSizeSchedule = null;
+			m_TabHeightSchedule = null;
 		}
 
 		private void UpdateVisualState()
