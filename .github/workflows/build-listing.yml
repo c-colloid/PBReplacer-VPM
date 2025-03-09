@@ -68,7 +68,7 @@ jobs:
       
       # Upload the VPM Listing Website to GitHub Pages artifacts
       - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@a753861a5debcf57bf8b404356158c8e1e33150c
+        uses: actions/upload-pages-artifact@main
         with:
           path: ${{ env.listPublishDirectory }}
       
