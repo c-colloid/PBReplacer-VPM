@@ -75,4 +75,4 @@ jobs:
       # Deploy the uploaded VPM Listing Website to GitHub Pages
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@9dbe3824824f8a1377b8e298bafde1a50ede43e5
+        uses: actions/deploy-pages@main
