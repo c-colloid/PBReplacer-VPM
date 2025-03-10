@@ -6,14 +6,18 @@
         <ui:Toggle label="前回のアバターを自動的に読み込む" style="-unity-font-style: bold;" />
         <ui:Toggle label="Toggle" />
         <ui:Toggle label="Toggle" />
-        <ui:VisualElement name="Separetor1" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; height: 1px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px;" />
-        <ui:Label tabindex="-1" text="表示設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Visibility" style="margin-bottom: 5px;" />
-        <ui:Toggle label="Toggle" />
-        <ui:Toggle label="Toggle" />
-        <ui:VisualElement name="Separator2" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px;" />
-        <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px;" />
-        <ui:Toggle label="Toggle" />
-        <ui:Toggle label="Toggle" />
+        <ui:VisualElement name="Separetor1" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; height: 1px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: none;" />
+        <ui:VisualElement name="Visibility" style="display: none;">
+            <ui:Label tabindex="-1" text="表示設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Visibility" style="margin-bottom: 5px;" />
+            <ui:Toggle label="Toggle" />
+            <ui:Toggle label="Toggle" />
+        </ui:VisualElement>
+        <ui:VisualElement name="Separator2" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: none;" />
+        <ui:VisualElement name="Advanced" style="display: none;">
+            <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px;" />
+            <ui:Toggle label="Toggle" />
+            <ui:Toggle label="Toggle" />
+        </ui:VisualElement>
     </ui:ScrollView>
     <ui:VisualElement style="margin-top: 20px; justify-content: center; flex-direction: row;">
         <ui:Button text="保存" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Save" style="width: 100px;" />
