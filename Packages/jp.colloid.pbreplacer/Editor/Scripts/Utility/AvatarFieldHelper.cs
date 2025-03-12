@@ -31,7 +31,7 @@ namespace colloid.PBReplacer
 		public static AvatarData CurrentAvatar => _currentAvatar;
 
 		// PhysBone処理クラスへの参照
-		private static PhysBoneProcessor _processor;
+		// private static PhysBoneProcessor _processor;
         #endregion
 		
 		#region Public Methods
