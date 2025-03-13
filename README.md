@@ -1,9 +1,15 @@
 # PBReplacer
-Version 1.6.1
+Version 2.0.0
 
 ## 概要
-* アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
-* 元のコンポーネントのパラメーターを保持したまま、PhysBoneとPhysBoneColliderを1オブジェクト＝1コンポーネントに分けて再配置します。
+アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
+
+元のコンポーネントのパラメーターを保持したまま、
+* PhysBone/PhysBoneCollider
+* VRCContactSender/Receiver
+* VRCConstraint全般
+
+を1オブジェクト＝1コンポーネントに分けて再配置します。
 
 ## 使用用途
 * ___複数コンポーネントの一括編集がしたい時。___
