@@ -254,6 +254,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 684729759}
+  - component: {fileID: 684729760}
   m_Layer: 0
   m_Name: Target
   m_TagString: Untagged
@@ -276,6 +277,26 @@ Transform:
   m_Children: []
   m_Father: {fileID: 495802809}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &684729760
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 684729758}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1631200402, guid: 2a2c05204084d904aa4945ccff20d8e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rootTransform: {fileID: 684729759}
+  shapeType: 0
+  insideBounds: 0
+  radius: 0.5
+  height: 2
+  position: {x: 0, y: 0, z: 0}
+  rotation: {x: 0, y: 0, z: 0, w: 1}
+  bonesAsSpheres: 0
 --- !u!1 &748625094
 GameObject:
   m_ObjectHideFlags: 0
@@ -388,7 +409,8 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  colliders: []
+  colliders:
+  - {fileID: 684729760}
   limitType: 0
   maxAngleX: 45
   maxAngleXCurve:
@@ -992,7 +1014,9 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  colliders: []
+  colliders:
+  - {fileID: 2115837073}
+  - {fileID: 684729760}
   limitType: 0
   maxAngleX: 45
   maxAngleXCurve:
@@ -1687,8 +1711,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 0
-  latestValidExecutionGroupIndex: 0
+  cachedExecutionGroupIndex: 4
+  latestValidExecutionGroupIndex: 4
   ScaleAtRest: {x: 1, y: 1, z: 1}
   ScaleOffset: {x: 1, y: 1, z: 1}
   AffectsScaleX: 1
@@ -1796,8 +1820,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 1
-  latestValidExecutionGroupIndex: 1
+  cachedExecutionGroupIndex: 3
+  latestValidExecutionGroupIndex: 3
   RotationAtRest: {x: 0, y: 0, z: 0}
   RotationOffset: {x: 0, y: 0, z: 0}
   AffectsRotationX: 1
@@ -2014,8 +2038,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 3
-  latestValidExecutionGroupIndex: 3
+  cachedExecutionGroupIndex: 1
+  latestValidExecutionGroupIndex: 1
   PositionAtRest: {x: 0, y: 0, z: 0}
   AffectsPositionX: 1
   AffectsPositionY: 1
@@ -2126,8 +2150,8 @@ MonoBehaviour:
       ParentRotationOffset: {x: 0, y: 0, z: 0}
     totalLength: 0
     overflowList: []
-  cachedExecutionGroupIndex: 4
-  latestValidExecutionGroupIndex: 4
+  cachedExecutionGroupIndex: 0
+  latestValidExecutionGroupIndex: 0
   RotationAtRest: {x: 0, y: 0, z: 0}
   RotationOffset: {x: 0, y: 0, z: 0}
   WorldUpTransform: {fileID: 0}
@@ -2230,6 +2254,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2115837072}
   - component: {fileID: 2115837073}
+  - component: {fileID: 2115837074}
   m_Layer: 0
   m_Name: Component
   m_TagString: Untagged
@@ -2266,6 +2291,26 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rootTransform: {fileID: 684729759}
+  shapeType: 0
+  insideBounds: 0
+  radius: 0.5
+  height: 2
+  position: {x: 0, y: 0, z: 0}
+  rotation: {x: 0, y: 0, z: 0, w: 1}
+  bonesAsSpheres: 0
+--- !u!114 &2115837074
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2115837071}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1631200402, guid: 2a2c05204084d904aa4945ccff20d8e5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  rootTransform: {fileID: 0}
   shapeType: 0
   insideBounds: 0
   radius: 0.5
