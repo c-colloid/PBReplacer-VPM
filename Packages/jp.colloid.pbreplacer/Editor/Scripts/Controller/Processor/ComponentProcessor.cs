@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using VRC.SDK3.Dynamics.PhysBone.Components;
@@ -105,7 +106,10 @@ namespace colloid.PBReplacer
 
                 // コンポーネント処理
                 Dictionary<T, T> componentMap = new Dictionary<T, T>();
-                int total = components.Count;
+	            int total = components.Count;
+                
+	            var hashset = new HashSet<Transform>();
+	            var duplicateElements = components.GroupBy(e => e.transform).Where(g => g.Count() > 1).Select(g => g.Key);
 
                 for (int i = 0; i < total; i++)
                 {
@@ -124,10 +128,17 @@ namespace colloid.PBReplacer
                     // 新しいオブジェクトを作成
                     string objName = GetSafeObjectName(component.name);
                     GameObject newObj = new GameObject(objName);
-                    result.CreatedObjects.Add(newObj);
+	                result.CreatedObjects.Add(newObj);
+                    
+	                Transform targetFolder = componentFolder;
+	                // 同じオブジェクトに付いているコンポーネントをまとめるオブジェクトを追加
+	                if (duplicateElements.Contains(component.transform))
+	                {
+	                	targetFolder = PrepareComponentFolder(componentFolder.gameObject, component.name);
+	                }
 
                     // 親を設定
-                    newObj.transform.SetParent(componentFolder);
+	                newObj.transform.SetParent(targetFolder);
                     newObj.transform.localPosition = Vector3.zero;
                     newObj.transform.localRotation = Quaternion.identity;
                     newObj.transform.localScale = Vector3.one;
