@@ -231,11 +231,6 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void HandleDragLeaveEvent(DragLeaveEvent evt)
 		{
-			// イベントの同レーム内の発生を1回に制限
-			if (_event) return;
-			EditorApplication.delayCall += () => _event = false;
-			_event = true;
-			
 			HiddenDropArea();
 			
 			// 一時的なコンポーネントをクリーンアップ
