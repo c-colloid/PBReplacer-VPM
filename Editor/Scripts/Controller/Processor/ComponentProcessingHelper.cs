@@ -48,8 +48,8 @@ namespace colloid.PBReplacer
                 result.RootObject = avatarDynamics;
                 
                 // コライダーマッピング（PhysBoneのコライダー参照更新用）
-                Dictionary<VRCPhysBoneCollider, VRCPhysBoneCollider> colliderMap = 
-                    new Dictionary<VRCPhysBoneCollider, VRCPhysBoneCollider>();
+	            var colliderMap = 
+	                new Dictionary<int, VRCPhysBoneCollider>();
                 
                 // 先にコライダーを処理
                 if (colliders != null && colliders.Count > 0)
@@ -62,11 +62,11 @@ namespace colloid.PBReplacer
                             // コライダー固有の追加処理
                             if (oldCollider.rootTransform == null)
                             {
-                                newCollider.rootTransform = newCollider.transform;
+	                            newCollider.rootTransform = oldCollider.transform;
                             }
                             
                             // マッピングに追加
-                            colliderMap[oldCollider] = newCollider;
+	                        colliderMap[oldCollider.GetInstanceID()] = newCollider;
                         });
                         
                     if (!colliderResult.Success)
@@ -76,9 +76,6 @@ namespace colloid.PBReplacer
                     
                     result.ProcessedComponentCount += colliderResult.ProcessedComponentCount;
                     result.CreatedObjects.AddRange(colliderResult.CreatedObjects);
-                    
-                    // PhysBoneのコライダー参照を更新
-                    UpdatePhysBoneColliderReferences(physBones, colliderMap);
                 }
 
                 // PhysBoneを処理
@@ -104,6 +101,9 @@ namespace colloid.PBReplacer
                     result.ProcessedComponentCount += pbResult.ProcessedComponentCount;
                     result.CreatedObjects.AddRange(pbResult.CreatedObjects);
                 }
+                    
+	            // PhysBoneのコライダー参照を更新
+	            UpdatePhysBoneColliderReferences(physBones, colliderMap);
 
                 // Undoグループ終了
                 Undo.CollapseUndoOperations(undoGroup);
@@ -130,29 +130,31 @@ namespace colloid.PBReplacer
         /// </summary>
         private static void UpdatePhysBoneColliderReferences(
             List<VRCPhysBone> physBones,
-            Dictionary<VRCPhysBoneCollider, VRCPhysBoneCollider> colliderMap)
-        {
+	        Dictionary<int, VRCPhysBoneCollider> colliderMap)
+	    {
             if (physBones == null || colliderMap == null || colliderMap.Count == 0)
                 return;
                 
             foreach (var pb in physBones)
             {
-                if (pb == null || pb.colliders == null) continue;
+                if (pb.colliders == null) continue;
 
                 bool modified = false;
                 for (int i = 0; i < pb.colliders.Count; i++)
                 {
-                    var oldCollider = pb.colliders[i] as VRCPhysBoneCollider;
+	                var oldCollider = pb.colliders[i].GetInstanceID();
+	                
                     if (oldCollider != null && colliderMap.TryGetValue(oldCollider, out var newCollider))
                     {
                         pb.colliders[i] = newCollider;
                         modified = true;
-                    }
+	                }
+	                
                 }
 
                 if (modified)
                 {
-                    EditorUtility.SetDirty(pb);
+                    //EditorUtility.SetDirty(pb);
                 }
             }
         }
