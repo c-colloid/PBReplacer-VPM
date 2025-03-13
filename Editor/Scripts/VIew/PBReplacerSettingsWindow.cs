@@ -55,18 +55,11 @@ namespace colloid.PBReplacer
             titleLabel.style.marginTop = 10;
             titleLabel.style.marginBottom = 15;
             titleLabel.style.paddingLeft = 10;
-            //root.Add(titleLabel);
             
             // 設定パネル
             var settingsPanel = CreateSettingsPanel();
-            //root.Add(settingsPanel);
             
-            // 保存ボタン
-            //var buttonContainer = new VisualElement();
-            //buttonContainer.style.flexDirection = FlexDirection.Row;
-            //buttonContainer.style.justifyContent = Justify.Center;
-            //buttonContainer.style.marginTop = 20;
-            
+            // 保存ボタン     
 	        var saveButton = root.Q<Button>("Save");
 	        saveButton.clicked += () => {
                 _settings.Save();
@@ -90,19 +83,9 @@ namespace colloid.PBReplacer
             resetButton.style.width = 100;
             resetButton.style.marginLeft = 10;
             
-            //buttonContainer.Add(saveButton);
-            //buttonContainer.Add(resetButton);
-            //root.Add(buttonContainer);
-            
             // バージョン情報
 	        var versionInfo = root.Q<Label>("Version");
 	        versionInfo.text = $"PBReplacer Version {GetVersionString()}";
-            //versionInfo.style.position = Position.Absolute;
-            //versionInfo.style.bottom = 5;
-            //versionInfo.style.right = 10;
-            //versionInfo.style.fontSize = 10;
-            //versionInfo.style.color = new Color(0.5f, 0.5f, 0.5f);
-            //root.Add(versionInfo);
         }
         
         /// <summary>
@@ -119,7 +102,6 @@ namespace colloid.PBReplacer
 	        basicSettingsLabel.text = "基本設定";
             basicSettingsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             basicSettingsLabel.style.marginBottom = 5;
-            //panel.Add(basicSettingsLabel);
             
             // 自動読み込み設定
 	        var autoLoadToggle = panel.Query<Toggle>().AtIndex(0);
@@ -128,7 +110,6 @@ namespace colloid.PBReplacer
             autoLoadToggle.RegisterValueChangedCallback(evt => {
                 _settings.AutoLoadLastAvatar = evt.newValue;
             });
-            //panel.Add(autoLoadToggle);
             
             // 確認ダイアログ設定
 	        var confirmDialogToggle = panel.Query<Toggle>().AtIndex(1);
@@ -137,7 +118,6 @@ namespace colloid.PBReplacer
             confirmDialogToggle.RegisterValueChangedCallback(evt => {
                 _settings.ShowConfirmDialog = evt.newValue;
             });
-            //panel.Add(confirmDialogToggle);
             
             // 進捗バー設定
 	        var progressBarToggle = panel.Query<Toggle>().AtIndex(2);
@@ -146,7 +126,6 @@ namespace colloid.PBReplacer
             progressBarToggle.RegisterValueChangedCallback(evt => {
                 _settings.ShowProgressBar = evt.newValue;
             });
-            //panel.Add(progressBarToggle);
             
             // 区切り線
 	        var separator1 = panel.Q<VisualElement>("Separetor1");
@@ -154,14 +133,12 @@ namespace colloid.PBReplacer
             separator1.style.marginTop = 10;
             separator1.style.marginBottom = 10;
             separator1.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-            //panel.Add(separator1);
             
             // 表示設定セクション
 	        var displaySettingsLabel = panel.Q<Label>("Visibility");
 	        displaySettingsLabel.text = "表示設定";
             displaySettingsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             displaySettingsLabel.style.marginBottom = 5;
-            //panel.Add(displaySettingsLabel);
             
             // テーマ設定
 	        var themeToggle = panel.Query<Toggle>().AtIndex(3);
@@ -170,7 +147,6 @@ namespace colloid.PBReplacer
             themeToggle.RegisterValueChangedCallback(evt => {
                 _settings.FollowEditorTheme = evt.newValue;
             });
-            //panel.Add(themeToggle);
             
             // PhysBone設定表示
 	        var showPBSettingsToggle = panel.Query<Toggle>().AtIndex(4);
@@ -180,7 +156,6 @@ namespace colloid.PBReplacer
             showPBSettingsToggle.RegisterValueChangedCallback(evt => {
                 _settings.ShowPhysBoneSettings = evt.newValue;
             });
-            //panel.Add(showPBSettingsToggle);
             
             // 区切り線
 	        var separator2 = panel.Q<VisualElement>("Separator2");
@@ -188,14 +163,12 @@ namespace colloid.PBReplacer
             separator2.style.marginTop = 10;
             separator2.style.marginBottom = 10;
             separator2.style.backgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.3f);
-            //panel.Add(separator2);
             
             // 高度な設定セクション
 	        var advancedSettingsLabel = panel.Q<Label>("Advanced");
 	        advancedSettingsLabel.text = "高度な設定";
             advancedSettingsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             advancedSettingsLabel.style.marginBottom = 5;
-            //panel.Add(advancedSettingsLabel);
             
             // 親階層の維持
 	        var preserveHierarchyToggle = panel.Query<Toggle>().AtIndex(5);
@@ -205,7 +178,6 @@ namespace colloid.PBReplacer
             preserveHierarchyToggle.RegisterValueChangedCallback(evt => {
                 _settings.PreserveHierarchy = evt.newValue;
             });
-            //panel.Add(preserveHierarchyToggle);
             
             // AnimatorがないオブジェクトでもArmatureを検出
 	        var detectNonAnimatorArmatureToggle = panel.Query<Toggle>().AtIndex(6);
@@ -215,7 +187,6 @@ namespace colloid.PBReplacer
             detectNonAnimatorArmatureToggle.RegisterValueChangedCallback(evt => {
                 _settings.DetectNonAnimatorArmature = evt.newValue;
             });
-            //panel.Add(detectNonAnimatorArmatureToggle);
             
             return panel;
         }

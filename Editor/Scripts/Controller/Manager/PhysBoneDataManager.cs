@@ -22,32 +22,13 @@ namespace colloid.PBReplacer
 		// データの変更を通知するイベント
 		public event Action<List<VRCPhysBone>> OnPhysBonesChanged;
 		public event Action<List<VRCPhysBoneCollider>> OnPhysBoneCollidersChanged;
-		//public event Action OnProcessingComplete;
-		//public event Action<string> OnStatusMessageChanged;
         #endregion
 
         #region Properties
-		// 現在のアバターデータ
-		//private AvatarData CurrentAvatar;
-		//public AvatarData CurrentAvatar
-		//{
-		//	get => AvatarFieldHelper.CurrentAvatar;
-		//	//set => CurrentAvatar = value;
-		//}
-
-		// PhysBoneとPhysBoneColliderのコンポーネントリスト
-		//private List<VRCPhysBone> _physBones = new List<VRCPhysBone>();
 		private List<VRCPhysBoneCollider> _physBoneColliders = new List<VRCPhysBoneCollider>();
 
 		public List<VRCPhysBone> PhysBones => Components;
 		public List<VRCPhysBoneCollider> PhysBoneColliders => _physBoneColliders;
-
-		// PhysBone処理クラスへの参照
-		//private PhysBoneProcessor _processor;
-		//private ComponentProcessor _processor;
-        
-		// 設定への参照
-		//private PBReplacerSettings _settings;
         #endregion
 
         #region Singleton Implementation
@@ -57,57 +38,11 @@ namespace colloid.PBReplacer
 		// プライベートコンストラクタ（シングルトンパターン）
 		private PhysBoneDataManager() : base()
 		{
-			//_settings = PBReplacerSettings.Load();
-			//_processor = new PhysBoneProcessor(_settings);
-			//_processor = new ComponentProcessor(_settings);
+
 		}
         #endregion
 
-        #region Public Methods
-		/// <summary>
-		/// アバターを設定し、PhysBoneコンポーネントを読み込む
-		/// </summary>
-		/// <param name="avatarObject">アバターのGameObject</param>
-		/// <returns>成功した場合はtrue</returns>
-		/**
-		public bool SetAvatar(GameObject avatarObject)
-		{
-			if (avatarObject == null)
-			{
-				ClearData();
-				NotifyStatusMessage("アバターをセットしてください");
-				return false;
-			}
-
-			try
-			{
-				// アバターデータを生成
-				CurrentAvatar = new AvatarData(avatarObject);
-                
-				// PhysBoneとPhysBoneColliderを取得
-				LoadPhysBoneComponents();
-                
-				// 変更通知
-				OnAvatarChanged?.Invoke(CurrentAvatar);
-				OnPhysBonesChanged?.Invoke(_physBones);
-				OnPhysBoneCollidersChanged?.Invoke(_physBoneColliders);
-                
-				NotifyStatusMessage(_physBones.Count > 0 || _physBoneColliders.Count > 0 ? 
-					"Applyを押してください" : 
-					"Armature内にPhysBoneが見つかりません");
-                
-				return true;
-			}
-				catch (Exception ex)
-				{
-					Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
-					ClearData();
-					NotifyStatusMessage($"エラー: {ex.Message}");
-					return false;
-				}
-		}
-		**/
-		
+        #region Public Methods	
 		public override void LoadComponents()
 		{
 			_components.Clear();
@@ -165,9 +100,6 @@ namespace colloid.PBReplacer
 					}
 				}
 			}
-			
-			//NotifyComponentsChanged();
-			//NotifyPhysBoneCollidersChanged();
 		}
 		
 		public override bool ProcessComponents()
@@ -220,31 +152,6 @@ namespace colloid.PBReplacer
 					return false;
 				}
 		}
-
-		/// <summary>
-		/// 特定のPhysBoneを追加
-		/// </summary>
-		//public void AddPhysBone(VRCPhysBone physBone)
-		//{
-		//	if (physBone != null && !Components.Contains(physBone))
-		//	{
-		//		Components.Add(physBone);
-		//		OnComponentsChanged?.Invoke(Components);
-		//	}
-		//}
-
-
-		/// <summary>
-		/// 特定のPhysBoneを削除
-		/// </summary>
-		//public void RemovePhysBone(VRCPhysBone physBone)
-		//{
-		//	if (Components.Contains(physBone))
-		//	{
-		//		Components.Remove(physBone);
-		//		OnComponentsChanged?.Invoke(Components);
-		//	}
-		//}
 
 		/// <summary>
 		/// データをリロードする
@@ -381,22 +288,6 @@ namespace colloid.PBReplacer
         #endregion
 
         #region Private Methods
-		/// <summary>
-		/// アバターデータが変更された時の処理
-		/// </summary>
-		//private void OnAvatarChanged(AvatarData avatarData)
-		//{
-		//	// アバター変更時にコンポーネントを再ロード
-		//	LoadPhysBoneComponents();
-		//}
-        
-		/// <summary>
-		/// ステータスメッセージの通知
-		/// </summary>
-		//private void NotifyStatusMessage(string message)
-		//{
-		//	OnStatusMessageChanged?.Invoke(message);
-		//}
         #endregion
 	}
 }

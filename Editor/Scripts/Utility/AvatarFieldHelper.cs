@@ -17,10 +17,6 @@ namespace colloid.PBReplacer
         #endregion
 		
 		#region Data References
-		// データマネージャーへの参照
-		//private static PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
-		//private static ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
-		
 		// 設定への参照
 		private static PBReplacerSettings _settings;
         #endregion
@@ -29,9 +25,6 @@ namespace colloid.PBReplacer
 		// 現在のアバターデータ
 		private static AvatarData _currentAvatar;
 		public static AvatarData CurrentAvatar => _currentAvatar;
-
-		// PhysBone処理クラスへの参照
-		// private static PhysBoneProcessor _processor;
         #endregion
 		
 		#region Public Methods
@@ -54,20 +47,9 @@ namespace colloid.PBReplacer
 				// アバターデータを生成
 				_currentAvatar = new AvatarData(avatarObject);
                 
-				// PhysBoneとPhysBoneColliderを取得
-				//_pbDataManager.LoadPhysBoneComponents();
-				//_constraintDataManager.LoadComponents();
-				
-                
 				// 変更通知
 				OnAvatarChanged.Invoke(_currentAvatar);
-				//_pbDataManager.InvokeChanged();
-				//_constraintDataManager.InvokeChanged();
-                
-				//NotifyStatusMessage(_pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0 ? 
-				//	"Applyを押してください" : 
-				//	"Armature内にPhysBoneが見つかりません");
-                
+				
 				return true;
 			}
 				catch (Exception ex)
