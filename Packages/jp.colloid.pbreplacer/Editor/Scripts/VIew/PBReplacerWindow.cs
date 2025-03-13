@@ -397,7 +397,7 @@ namespace colloid.PBReplacer
 		
 		private void SaveAvatarData()
 		{
-			// 設定に保存
+			// 設定に保存(最新の設定を読み込む必要があるので一旦保留)
 			//_settings.SaveLastAvatarGUID((_avatarField?.value as Component)?.gameObject);
 		}
         
@@ -576,9 +576,7 @@ namespace colloid.PBReplacer
 					_constraintDataManager.ProcessConstraints();
 					break;
 				case 2: // Contact
-					// コンタクト処理を実装する場合はここに追加
 					_contactDataManager.ProcessComponents();
-					//EditorUtility.DisplayDialog("情報", "コンタクト処理は現在準備中です", "OK");
 					break;
 				}
 			}

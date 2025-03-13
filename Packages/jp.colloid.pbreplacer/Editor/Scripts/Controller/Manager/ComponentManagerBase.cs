@@ -104,25 +104,6 @@ namespace colloid.PBReplacer
 
 			_components.AddRange(targetComponents);
             
-			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
-			//if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
-			//{
-			//	var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
-                
-			//	// コンポーネントを検索して追加
-			//	if (avatarDynamics.transform.Find(FolderName) != null)
-			//	{
-			//		var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
-			//		var additionalComponents = componentsParentFolder.GetComponentsInChildren<T>(true);
-			//		foreach (var constraint in additionalComponents)
-			//		{
-			//			if (!_components.Contains(constraint))
-			//			{
-			//				_components.Add(constraint);
-			//			}
-			//		}
-			//	}
-			//}
 			_components.AddRange(GetAvatarDynamicsComponent<T>());
 			
 			InvokeChanged();
