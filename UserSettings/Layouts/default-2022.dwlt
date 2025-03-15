@@ -43,7 +43,7 @@ MonoBehaviour:
     width: 1920
     height: 989
   m_ShowMode: 4
-  m_Title: Hierarchy
+  m_Title: Inspector
   m_RootView: {fileID: 10}
   m_MinSize: {x: 875, y: 300}
   m_MaxSize: {x: 10000, y: 10000}
@@ -90,7 +90,7 @@ MonoBehaviour:
     x: 0
     y: 0
     width: 0
-    height: 6
+    height: 0
   m_MinSize: {x: 0, y: 0}
   m_MaxSize: {x: 0, y: 0}
   vertical: 0
@@ -142,7 +142,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 114
+  controlID: 100
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -319,7 +319,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 100}
   m_MaxSize: {x: 16192, y: 16192}
   vertical: 1
-  controlID: 69
+  controlID: 38
 --- !u!114 &14
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -344,7 +344,7 @@ MonoBehaviour:
   m_MinSize: {x: 200, y: 50}
   m_MaxSize: {x: 16192, y: 8096}
   vertical: 0
-  controlID: 70
+  controlID: 39
 --- !u!114 &15
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -605,24 +605,24 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Packages/jp.colloid.pbreplacer
+    - Packages/jp.colloid.pbreplacer/Editor
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
     m_FilterByTypeIntersection: 0
   m_ViewMode: 1
-  m_StartGridSize: 64
+  m_StartGridSize: 76
   m_LastFolders:
-  - Packages/jp.colloid.pbreplacer
-  m_LastFoldersGridSize: -1
+  - Packages/jp.colloid.pbreplacer/Editor
+  m_LastFoldersGridSize: 76
   m_LastProjectPath: E:\Unity\GitHub\PBReplacer-VPM-Migrated
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 240}
-    m_SelectedIDs: 06560000
-    m_LastClickedID: 22022
-    m_ExpandedIDs: 0000000000560000025600000456000006560000085600000a56000000ca9a3bffffff7f
+    scrollPos: {x: 0, y: 319}
+    m_SelectedIDs: f4550000
+    m_LastClickedID: 22004
+    m_ExpandedIDs: 00000000f0550000f2550000f4550000f6550000f8550000fa55000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -650,7 +650,7 @@ MonoBehaviour:
     scrollPos: {x: 0, y: 0}
     m_SelectedIDs: 
     m_LastClickedID: 0
-    m_ExpandedIDs: 0000000000560000025600000456000006560000085600000a560000
+    m_ExpandedIDs: 00000000f0550000f2550000f4550000f6550000f8550000fa550000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
       m_Name: 
@@ -703,7 +703,7 @@ MonoBehaviour:
       m_ResourceFile: 
     m_NewAssetIndexInList: -1
     m_ScrollPosition: {x: 0, y: 0}
-    m_GridSize: 64
+    m_GridSize: 76
   m_SkipHiddenPackages: 0
   m_DirectoriesAreaWidth: 191
 --- !u!114 &20
@@ -792,9 +792,9 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: 
+      m_SelectedIDs: 66570000
       m_LastClickedID: 0
-      m_ExpandedIDs: f0a2fefff4a2feff04a6feff08a6feff8aabfeff8eabfeffeabdfeffeebdfeff68c0feff6cc0feff42c4feff46c4feff4ac4fefff8faffff585500005e5500006c55000070550000805500008c5500009c550000b0550000
+      m_ExpandedIDs: ae45feffb645feffc645feffde45feff6654feff9a54feff9e54feffa254feff6899feff9c99feffa099feffa499feff509ffeff849ffeff889ffeff8c9ffeffc4a6fefff8a6fefffca6feff00a7feff02c7feff36c7feff3ac7feff3ec7feff3adffeff3edffeffc8e8feffcce8feff4cecfeff50ecfeffdcf8feff10f9feff14f9feff18f9feff80fefeffb4fefeffb8fefeffbcfefeff6629ffff9a29ffff9e29ffffa229ffff9e31ffffd231ffffd631ffffda31ffff763dfffffc3dffff003effffc248ffffd448ffff1049ffff4449ffff4849ffff4c49ffff7450ffff8650ffffc250fffff650fffffa50fffffe50fffffe57ffff1058ffff3858ffff5058ffff8058ffff8458ffff8858ffff965cffffd25cffff065dffff0a5dffff0e5dffff946dffffc86dffffd06dffff9e6fffffa66fffffce71ffffe071ffff0e72ffff4272ffff4672ffff4a72ffff2a7cffff3c7cffff6a7cffff9e7cffffa27cffffa67cffff0491ffff1691ffff4491ffff4891ffff7891ffff7c91ffff8091ffffbe96ffffee96fffff696ffff24a6ffff54a6ffff5ca6ffff88bbffff90bbffff10e2ffff18e2ffff2cf6ffff34f6fffff8faffff585500005c5500006a5500006e550000805500008c550000b0550000
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
@@ -1147,7 +1147,7 @@ MonoBehaviour:
       snapOffsetDelta: {x: 0, y: 0}
       snapCorner: 0
       id: UnityEditor.SceneViewCameraOverlay
-      index: 8
+      index: 9
       layout: 4
       size: {x: 0, y: 0}
       sizeOverriden: 0
