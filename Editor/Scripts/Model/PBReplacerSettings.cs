@@ -38,6 +38,12 @@ namespace colloid.PBReplacer
 		// Animatorがないオブジェクトでもアーマチュアを検出するかどうか
 		public bool DetectNonAnimatorArmature = true;
 		
+		// Prefabの継承を破棄するかどうか
+		public bool UnpackPrefab = true;
+		
+		// 未使用のオブジェクトを生成するかどうか
+		public bool DestroyUnusedObject = true;
+		
 		/// <summary>
 		/// ProcessorSettings関連
 		/// </summary>
@@ -193,7 +199,10 @@ namespace colloid.PBReplacer
 				AimConstraintsFolder = this.AimConstraintsFolder,
 				ContactsFolder = this.ContactsFolder,
 				SenderFolder = this.SenderFolder,
-				ReceiverFolder = this.ReceiverFolder
+				ReceiverFolder = this.ReceiverFolder,
+				
+				UnpackPrefab = this.UnpackPrefab,
+				DestroyUnusedObject = this.DestroyUnusedObject
 			};
 		}
 		
