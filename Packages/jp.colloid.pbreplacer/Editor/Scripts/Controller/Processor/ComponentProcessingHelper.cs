@@ -51,7 +51,31 @@ namespace colloid.PBReplacer
 	            var colliderMap = 
 	                new Dictionary<int, VRCPhysBoneCollider>();
                 
-                // 先にコライダーを処理
+	            // PhysBoneを処理
+	            if (physBones != null && physBones.Count > 0)
+	            {
+		            var pbResult = processor.ProcessComponents<VRCPhysBone>(
+			            avatar, 
+			            physBones, 
+			            settings.PhysBonesFolder,
+			            (oldPB, newPB, newObj, res) => {
+				            // PhysBone固有の追加処理
+				            if (oldPB.rootTransform == null)
+				            {
+					            newPB.rootTransform = oldPB.transform;
+				            }
+			            });
+                        
+		            if (!pbResult.Success)
+		            {
+			            return pbResult;
+		            }
+                    
+		            result.ProcessedComponentCount += pbResult.ProcessedComponentCount;
+		            result.CreatedObjects.AddRange(pbResult.CreatedObjects);
+	            }
+                    
+                // コライダーを処理
                 if (colliders != null && colliders.Count > 0)
                 {
                     var colliderResult = processor.ProcessComponents<VRCPhysBoneCollider>(
@@ -78,30 +102,6 @@ namespace colloid.PBReplacer
                     result.CreatedObjects.AddRange(colliderResult.CreatedObjects);
                 }
 
-                // PhysBoneを処理
-                if (physBones != null && physBones.Count > 0)
-                {
-                    var pbResult = processor.ProcessComponents<VRCPhysBone>(
-                        avatar, 
-                        physBones, 
-                        settings.PhysBonesFolder,
-                        (oldPB, newPB, newObj, res) => {
-                            // PhysBone固有の追加処理
-                            if (oldPB.rootTransform == null)
-                            {
-	                            newPB.rootTransform = oldPB.transform;
-                            }
-                        });
-                        
-                    if (!pbResult.Success)
-                    {
-                        return pbResult;
-                    }
-                    
-                    result.ProcessedComponentCount += pbResult.ProcessedComponentCount;
-                    result.CreatedObjects.AddRange(pbResult.CreatedObjects);
-                }
-                    
 	            // PhysBoneのコライダー参照を更新
 	            UpdatePhysBoneColliderReferences(physBones, colliderMap);
 
