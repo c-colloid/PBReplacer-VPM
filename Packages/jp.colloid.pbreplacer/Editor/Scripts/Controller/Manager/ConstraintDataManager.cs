@@ -68,12 +68,12 @@ namespace colloid.PBReplacer
 			try
 			{
 				// 各コンストレイント型のリストを作成
-				var positionConstraints = _components.OfType<VRCPositionConstraint>().ToList();
-				var rotationConstraints = _components.OfType<VRCRotationConstraint>().ToList();
-				var scaleConstraints = _components.OfType<VRCScaleConstraint>().ToList();
-				var parentConstraints = _components.OfType<VRCParentConstraint>().ToList();
-				var lookAtConstraints = _components.OfType<VRCLookAtConstraint>().ToList();
-				var aimConstraints = _components.OfType<VRCAimConstraint>().ToList();
+				var positionConstraints = _components.OfType<VRCPositionConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCPositionConstraint>().Contains(c)).ToList();
+				var rotationConstraints = _components.OfType<VRCRotationConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCRotationConstraint>().Contains(c)).ToList();
+				var scaleConstraints = _components.OfType<VRCScaleConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCScaleConstraint>().Contains(c)).ToList();
+				var parentConstraints = _components.OfType<VRCParentConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCParentConstraint>().Contains(c)).ToList();
+				var lookAtConstraints = _components.OfType<VRCLookAtConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCLookAtConstraint>().Contains(c)).ToList();
+				var aimConstraints = _components.OfType<VRCAimConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCAimConstraint>().Contains(c)).ToList();
                 
 				int processedCount = 0;
                 

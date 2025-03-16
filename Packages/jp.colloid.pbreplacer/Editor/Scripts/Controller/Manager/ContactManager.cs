@@ -82,8 +82,8 @@ namespace colloid.PBReplacer
 			try
 			{
 				// 各コンタクト型のリストを作成
-				var contactSenders = _components.OfType<VRCContactSender>().ToList();
-				var contactReceivers = _components.OfType<VRCContactReceiver>().ToList();
+				var contactSenders = _components.OfType<VRCContactSender>().Where(c => !GetAvatarDynamicsComponent<VRCContactSender>().Contains(c)).ToList();
+				var contactReceivers = _components.OfType<VRCContactReceiver>().Where(c => !GetAvatarDynamicsComponent<VRCContactReceiver>().Contains(c)).ToList();
                 
 				int processedCount = 0;
                 
