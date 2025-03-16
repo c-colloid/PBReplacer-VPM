@@ -35,6 +35,7 @@ namespace colloid.PBReplacer
 		{
 			_settings = PBReplacerSettings.Load();
 			_processor = new ComponentProcessor(_settings);
+			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 		}
 		
@@ -42,6 +43,12 @@ namespace colloid.PBReplacer
 		~ComponentManagerBase()
 		{
 			Cleanup();
+		}
+		
+		protected void OnSettingsChanged()
+		{
+			_settings = PBReplacerSettings.GetLatestSettings();
+			_processor = new ComponentProcessor(_settings);
 		}
 		
 		protected virtual void OnAvatarDataChanged(AvatarData avatarData)
@@ -155,6 +162,7 @@ namespace colloid.PBReplacer
 		{
 			// イベント購読解除
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
+			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
         
 			// データをクリア
 			_components.Clear();

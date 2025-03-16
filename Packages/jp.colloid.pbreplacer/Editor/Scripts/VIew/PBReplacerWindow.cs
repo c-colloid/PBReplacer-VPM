@@ -118,6 +118,7 @@ namespace colloid.PBReplacer
 		private void OnDisable()
 		{
 			// イベント登録解除
+			UnregisterEvents();
 			UnregisterDataManagerEvents();
 			
 			SaveAvatarData();
@@ -142,6 +143,8 @@ namespace colloid.PBReplacer
 
 			// UI初期化
 			InitializeUI();
+			
+			RegisterEvents();
             
 			// データマネージャのイベント登録
 			RegisterDataManagerEvents();
@@ -423,6 +426,22 @@ namespace colloid.PBReplacer
         #endregion
 
         #region Event Handlers
+		private void RegisterEvents()
+		{
+			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
+		}
+		
+		private void UnregisterEvents()
+		{
+			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
+		}
+        
+		private void OnSettingsChanged()
+		{
+			_settings = PBReplacerSettings.GetLatestSettings();
+			Repaint();
+		}
+        
 		/// <summary>
 		/// アバターがドロップされた時の処理
 		/// </summary>
