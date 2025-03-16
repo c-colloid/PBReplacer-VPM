@@ -188,6 +188,22 @@ namespace colloid.PBReplacer
                 _settings.DetectNonAnimatorArmature = evt.newValue;
             });
             
+	        var unpackPrefabToggle = panel.Query<Toggle>().AtIndex(7);
+	        unpackPrefabToggle.label = "Prefabの継承を破棄";
+	        unpackPrefabToggle.tooltip = "AvatarDynamicsのPrefabをUnpackした状態で生成します";
+	        unpackPrefabToggle.value = _settings.UnpackPrefab;
+	        unpackPrefabToggle.RegisterValueChangedCallback(evt => {
+	        	_settings.UnpackPrefab = evt.newValue;
+	        });
+	        
+	        var destroyUnusedObject = panel.Query<Toggle>().AtIndex(8);
+	        destroyUnusedObject.label = "未使用オブジェクトを生成しない";
+	        destroyUnusedObject.tooltip = "AvatarDynamics内に使用しないGameObjectが生成されるのを防ぎます";
+	        destroyUnusedObject.value = _settings.DestroyUnusedObject;
+	        destroyUnusedObject.RegisterValueChangedCallback(evt => {
+	        	_settings.DestroyUnusedObject = evt.newValue;
+	        });
+            
             return panel;
         }
         

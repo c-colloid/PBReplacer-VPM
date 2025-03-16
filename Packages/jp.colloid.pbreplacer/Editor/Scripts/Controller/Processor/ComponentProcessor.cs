@@ -266,7 +266,22 @@ namespace colloid.PBReplacer
             }
 
             // プレハブをインスタンス化
-            var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+	        var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+	        
+	        if (_settings.UnpackPrefab)
+	        {
+	        	PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+	        }
+	        
+	        if (_settings.DestroyUnusedObject)
+	        {
+	        	var lengs = rootObject.transform.childCount;
+	        	for (int i = lengs-1; i >= 0; i--)
+	        	{
+	        		GameObject.DestroyImmediate(rootObject.transform.GetChild(i).gameObject);
+	        	}
+	        }
+	        
             if (rootObject == null)
             {
                 throw new Exception($"{_settings.RootPrefabName}プレハブのインスタンス化に失敗しました");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace colloid.PBReplacer
@@ -12,7 +12,9 @@ namespace colloid.PBReplacer
         // 共通設定
         public bool ShowProgressBar { get; set; } = true;
         public bool PreserveHierarchy { get; set; } = true;
-        public bool ShowConfirmDialog { get; set; } = true;
+	    public bool ShowConfirmDialog { get; set; } = true;
+	    public bool UnpackPrefab { get; set; } = true;
+	    public bool DestroyUnusedObject { get; set; } = true;
         
         // 親オブジェクト設定
         public string RootObjectName { get; set; } = "AvatarDynamics";
@@ -57,7 +59,10 @@ namespace colloid.PBReplacer
                 AimConstraintsFolder = this.AimConstraintsFolder,
                 ContactsFolder = this.ContactsFolder,
                 SenderFolder = this.SenderFolder,
-                ReceiverFolder = this.ReceiverFolder
+	            ReceiverFolder = this.ReceiverFolder,
+                
+	            UnpackPrefab = this.UnpackPrefab,
+	            DestroyUnusedObject = this.DestroyUnusedObject
             };
         }
     }
