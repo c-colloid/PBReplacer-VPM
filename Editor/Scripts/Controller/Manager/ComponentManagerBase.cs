@@ -130,15 +130,15 @@ namespace colloid.PBReplacer
 			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
 			if (avatarDynamicsTransform == null) return result;
     
-			var avatarDynamics = avatarDynamicsTransform.gameObject;
+			//var avatarDynamics = avatarDynamicsTransform.gameObject;
     
 			// コンポーネントを検索
-			var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
-			if (componentsParentFolder == null) return result;
+			//var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
+			//if (componentsParentFolder == null) return result;
     
 			// 該当するコンポーネントをすべて収集
-			result.AddRange(componentsParentFolder.GetComponentsInChildren<TComponent>(true));
-    
+			result.AddRange(avatarDynamicsTransform.GetComponentsInChildren<TComponent>(true));
+
 			return result;
 		}
 		
