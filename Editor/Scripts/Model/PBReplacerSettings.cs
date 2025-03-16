@@ -62,6 +62,8 @@ namespace colloid.PBReplacer
 		public string ContactsFolder { get; set; } = "Contacts";
 		public string SenderFolder { get; set; } = "Sender";
 		public string ReceiverFolder { get; set; } = "Receiver";
+		
+		public static event Action OnSettingsChanged;
         
 		// 設定を保存
 		public void Save()
@@ -70,6 +72,8 @@ namespace colloid.PBReplacer
 			{
 				string json = JsonUtility.ToJson(this, true);
 				File.WriteAllText(SettingsPath, json);
+				
+				OnSettingsChanged?.Invoke();
 			}
 				catch (Exception ex)
 				{
@@ -94,6 +98,11 @@ namespace colloid.PBReplacer
 				}
             
 			return new PBReplacerSettings();
+		}
+		
+		public static PBReplacerSettings GetLatestSettings()
+		{
+			return Load();
 		}
         
 		// アバターのGUIDを保存
@@ -186,6 +195,11 @@ namespace colloid.PBReplacer
 				SenderFolder = this.SenderFolder,
 				ReceiverFolder = this.ReceiverFolder
 			};
+		}
+		
+		protected void NotifySettingsChanged()
+		{
+			OnSettingsChanged?.Invoke();
 		}
 	}
 }
