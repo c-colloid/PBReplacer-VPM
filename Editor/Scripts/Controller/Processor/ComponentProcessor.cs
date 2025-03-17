@@ -266,7 +266,22 @@ namespace colloid.PBReplacer
             }
 
             // プレハブをインスタンス化
-            var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+	        var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+	        
+	        if (_settings.UnpackPrefab)
+	        {
+	        	PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+	        }
+	        
+	        if (_settings.DestroyUnusedObject)
+	        {
+	        	var lengs = rootObject.transform.childCount;
+	        	for (int i = lengs-1; i >= 0; i--)
+	        	{
+	        		GameObject.DestroyImmediate(rootObject.transform.GetChild(i).gameObject);
+	        	}
+	        }
+	        
             if (rootObject == null)
             {
                 throw new Exception($"{_settings.RootPrefabName}プレハブのインスタンス化に失敗しました");
@@ -295,17 +310,42 @@ namespace colloid.PBReplacer
                 return folder;
             }
 
-            // フォルダを新規作成
-            var folderObj = new GameObject(folderName);
-            folderObj.transform.SetParent(parent.transform);
-            folderObj.transform.localPosition = Vector3.zero;
-            folderObj.transform.localRotation = Quaternion.identity;
-            folderObj.transform.localScale = Vector3.one;
+	        // パスが階層的かどうか確認
+	        if (folderName.Contains("/"))
+	        {
+		        string[] folders = folderName.Split('/');
+		        Transform currentParent = parent.transform;
+		        Transform result = null;
+
+		        // 各階層を順番に処理
+		        foreach (string splitFolderName in folders)
+		        {
+			        if (string.IsNullOrEmpty(splitFolderName))
+				        continue;
+
+			        // 再帰的に次の階層のフォルダを準備
+			        GameObject currentParentGO = currentParent.gameObject;
+			        Transform childTransform = PrepareComponentFolder(currentParentGO, splitFolderName);
+			        currentParent = childTransform;
+			        result = childTransform;
+		        }
+
+		        return result;
+	        }
+	        else
+	        {
+		        // フォルダを新規作成
+		        var folderObj = new GameObject(folderName);
+		        folderObj.transform.SetParent(parent.transform);
+		        folderObj.transform.localPosition = Vector3.zero;
+		        folderObj.transform.localRotation = Quaternion.identity;
+		        folderObj.transform.localScale = Vector3.one;
             
-            // Undo登録
-            Undo.RegisterCreatedObjectUndo(folderObj, $"Create {folderName}");
+		        // Undo登録
+		        Undo.RegisterCreatedObjectUndo(folderObj, $"Create {folderName}");
             
-            return folderObj.transform;
+		        return folderObj.transform;	
+	        }
         }
         
         /// <summary>

@@ -38,6 +38,12 @@ namespace colloid.PBReplacer
 		// Animatorがないオブジェクトでもアーマチュアを検出するかどうか
 		public bool DetectNonAnimatorArmature = true;
 		
+		// Prefabの継承を破棄するかどうか
+		public bool UnpackPrefab = true;
+		
+		// 未使用のオブジェクトを生成するかどうか
+		public bool DestroyUnusedObject = true;
+		
 		/// <summary>
 		/// ProcessorSettings関連
 		/// </summary>
@@ -62,6 +68,8 @@ namespace colloid.PBReplacer
 		public string ContactsFolder { get; set; } = "Contacts";
 		public string SenderFolder { get; set; } = "Sender";
 		public string ReceiverFolder { get; set; } = "Receiver";
+		
+		public static event Action OnSettingsChanged;
         
 		// 設定を保存
 		public void Save()
@@ -70,6 +78,8 @@ namespace colloid.PBReplacer
 			{
 				string json = JsonUtility.ToJson(this, true);
 				File.WriteAllText(SettingsPath, json);
+				
+				OnSettingsChanged?.Invoke();
 			}
 				catch (Exception ex)
 				{
@@ -94,6 +104,11 @@ namespace colloid.PBReplacer
 				}
             
 			return new PBReplacerSettings();
+		}
+		
+		public static PBReplacerSettings GetLatestSettings()
+		{
+			return Load();
 		}
         
 		// アバターのGUIDを保存
@@ -184,8 +199,16 @@ namespace colloid.PBReplacer
 				AimConstraintsFolder = this.AimConstraintsFolder,
 				ContactsFolder = this.ContactsFolder,
 				SenderFolder = this.SenderFolder,
-				ReceiverFolder = this.ReceiverFolder
+				ReceiverFolder = this.ReceiverFolder,
+				
+				UnpackPrefab = this.UnpackPrefab,
+				DestroyUnusedObject = this.DestroyUnusedObject
 			};
+		}
+		
+		protected void NotifySettingsChanged()
+		{
+			OnSettingsChanged?.Invoke();
 		}
 	}
 }

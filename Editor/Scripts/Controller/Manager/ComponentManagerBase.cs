@@ -35,6 +35,7 @@ namespace colloid.PBReplacer
 		{
 			_settings = PBReplacerSettings.Load();
 			_processor = new ComponentProcessor(_settings);
+			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 		}
 		
@@ -42,6 +43,12 @@ namespace colloid.PBReplacer
 		~ComponentManagerBase()
 		{
 			Cleanup();
+		}
+		
+		protected void OnSettingsChanged()
+		{
+			_settings = PBReplacerSettings.GetLatestSettings();
+			_processor = new ComponentProcessor(_settings);
 		}
 		
 		protected virtual void OnAvatarDataChanged(AvatarData avatarData)
@@ -123,15 +130,15 @@ namespace colloid.PBReplacer
 			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
 			if (avatarDynamicsTransform == null) return result;
     
-			var avatarDynamics = avatarDynamicsTransform.gameObject;
+			//var avatarDynamics = avatarDynamicsTransform.gameObject;
     
 			// コンポーネントを検索
-			var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
-			if (componentsParentFolder == null) return result;
+			//var componentsParentFolder = avatarDynamics.transform.Find(FolderName);
+			//if (componentsParentFolder == null) return result;
     
 			// 該当するコンポーネントをすべて収集
-			result.AddRange(componentsParentFolder.GetComponentsInChildren<TComponent>(true));
-    
+			result.AddRange(avatarDynamicsTransform.GetComponentsInChildren<TComponent>(true));
+
 			return result;
 		}
 		
@@ -155,6 +162,7 @@ namespace colloid.PBReplacer
 		{
 			// イベント購読解除
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
+			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
         
 			// データをクリア
 			_components.Clear();
