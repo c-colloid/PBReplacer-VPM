@@ -285,8 +285,8 @@ namespace colloid.PBReplacer
 			_contactReciverDragHandler = new ListViewDragHandler(_contactReciverListView, typeof(VRCContactReceiver));
 			
 			// ドラッグ&ドロップハンドラーのイベント登録
-			_pbListDragHandler.OnDrop += OnPhysBoneListDrop;
-			_pbcListDragHandler.OnDrop += OnPhysBoneColliderListDrop;
+			//_pbListDragHandler.OnDrop += OnPhysBoneListDrop;
+			//_pbcListDragHandler.OnDrop += OnPhysBoneColliderListDrop;
 		}
         
 		/// <summary>
