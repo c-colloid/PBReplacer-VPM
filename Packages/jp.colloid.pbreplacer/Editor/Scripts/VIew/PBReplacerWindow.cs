@@ -47,12 +47,14 @@ namespace colloid.PBReplacer
 		private List<ListView> _constraintListViewList;
         
 		// リストドラッグ処理用
-		private ListViewDragHandler 
+		private ListViewDragHandler
 			_pbListDragHandler, _pbcListDragHandler,
 			_constraintDragHandler,
 			_contactSenderDragHandler, _contactReciverDragHandler;
 			
 		private List<ListViewDragHandler> _constraintDragHandlerList;
+		
+		private List<Component> _processed;
         #endregion
 
         #region Data References
@@ -317,7 +319,8 @@ namespace colloid.PBReplacer
 				label.focusable = true;
 				return label;
 			};
-            
+
+			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
 			// 要素バインドコールバック
 			listView.bindItem = (element, index) => {
 				if (listView.itemsSource == null || index >= listView.itemsSource.Count) return;
@@ -326,6 +329,7 @@ namespace colloid.PBReplacer
 				if (component != null)
 				{
 					(element as Label).text = component.name;
+					element.SetEnabled(!_processed.Contains(listView.itemsSource[index]));
 				}
 			};
             
@@ -657,6 +661,8 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
+			_constraintDataManager.OnProcessingComplete += OnProcessingComplete;
+			_contactDataManager.OnProcessingComplete += OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 			
@@ -675,6 +681,8 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
+			_constraintDataManager.OnProcessingComplete -= OnProcessingComplete;
+			_contactDataManager.OnProcessingComplete -= OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 			
@@ -736,7 +744,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
 				_pbListView.itemsSource = new List<Component>(physBones.Cast<Component>());
-				SetComponentListViewBindItem<VRCPhysBone>(_pbListView, _pbDataManager);
+				//SetComponentListViewBindItem<VRCPhysBone>(_pbListView, _pbDataManager);
                 
 				// リストビューを再描画
 				RepaintListView(_pbListView);
@@ -754,7 +762,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
 				_pbcListView.itemsSource = new List<Component>(colliders.Cast<Component>());
-				SetComponentListViewBindItem<VRCPhysBone, VRCPhysBoneCollider>(_pbcListView, _pbDataManager);
+				//SetComponentListViewBindItem<VRCPhysBone, VRCPhysBoneCollider>(_pbcListView, _pbDataManager);
                 
 				// リストビューを再描画
 				RepaintListView(_pbcListView);
@@ -788,7 +796,7 @@ namespace colloid.PBReplacer
 					case 5: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCAimConstraint));
 						break;
 					}
-					SetComponentListViewBindItem<VRCConstraintBase>(list, _constraintDataManager);
+					//SetComponentListViewBindItem<VRCConstraintBase>(list, _constraintDataManager);
                 
 					// リストビューを再描画
 					RepaintListView(list);
@@ -808,8 +816,8 @@ namespace colloid.PBReplacer
 				// リストビューのアイテムソースを更新
 				_contactSenderListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactSender));
 				_contactReciverListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactReceiver));
-				SetComponentListViewBindItem<Component,ContactSender>(_contactSenderListView, _contactDataManager);
-				SetComponentListViewBindItem<Component,ContactReceiver>(_contactReciverListView, _contactDataManager);
+				//SetComponentListViewBindItem<Component,ContactSender>(_contactSenderListView, _contactDataManager);
+				//SetComponentListViewBindItem<Component,ContactReceiver>(_contactReciverListView, _contactDataManager);
 				
 				// リストビューを再描画
 				RepaintListView(_contactSenderListView);
@@ -835,6 +843,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnProcessingComplete()
 		{
+			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
 			// UIスレッドで更新
 			EditorApplication.delayCall += () => {
 				// 処理完了後のUIの更新
