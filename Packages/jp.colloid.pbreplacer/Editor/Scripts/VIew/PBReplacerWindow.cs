@@ -785,7 +785,7 @@ namespace colloid.PBReplacer
 				{
 					switch (_constraintListViewList.IndexOf(list))
 					{
-					case 0: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCParentConstraint));
+					case 0: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCPositionConstraint));
 						break;
 					case 1: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCRotationConstraint));
 						break;
