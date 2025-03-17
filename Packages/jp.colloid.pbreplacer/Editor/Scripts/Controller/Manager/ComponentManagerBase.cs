@@ -120,7 +120,7 @@ namespace colloid.PBReplacer
 		public abstract bool ProcessComponents();
     
 		// ヘルパーメソッド
-		protected List<TComponent> GetAvatarDynamicsComponent<TComponent>() where TComponent : Component
+		public List<TComponent> GetAvatarDynamicsComponent<TComponent>() where TComponent : Component
 		{
 			var result = new List<TComponent>();
 			
