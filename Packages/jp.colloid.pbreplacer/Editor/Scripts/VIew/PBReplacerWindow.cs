@@ -719,6 +719,11 @@ namespace colloid.PBReplacer
 				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
 			};
 		}
+		
+		private void SetTabNotification(List<Component> list)
+		{
+			
+		}
         
 		/// <summary>
 		/// PhysBoneデータ変更時の処理
