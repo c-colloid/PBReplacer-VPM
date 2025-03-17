@@ -62,12 +62,15 @@ namespace colloid.PBReplacer
 			_physBoneColliders.AddRange(pbcComponents);
         
 			// AvatarDynamics内のコンポーネントを取得
-			LoadComponentsFromAvatarDynamics();
+			//LoadComponentsFromAvatarDynamics();
+			_components.AddRange(GetAvatarDynamicsComponent<VRCPhysBone>());
+			_physBoneColliders.AddRange(GetAvatarDynamicsComponent<VRCPhysBoneCollider>());
         
 			// 変更を通知
 			InvokeChanged();
 		}
 		
+		/*
 		private void LoadComponentsFromAvatarDynamics()
 		{
 			if (CurrentAvatar?.AvatarObject == null) return;
@@ -101,6 +104,7 @@ namespace colloid.PBReplacer
 				}
 			}
 		}
+		*/
 		
 		public override bool ProcessComponents()
 		{
@@ -121,11 +125,14 @@ namespace colloid.PBReplacer
 
 			try
 			{
+				var targetPB = _components.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c)).ToList();
+				var targetPBC = _physBoneColliders.Where(c => !GetAvatarDynamicsComponent<VRCPhysBoneCollider>().Contains(c)).ToList();
+				
 				// 単一プロセッサを使用してPhysBoneを処理
 				var result = _processor.ProcessPhysBones(
 					CurrentAvatar.AvatarObject, 
-					_components, 
-					_physBoneColliders);
+					targetPB, 
+					targetPBC);
                 
 				if (!result.Success)
 				{

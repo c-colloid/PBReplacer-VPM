@@ -1,22 +1,24 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
     <ui:Label tabindex="-1" text="PBReplacer 設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Title" style="margin-top: 10px; margin-bottom: 15px; padding-right: 2px; padding-left: 10px; font-size: 16px; -unity-font-style: bold;" />
-    <ui:ScrollView name="MainPanel" style="padding-right: 15px; padding-left: 15px; flex-grow: 1;">
-        <ui:Label tabindex="-1" text="基本設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Basic" style="margin-bottom: 5px;" />
+    <ui:ScrollView name="MainPanel" mode="VerticalAndHorizontal" style="padding-right: 15px; padding-left: 15px; flex-grow: 1;">
+        <ui:Label tabindex="-1" text="基本設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Basic" style="margin-bottom: 5px; -unity-font-definition: initial; -unity-font: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);" />
         <ui:Toggle label="前回のアバターを自動的に読み込む" style="-unity-font-style: bold;" />
-        <ui:Toggle label="Toggle" />
-        <ui:Toggle label="Toggle" />
+        <ui:Toggle label="処理前に確認ダイアログを表示する" />
+        <ui:Toggle label="処理中に進捗バーを表示する" />
         <ui:VisualElement name="Separetor1" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; height: 1px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: none;" />
         <ui:VisualElement name="Visibility" style="display: none;">
-            <ui:Label tabindex="-1" text="表示設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Visibility" style="margin-bottom: 5px;" />
-            <ui:Toggle label="Toggle" />
-            <ui:Toggle label="Toggle" />
+            <ui:Label tabindex="-1" text="表示設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Visibility" style="margin-bottom: 5px; -unity-font: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;); -unity-font-definition: initial;" />
+            <ui:Toggle label="エディターテーマに合わせる" />
+            <ui:Toggle label="PhysBoneの設定内容を表示" />
         </ui:VisualElement>
-        <ui:VisualElement name="Separator2" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: none;" />
-        <ui:VisualElement name="Advanced" style="display: none;">
-            <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px;" />
-            <ui:Toggle label="Toggle" />
-            <ui:Toggle label="Toggle" />
+        <ui:VisualElement name="Separator2" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: flex;" />
+        <ui:VisualElement name="Advanced" style="display: flex;">
+            <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px; -unity-font-definition: initial; -unity-font: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);" />
+            <ui:Toggle label="親子階層構造を維持" style="display: none;" />
+            <ui:Toggle label="Animatorがないオブジェクトでもアーマチュアを検出" />
+            <ui:Toggle label="Prefabを継承" />
+            <ui:Toggle label="未使用オブジェクトを生成しない" />
         </ui:VisualElement>
     </ui:ScrollView>
     <ui:VisualElement style="margin-top: 20px; justify-content: center; flex-direction: row;">
