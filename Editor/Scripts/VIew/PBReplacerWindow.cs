@@ -701,6 +701,24 @@ namespace colloid.PBReplacer
 				_avatarField.SetValueWithoutNotify(null);
 			}
 		}
+		
+		private void SetComponentListViewBindItem<T>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component
+		{
+			var processed = datamanager.GetAvatarDynamicsComponent<T>();
+			listview.bindItem = (e,i) => {
+				(e as Label).text = (listview.itemsSource[i] as Component).name;
+				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
+			};
+		}
+		
+		private void SetComponentListViewBindItem<T, TComponent>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component where TComponent : Component
+		{
+			var processed = datamanager.GetAvatarDynamicsComponent<TComponent>();
+			listview.bindItem = (e,i) => {
+				(e as Label).text = (listview.itemsSource[i] as Component).name;
+				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
+			};
+		}
         
 		/// <summary>
 		/// PhysBoneデータ変更時の処理
@@ -713,6 +731,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
 				_pbListView.itemsSource = new List<Component>(physBones.Cast<Component>());
+				SetComponentListViewBindItem<VRCPhysBone>(_pbListView, _pbDataManager);
                 
 				// リストビューを再描画
 				RepaintListView(_pbListView);
@@ -730,6 +749,7 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
 				_pbcListView.itemsSource = new List<Component>(colliders.Cast<Component>());
+				SetComponentListViewBindItem<VRCPhysBone, VRCPhysBoneCollider>(_pbcListView, _pbDataManager);
                 
 				// リストビューを再描画
 				RepaintListView(_pbcListView);
@@ -763,6 +783,7 @@ namespace colloid.PBReplacer
 					case 5: list.itemsSource = new List<Component>(constraints.Where(constraint => constraint is VRCAimConstraint));
 						break;
 					}
+					SetComponentListViewBindItem<VRCConstraintBase>(list, _constraintDataManager);
                 
 					// リストビューを再描画
 					RepaintListView(list);
@@ -782,6 +803,8 @@ namespace colloid.PBReplacer
 				// リストビューのアイテムソースを更新
 				_contactSenderListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactSender));
 				_contactReciverListView.itemsSource = new List<Component>(contacts.Where(component => component is ContactReceiver));
+				SetComponentListViewBindItem<Component,ContactSender>(_contactSenderListView, _contactDataManager);
+				SetComponentListViewBindItem<Component,ContactReceiver>(_contactReciverListView, _contactDataManager);
 				
 				// リストビューを再描画
 				RepaintListView(_contactSenderListView);
