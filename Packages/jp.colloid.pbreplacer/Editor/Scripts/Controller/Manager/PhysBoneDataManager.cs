@@ -148,7 +148,7 @@ namespace colloid.PBReplacer
 				ReloadData();
                 
 				// 処理完了通知
-				InvokeChanged();
+				NotifyProcessingComplete();
                 
 				return true;
 			}
