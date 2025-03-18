@@ -329,7 +329,7 @@ namespace colloid.PBReplacer
 				return label;
 			};
 
-			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
+			GetProcessedComponents();
 			// 要素バインドコールバック
 			listView.bindItem = (element, index) => {
 				if (listView.itemsSource == null || index >= listView.itemsSource.Count) return;
@@ -720,13 +720,9 @@ namespace colloid.PBReplacer
 			}
 		}
 		
-		private void SetComponentListViewBindItem<T>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component
+		private void GetProcessedComponents()
 		{
-			var processed = datamanager.GetAvatarDynamicsComponent<T>();
-			listview.bindItem = (e,i) => {
-				(e as Label).text = (listview.itemsSource[i] as Component).name;
-				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
-			};
+			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
 		}
 		
 		private void SetComponentListViewBindItem<T, TComponent>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component where TComponent : Component
@@ -853,7 +849,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnProcessingComplete()
 		{
-			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
+			GetProcessedComponents();
 			// UIスレッドで更新
 			EditorApplication.delayCall += () => {
 				// 処理完了後のUIの更新
