@@ -16,7 +16,7 @@
         <ui:VisualElement name="Advanced" style="display: flex;">
             <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px; -unity-font-definition: initial; -unity-font: url(&quot;project://database/Library/unity%20default%20resources?fileID=10102&amp;guid=0000000000000000e000000000000000&amp;type=0#LegacyRuntime&quot;);" />
             <ui:Toggle label="親子階層構造を維持" style="display: none;" />
-            <ui:Toggle label="Animatorがないオブジェクトでもアーマチュアを検出" />
+            <ui:Toggle label="Animatorがないオブジェクトでもアーマチュアを検出" style="display: none;" />
             <ui:Toggle label="Prefabを継承" />
             <ui:Toggle label="未使用オブジェクトを生成しない" />
         </ui:VisualElement>

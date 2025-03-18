@@ -32,7 +32,7 @@ namespace colloid.PBReplacer
 		private List<UnityEngine.Object> _selectedObjects = new List<UnityEngine.Object>();
         
 		// データマネージャへの参照
-		private PhysBoneDataManager _dataManager => PhysBoneDataManager.Instance;
+		//private ComponentManagerBase<Component> _dataManager;
 		
 		// イベントの多重発生を防止
 		private bool _event = false;
@@ -281,7 +281,8 @@ namespace colloid.PBReplacer
 			OnDrop?.Invoke(draggedObjects);
             
 			// データマネージャにリロードをリクエスト
-			_dataManager.ReloadData();
+			//_dataManager.ReloadData();
+			AvatarFieldHelper.SetAvatar(AvatarFieldHelper.CurrentAvatar.AvatarObject);
             
 			evt.StopPropagation();
 		}
