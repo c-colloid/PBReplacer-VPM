@@ -37,6 +37,7 @@ namespace colloid.PBReplacer
 			_processor = new ComponentProcessor(_settings);
 			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
+			DataManagerHelper.OnComponentsRemoved += RemoveComponent;
 		}
 		
 		// デコンストラクタ
@@ -72,6 +73,15 @@ namespace colloid.PBReplacer
 			{
 				_components.Remove(component);
 				NotifyComponentsChanged();
+			}
+		}
+		
+		private void RemoveComponent(Component component)
+		{
+			// コンポーネントの型をチェックして、適切な型であれば削除
+			if (component is T typedComponent)
+			{
+				RemoveComponent(typedComponent);
 			}
 		}
     
@@ -163,6 +173,7 @@ namespace colloid.PBReplacer
 			// イベント購読解除
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
+			DataManagerHelper.OnComponentsRemoved -= RemoveComponent;
         
 			// データをクリア
 			_components.Clear();
