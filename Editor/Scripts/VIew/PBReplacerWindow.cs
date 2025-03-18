@@ -669,14 +669,18 @@ namespace colloid.PBReplacer
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnComponentsChanged += SetPBTabNotification;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
+			
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete += OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete += OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
+			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
 			
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
+			_contactDataManager.OnContactsChanged += SetContactTabNotification;
 		}
         
 		/// <summary>
@@ -689,14 +693,18 @@ namespace colloid.PBReplacer
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnComponentsChanged -= SetPBTabNotification;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
+			
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete -= OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
+			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
 			
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
+			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
 		}
         
 		/// <summary>
@@ -725,18 +733,32 @@ namespace colloid.PBReplacer
 			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
 		}
 		
-		private void SetComponentListViewBindItem<T, TComponent>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component where TComponent : Component
+		private void SetTabNotification(Toggle target, List<Component> list)
 		{
-			var processed = datamanager.GetAvatarDynamicsComponent<TComponent>();
-			listview.bindItem = (e,i) => {
-				(e as Label).text = (listview.itemsSource[i] as Component).name;
-				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
-			};
+			GetProcessedComponents();
+			EditorApplication.delayCall += () =>
+				target.value = !list.All(_processed.Contains);
 		}
 		
-		private void SetTabNotification(List<Component> list)
+		private void SetPBTabNotification(List<Component> list)
 		{
-			
+			var notification = _tabContainer.Query<Toggle>().AtIndex(0);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
+		}
+		
+		private void SetConstraintTabNotification(List<VRCConstraintBase> list)
+		{
+			var notification = _tabContainer.Query<Toggle>().AtIndex(1);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
+		}
+		
+		private void SetContactTabNotification(List<Component> list)
+		{
+			var notification = _tabContainer.Query<Toggle>().AtIndex(2);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
 		}
         
 		/// <summary>

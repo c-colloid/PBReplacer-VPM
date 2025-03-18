@@ -16,7 +16,7 @@ namespace colloid.PBReplacer
 	/// PBReplacerのデータを管理するクラス
 	/// PhysBoneとPhysBoneColliderの情報を保持し、それらの処理を行う
 	/// </summary>
-	public class PhysBoneDataManager : ComponentManagerBase<VRCPhysBone>
+	public class PhysBoneDataManager : ComponentManagerBase<Component>
 	{
         #region Events
 		// データの変更を通知するイベント
@@ -25,9 +25,10 @@ namespace colloid.PBReplacer
         #endregion
 
         #region Properties
+		private List<VRCPhysBone> _physBones = new List<VRCPhysBone>();
 		private List<VRCPhysBoneCollider> _physBoneColliders = new List<VRCPhysBoneCollider>();
 
-		public List<VRCPhysBone> PhysBones => Components;
+		public List<VRCPhysBone> PhysBones => _physBones;
 		public List<VRCPhysBoneCollider> PhysBoneColliders => _physBoneColliders;
         #endregion
 
@@ -46,6 +47,7 @@ namespace colloid.PBReplacer
 		public override void LoadComponents()
 		{
 			_components.Clear();
+			_physBones.Clear();
 			_physBoneColliders.Clear();
 
 			if (CurrentAvatar?.Armature == null)
@@ -58,14 +60,17 @@ namespace colloid.PBReplacer
 			var pbComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBone>(true);
 			var pbcComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
 			
-			_components.AddRange(pbComponents);
+			_physBones.AddRange(pbComponents);
 			_physBoneColliders.AddRange(pbcComponents);
         
 			// AvatarDynamics内のコンポーネントを取得
 			//LoadComponentsFromAvatarDynamics();
-			_components.AddRange(GetAvatarDynamicsComponent<VRCPhysBone>());
+			_physBones.AddRange(GetAvatarDynamicsComponent<VRCPhysBone>());
 			_physBoneColliders.AddRange(GetAvatarDynamicsComponent<VRCPhysBoneCollider>());
         
+			_components.AddRange(_physBones);
+			_components.AddRange(_physBoneColliders);
+			
 			// 変更を通知
 			InvokeChanged();
 		}
@@ -125,7 +130,7 @@ namespace colloid.PBReplacer
 
 			try
 			{
-				var targetPB = _components.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c)).ToList();
+				var targetPB = _physBones.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c)).ToList();
 				var targetPBC = _physBoneColliders.Where(c => !GetAvatarDynamicsComponent<VRCPhysBoneCollider>().Contains(c)).ToList();
 				
 				// 単一プロセッサを使用してPhysBoneを処理
@@ -250,7 +255,7 @@ namespace colloid.PBReplacer
 			base.NotifyComponentsChanged();
         
 			// 従来のイベントも発火
-			OnPhysBonesChanged?.Invoke(_components);
+			OnPhysBonesChanged?.Invoke(_physBones);
 		}
 		
 		public override void Cleanup()
