@@ -34,6 +34,15 @@ namespace colloid.PBReplacer
 			return result;
 		}
 		
+		public static void ReloadData()
+		{
+			if (CurrentAvatar?.AvatarObject != null)
+			{
+				GameObject currentAvatar = CurrentAvatar.AvatarObject;
+				AvatarFieldHelper.SetAvatar(currentAvatar);
+			}
+		}
+		
 		public static void NotifyComponentsRemoved(Component component)
 		{
 			OnComponentsRemoved?.Invoke(component);

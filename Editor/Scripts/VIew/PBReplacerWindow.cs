@@ -634,7 +634,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnReloadButtonClicked()
 		{
-			_pbDataManager.ReloadData();
+			DataManagerHelper.ReloadData();
 		}
         
 		/// <summary>
