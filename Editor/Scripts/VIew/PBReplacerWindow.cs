@@ -497,6 +497,7 @@ namespace colloid.PBReplacer
 			{
 			case 0: // PhysBone
 				isValid = _pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0;
+				isValid = !_pbDataManager.Components.All(_processed.Contains);
 				break;
 			case 1: // Constraint
 				isValid = _constraintDataManager.Components.Count > 0;
