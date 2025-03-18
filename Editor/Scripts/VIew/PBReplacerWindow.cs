@@ -319,6 +319,13 @@ namespace colloid.PBReplacer
 				var label = new Label();
 				label.AddToClassList(LIST_ITEM_CLASS_NAME);
 				label.focusable = true;
+				label.AddManipulator(new ContextualMenuManipulator(evt => {
+					var target = label.userData as Component;
+					evt.menu.AppendAction("Delete", action => {
+						Undo.DestroyObjectImmediate(target);
+						DataManagerHelper.NotifyComponentsRemoved(target);
+					});
+				}));
 				return label;
 			};
 
@@ -333,6 +340,7 @@ namespace colloid.PBReplacer
 					(element as Label).text = component.name;
 					element.SetEnabled(!_processed.Contains(listView.itemsSource[index]));
 				}
+				element.userData = component;
 			};
             
 			// 選択タイプを複数選択に設定
