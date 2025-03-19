@@ -479,7 +479,7 @@ namespace colloid.PBReplacer
 			 //アバターの設定を実行
 			if (avatarObject != null)
 			{
-				OnStatusMessageChanged(ComponentCountStatus());
+				SetCompoentCountStatus();
 			}
 			else
 			{
@@ -550,7 +550,7 @@ namespace colloid.PBReplacer
 			}
 			
 			if (_avatarField.value == null) return;
-			OnStatusMessageChanged(ComponentCountStatus());
+			SetCompoentCountStatus();
 		}
         
 		/// <summary>
@@ -670,6 +670,7 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnComponentsChanged += SetPBTabNotification;
+			_pbDataManager.OnComponentsChanged += SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
 			
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
@@ -678,9 +679,11 @@ namespace colloid.PBReplacer
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
+			_constraintDataManager.OnComponentsChanged += SetCompoentCountStatus;
 			
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged += SetContactTabNotification;
+			_contactDataManager.OnComponentsChanged += SetCompoentCountStatus;
 		}
         
 		/// <summary>
@@ -694,6 +697,7 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnComponentsChanged -= SetPBTabNotification;
+			_pbDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
 			
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
@@ -702,9 +706,11 @@ namespace colloid.PBReplacer
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
+			_constraintDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 			
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
+			_contactDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 		}
         
 		/// <summary>
@@ -716,7 +722,7 @@ namespace colloid.PBReplacer
             
 			if (avatarData != null)
 			{
-				OnStatusMessageChanged(ComponentCountStatus());
+				SetCompoentCountStatus();
 				// アバターフィールドの値を更新（UIイベント発火なし）
 				if (_avatarField.value != avatarData.AvatarObject)
 				{
@@ -727,6 +733,21 @@ namespace colloid.PBReplacer
 			{
 				_avatarField.SetValueWithoutNotify(null);
 			}
+		}
+		
+		private void SetCompoentCountStatus()
+		{
+			OnStatusMessageChanged(ComponentCountStatus());
+		}
+		
+		private void SetCompoentCountStatus(List<Component> list)
+		{
+			SetCompoentCountStatus();
+		}
+		
+		private void SetCompoentCountStatus(List<VRCConstraintBase> list)
+		{
+			SetCompoentCountStatus();
 		}
 		
 		private void GetProcessedComponents()
