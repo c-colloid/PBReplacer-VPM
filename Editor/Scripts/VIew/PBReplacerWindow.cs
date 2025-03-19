@@ -716,6 +716,7 @@ namespace colloid.PBReplacer
             
 			if (avatarData != null)
 			{
+				OnStatusMessageChanged(ComponentCountStatus());
 				// アバターフィールドの値を更新（UIイベント発火なし）
 				if (_avatarField.value != avatarData.AvatarObject)
 				{
