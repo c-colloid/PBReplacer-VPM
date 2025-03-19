@@ -496,14 +496,13 @@ namespace colloid.PBReplacer
 			switch (_tabContainer.value)
 			{
 			case 0: // PhysBone
-				isValid = _pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0;
 				isValid = !_pbDataManager.Components.All(_processed.Contains);
 				break;
 			case 1: // Constraint
-				isValid = _constraintDataManager.Components.Count > 0;
+				isValid = !_constraintDataManager.Components.All(_processed.Contains);
 				break;
 			case 2: // Contact
-				isValid = _contactDataManager.Components.Count > 0;
+				isValid = !_contactDataManager.Components.All(_processed.Contains);
 				break;
 			}
 			return isValid ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
