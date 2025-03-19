@@ -1,8 +1,8 @@
 # PBReplacer
-Version 2.0.0
+Version 2.0.1
 
 ## 概要
-アバターに付いているPhysBoneコンポーネントとPhysBoneColliderコンポーネントを整理するUnity拡張です。
+アバターに付いているVRC関連コンポーネントを整理するUnity拡張です。
 
 元のコンポーネントのパラメーターを保持したまま、
 * PhysBone/PhysBoneCollider
