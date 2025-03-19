@@ -319,10 +319,17 @@ namespace colloid.PBReplacer
 				var label = new Label();
 				label.AddToClassList(LIST_ITEM_CLASS_NAME);
 				label.focusable = true;
+				label.AddManipulator(new ContextualMenuManipulator(evt => {
+					var target = label.userData as Component;
+					evt.menu.AppendAction("Delete", action => {
+						Undo.DestroyObjectImmediate(target);
+						DataManagerHelper.NotifyComponentsRemoved(target);
+					});
+				}));
 				return label;
 			};
 
-			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
+			GetProcessedComponents();
 			// 要素バインドコールバック
 			listView.bindItem = (element, index) => {
 				if (listView.itemsSource == null || index >= listView.itemsSource.Count) return;
@@ -333,6 +340,7 @@ namespace colloid.PBReplacer
 					(element as Label).text = component.name;
 					element.SetEnabled(!_processed.Contains(listView.itemsSource[index]));
 				}
+				element.userData = component;
 			};
             
 			// 選択タイプを複数選択に設定
@@ -471,7 +479,7 @@ namespace colloid.PBReplacer
 			 //アバターの設定を実行
 			if (avatarObject != null)
 			{
-				OnStatusMessageChanged(ComponentCountStatus());
+				SetCompoentCountStatus();
 			}
 			else
 			{
@@ -488,13 +496,13 @@ namespace colloid.PBReplacer
 			switch (_tabContainer.value)
 			{
 			case 0: // PhysBone
-				isValid = _pbDataManager.PhysBones.Count > 0 || _pbDataManager.PhysBoneColliders.Count > 0;
+				isValid = !_pbDataManager.Components.All(_processed.Contains);
 				break;
 			case 1: // Constraint
-				isValid = _constraintDataManager.Components.Count > 0;
+				isValid = !_constraintDataManager.Components.All(_processed.Contains);
 				break;
 			case 2: // Contact
-				isValid = _contactDataManager.Components.Count > 0;
+				isValid = !_contactDataManager.Components.All(_processed.Contains);
 				break;
 			}
 			return isValid ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
@@ -542,7 +550,7 @@ namespace colloid.PBReplacer
 			}
 			
 			if (_avatarField.value == null) return;
-			OnStatusMessageChanged(ComponentCountStatus());
+			SetCompoentCountStatus();
 		}
         
 		/// <summary>
@@ -626,7 +634,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnReloadButtonClicked()
 		{
-			_pbDataManager.ReloadData();
+			DataManagerHelper.ReloadData();
 		}
         
 		/// <summary>
@@ -661,14 +669,21 @@ namespace colloid.PBReplacer
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnComponentsChanged += SetPBTabNotification;
+			_pbDataManager.OnComponentsChanged += SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
+			
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete += OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete += OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
+			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
+			_constraintDataManager.OnComponentsChanged += SetCompoentCountStatus;
 			
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
+			_contactDataManager.OnContactsChanged += SetContactTabNotification;
+			_contactDataManager.OnComponentsChanged += SetCompoentCountStatus;
 		}
         
 		/// <summary>
@@ -681,14 +696,21 @@ namespace colloid.PBReplacer
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
 			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnComponentsChanged -= SetPBTabNotification;
+			_pbDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
+			
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete -= OnProcessingComplete;
 			
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
+			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
+			_constraintDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 			
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
+			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
+			_contactDataManager.OnComponentsChanged -= SetCompoentCountStatus;
 		}
         
 		/// <summary>
@@ -700,6 +722,7 @@ namespace colloid.PBReplacer
             
 			if (avatarData != null)
 			{
+				SetCompoentCountStatus();
 				// アバターフィールドの値を更新（UIイベント発火なし）
 				if (_avatarField.value != avatarData.AvatarObject)
 				{
@@ -712,27 +735,52 @@ namespace colloid.PBReplacer
 			}
 		}
 		
-		private void SetComponentListViewBindItem<T>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component
+		private void SetCompoentCountStatus()
 		{
-			var processed = datamanager.GetAvatarDynamicsComponent<T>();
-			listview.bindItem = (e,i) => {
-				(e as Label).text = (listview.itemsSource[i] as Component).name;
-				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
-			};
+			OnStatusMessageChanged(ComponentCountStatus());
 		}
 		
-		private void SetComponentListViewBindItem<T, TComponent>(ListView listview, ComponentManagerBase<T> datamanager) where T : Component where TComponent : Component
+		private void SetCompoentCountStatus(List<Component> list)
 		{
-			var processed = datamanager.GetAvatarDynamicsComponent<TComponent>();
-			listview.bindItem = (e,i) => {
-				(e as Label).text = (listview.itemsSource[i] as Component).name;
-				e.SetEnabled(!processed.Contains(listview.itemsSource[i]));
-			};
+			SetCompoentCountStatus();
 		}
 		
-		private void SetTabNotification(List<Component> list)
+		private void SetCompoentCountStatus(List<VRCConstraintBase> list)
 		{
-			
+			SetCompoentCountStatus();
+		}
+		
+		private void GetProcessedComponents()
+		{
+			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
+		}
+		
+		private void SetTabNotification(Toggle target, List<Component> list)
+		{
+			GetProcessedComponents();
+			EditorApplication.delayCall += () =>
+				target.value = !list.All(_processed.Contains);
+		}
+		
+		private void SetPBTabNotification(List<Component> list)
+		{
+			var notification = _tabContainer.Query<Toggle>().AtIndex(0);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
+		}
+		
+		private void SetConstraintTabNotification(List<VRCConstraintBase> list)
+		{
+			var notification = _tabContainer.Query<Toggle>().AtIndex(1);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
+		}
+		
+		private void SetContactTabNotification(List<Component> list)
+		{
+			var notification = _tabContainer.Query<Toggle>().AtIndex(2);
+			var components = list.Select(c => c as Component).ToList();
+			SetTabNotification(notification, components);
 		}
         
 		/// <summary>
@@ -845,7 +893,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void OnProcessingComplete()
 		{
-			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
+			GetProcessedComponents();
 			// UIスレッドで更新
 			EditorApplication.delayCall += () => {
 				// 処理完了後のUIの更新
