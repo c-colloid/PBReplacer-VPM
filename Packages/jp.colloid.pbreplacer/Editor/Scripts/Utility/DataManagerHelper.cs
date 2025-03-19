@@ -8,6 +8,8 @@ namespace colloid.PBReplacer
 {
 	public static class DataManagerHelper
 	{
+		public static event Action<Component> OnComponentsRemoved;
+		
 		static AvatarData CurrentAvatar => AvatarFieldHelper.CurrentAvatar;
 		
 		public static List<TComponent> GetAvatarDynamicsComponent<TComponent>() where TComponent : Component
@@ -30,6 +32,20 @@ namespace colloid.PBReplacer
 			result.AddRange(avatarDynamicsTransform.GetComponentsInChildren<TComponent>(true));
 
 			return result;
+		}
+		
+		public static void ReloadData()
+		{
+			if (CurrentAvatar?.AvatarObject != null)
+			{
+				GameObject currentAvatar = CurrentAvatar.AvatarObject;
+				AvatarFieldHelper.SetAvatar(currentAvatar);
+			}
+		}
+		
+		public static void NotifyComponentsRemoved(Component component)
+		{
+			OnComponentsRemoved?.Invoke(component);
 		}
 	}	
 }
