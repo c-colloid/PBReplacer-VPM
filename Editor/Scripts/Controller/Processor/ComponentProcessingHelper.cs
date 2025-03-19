@@ -64,6 +64,10 @@ namespace colloid.PBReplacer
 				            {
 					            newPB.rootTransform = oldPB.transform;
 				            }
+				            else
+				            {
+				            	newObj.name = processor.GetSafeObjectName(newPB.rootTransform.name);
+				            }
 			            });
                         
 		            if (!pbResult.Success)
@@ -87,6 +91,10 @@ namespace colloid.PBReplacer
                             if (oldCollider.rootTransform == null)
                             {
 	                            newCollider.rootTransform = oldCollider.transform;
+                            }
+                            else
+                            {
+	                            newObj.name = processor.GetSafeObjectName(newCollider.rootTransform.name);
                             }
                             
                             // マッピングに追加
@@ -188,6 +196,10 @@ namespace colloid.PBReplacer
 	                {
 	                	newConstraint.TargetTransform = oldConstraint.transform;
 	                }
+	                else
+	                {
+		                newObj.name = processor.GetSafeObjectName(newConstraint.TargetTransform.name);
+	                }
                 });
         }
         
@@ -202,7 +214,7 @@ namespace colloid.PBReplacer
             ComponentProcessor processor,
             GameObject avatar,
             List<T> contacts,
-            string subfolder) where T : Component
+	        string subfolder) where T : ContactBase
         {
             var settings = processor.Settings;
             
@@ -216,20 +228,14 @@ namespace colloid.PBReplacer
                 folderPath,
                 (oldContact, newContact, newObj, res) => {
 	                // コンタクト固有の追加処理があればここに実装
-	                if (oldContact is VRCContactSender)
-	                {
-	                	if ((oldContact as VRCContactSender).rootTransform == null)
-	                	{
-	                		(newContact as VRCContactSender).rootTransform = oldContact.transform;
-	                	}
-	                }
-	                if (oldContact is VRCContactReceiver)
-	                {
-	                	if ((oldContact as VRCContactReceiver).rootTransform == null)
-	                	{
-	                		(newContact as VRCContactReceiver).rootTransform = oldContact.transform;
-	                	}
-	                }
+	                if (oldContact.rootTransform == null)
+                	{
+                		newContact.rootTransform = oldContact.transform;
+                	}
+                	else
+                	{
+                    	newObj.name = processor.GetSafeObjectName(newContact.rootTransform.name);
+                	}
                 });
         }
         

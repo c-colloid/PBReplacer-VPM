@@ -236,7 +236,7 @@ namespace colloid.PBReplacer
 	    public ProcessingResult ProcessContacts<T>(
 		    GameObject avatar,
 		    List<T> contacts,
-		    string subfolder) where T : Component
+		    string subfolder) where T : ContactBase
 	    {
 		    // 処理をヘルパーに委譲
 		    return ComponentProcessingHelper.ProcessContacts(this, avatar, contacts, subfolder);
