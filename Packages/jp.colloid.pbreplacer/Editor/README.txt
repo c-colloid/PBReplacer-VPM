@@ -1,5 +1,5 @@
 #PBReplacer
-Version 2.0.1
+Version 2.1.0
 
 #概要
 アバターに付いているVRC関連コンポーネントを整理するUnity拡張です。
