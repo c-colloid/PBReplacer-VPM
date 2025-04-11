@@ -471,6 +471,9 @@ namespace colloid.PBReplacer
 		private void OnAvatarFieldValueChanged(ChangeEvent<UnityEngine.Object> evt)
 		{
 			var avatarObject = evt.newValue as Component;
+			
+			Debug.Log(PrefabUtility.IsPartOfAnyPrefab(avatarObject));
+			Debug.Log(PrefabUtility.GetNearestPrefabInstanceRoot(avatarObject));
             
 			AvatarFieldHelper.SetAvatar(avatarObject?.gameObject);
                 
