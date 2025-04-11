@@ -19,6 +19,7 @@
             <ui:Toggle label="Animatorがないオブジェクトでもアーマチュアを検出" style="display: none;" />
             <ui:Toggle label="Prefabを継承" />
             <ui:Toggle label="未使用オブジェクトを生成しない" />
+            <ui:DropdownField label="コンポーネントを検索する階層" choices="アーマチュア内のみ,同一Prefab内まで,子階層全て" index="0" />
         </ui:VisualElement>
     </ui:ScrollView>
     <ui:VisualElement style="margin-top: 20px; justify-content: center; flex-direction: row;">
