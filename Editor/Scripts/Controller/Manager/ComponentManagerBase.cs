@@ -124,7 +124,7 @@ namespace colloid.PBReplacer
 				
 				FindComponent.InPrefab => PrefabUtility.IsPartOfAnyPrefab(CurrentAvatar.AvatarObject)
 				? CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true)
-					.Where(c => PrefabUtility.GetNearestPrefabInstanceRoot(c) == CurrentAvatar.AvatarObject)
+				.Where(c => PrefabUtility.GetNearestPrefabInstanceRoot(c) == PrefabUtility.GetNearestPrefabInstanceRoot(CurrentAvatar.AvatarObject))
 				: CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
 				
 				FindComponent.AllChilds => CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true),
