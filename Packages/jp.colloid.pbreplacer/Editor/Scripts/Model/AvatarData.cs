@@ -1,7 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEditor;
 using VRC.SDKBase;
 
 #if MODULAR_AVATAR
@@ -102,7 +103,15 @@ namespace colloid.PBReplacer
             GameObject largestChild = null;
             int maxChildCount = 0;
             
-            foreach (Transform child in AvatarObject.GetComponentsInChildren<Transform>())
+	        IEnumerable<Transform> avatarChildren = AvatarObject.GetComponentsInChildren<Transform>().Where(c => 
+		        /**
+		        同一Prefab内のオブジェクトのみを検索の対象とする
+		        Prefab化されていない時"Null == Null"になり、全てが対象となる
+		        **/
+		        PrefabUtility.GetNearestPrefabInstanceRoot(c) == PrefabUtility.GetNearestPrefabInstanceRoot(AvatarObject)
+	        );
+            
+	        foreach (Transform child in avatarChildren)
             {
                 // AvatarObject自身とAvatarDynamicsの子は除外
                 if (child == AvatarObject.transform ||
