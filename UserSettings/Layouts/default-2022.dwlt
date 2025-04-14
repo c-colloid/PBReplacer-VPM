@@ -142,7 +142,7 @@ MonoBehaviour:
   m_MinSize: {x: 300, y: 100}
   m_MaxSize: {x: 24288, y: 16192}
   vertical: 0
-  controlID: 108
+  controlID: 104
 --- !u!114 &7
 MonoBehaviour:
   m_ObjectHideFlags: 52
@@ -474,7 +474,7 @@ MonoBehaviour:
     assetGuid: b817509bf5ea4434893df7ce885a8293
     assetPath: Packages/jp.colloid.pbreplacer/Editor/Scripts/VIew/PBReplacerWindow.cs
     fileName: PBReplacerWindow.cs
-    line: 487
+    line: 490
     characterIndex: 26
     length: 17
     trimOffset: 3
@@ -605,7 +605,7 @@ MonoBehaviour:
     m_SkipHidden: 0
     m_SearchArea: 1
     m_Folders:
-    - Packages/jp.colloid.pbreplacer/Editor
+    - Packages/jp.colloid.pbreplacer/Editor/Scripts
     m_Globs: []
     m_OriginalText: 
     m_ImportLogFlags: 0
@@ -613,15 +613,15 @@ MonoBehaviour:
   m_ViewMode: 1
   m_StartGridSize: 76
   m_LastFolders:
-  - Packages/jp.colloid.pbreplacer/Editor
+  - Packages/jp.colloid.pbreplacer/Editor/Scripts
   m_LastFoldersGridSize: 76
   m_LastProjectPath: E:\Unity\GitHub\PBReplacer-VPM-Migrated
   m_LockTracker:
     m_IsLocked: 0
   m_FolderTreeState:
-    scrollPos: {x: 0, y: 180}
-    m_SelectedIDs: 38560000
-    m_LastClickedID: 22072
+    scrollPos: {x: 0, y: 319}
+    m_SelectedIDs: 36560000
+    m_LastClickedID: 22070
     m_ExpandedIDs: 000000003456000036560000385600003a5600003c5600003c57000000ca9a3bffffff7f
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -677,7 +677,7 @@ MonoBehaviour:
   m_ListAreaState:
     m_SelectedInstanceIDs: 
     m_LastClickedInstanceID: 0
-    m_HadKeyboardFocusLastEvent: 0
+    m_HadKeyboardFocusLastEvent: 1
     m_ExpandedInstanceIDs: c6230000ae5b00009c5b0000de5c0000e4470000
     m_RenameOverlay:
       m_UserAcceptedRename: 0
@@ -792,9 +792,9 @@ MonoBehaviour:
   m_SceneHierarchy:
     m_TreeViewState:
       scrollPos: {x: 0, y: 0}
-      m_SelectedIDs: b0590000
+      m_SelectedIDs: 
       m_LastClickedID: 0
-      m_ExpandedIDs: e66bffffee6bffff266cffffd094ffff3095ffff6895ffffa299ffffaa99ffffe299ffff3c9dffff529dffff5a9dffff929dffff92b1ffff9eb1ffffd0b1ffff08b2ffffb4eaffffa6eeffffdeeefffff8faffff625500007c550000c2550000de550000
+      m_ExpandedIDs: 7c47feff8447feffbc47fefffa5effff325fffffd8afffffdcafffff90b0ffff94b0fffff6b9ffff48bafffff4cefffffeceffff0acfffff16cfffff1acfffff16e9fffff8faffff7c550000c2550000c6580000ca580000e0580000ea5800000859000052590000
       m_RenameOverlay:
         m_UserAcceptedRename: 0
         m_Name: 
