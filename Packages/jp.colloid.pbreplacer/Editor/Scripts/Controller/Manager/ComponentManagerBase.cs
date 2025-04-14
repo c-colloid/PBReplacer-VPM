@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
+using UnityEditor;
 
 namespace colloid.PBReplacer
 {
@@ -115,9 +117,22 @@ namespace colloid.PBReplacer
 				InvokeChanged();
 				return;
 			}
-
-			// アーマチュア内のコンポーネントを取得
-			var targetComponents = CurrentAvatar.Armature.GetComponentsInChildren<T>(true);
+			
+			IEnumerable<T> targetComponents = _settings.FindComponent switch
+			{
+				FindComponent.InArmature => CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
+				
+				FindComponent.InPrefab => PrefabUtility.IsPartOfAnyPrefab(CurrentAvatar.AvatarObject)
+				? CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true)
+					.Where(c => PrefabUtility.GetNearestPrefabInstanceRoot(c) == CurrentAvatar.AvatarObject)
+				: CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
+				
+				FindComponent.AllChilds => CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true),
+				
+				_ => null
+			};
+			
+			targetComponents ??= CurrentAvatar.Armature.GetComponentsInChildren<T>(true); 
 
 			_components.AddRange(targetComponents);
             
