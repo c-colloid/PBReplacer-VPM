@@ -203,6 +203,12 @@ namespace colloid.PBReplacer
 	        destroyUnusedObject.RegisterValueChangedCallback(evt => {
 	        	_settings.DestroyUnusedObject = evt.newValue;
 	        });
+	        
+	        var findComponent = panel.Query<EnumField>().AtIndex(0);
+	        findComponent.value = _settings.FindComponent;
+	        findComponent.RegisterValueChangedCallback(evt => {
+	        	_settings.FindComponent = (FindComponent)evt.newValue;
+	        });
             
             return panel;
         }
