@@ -46,30 +46,16 @@ namespace colloid.PBReplacer
         #region Public Methods	
 		public override void LoadComponents()
 		{
-			_components.Clear();
+			base.LoadComponents();
+			_components = _components.Where(c => c is VRCPhysBone || c is VRCPhysBoneCollider).ToList();
+
 			_physBones.Clear();
 			_physBoneColliders.Clear();
 
-			if (CurrentAvatar?.Armature == null)
-			{
-				InvokeChanged();
-				return;
-			}
-
-			// アーマチュア内のコンポーネントを取得
-			var pbComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBone>(true);
-			var pbcComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
-			
-			_physBones.AddRange(pbComponents);
-			_physBoneColliders.AddRange(pbcComponents);
-        
-			// AvatarDynamics内のコンポーネントを取得
-			//LoadComponentsFromAvatarDynamics();
-			_physBones.AddRange(GetAvatarDynamicsComponent<VRCPhysBone>());
-			_physBoneColliders.AddRange(GetAvatarDynamicsComponent<VRCPhysBoneCollider>());
-        
-			_components.AddRange(_physBones);
-			_components.AddRange(_physBoneColliders);
+			_physBones = _components.Where(c => c is VRCPhysBone)
+				.Select(c => c as VRCPhysBone).ToList();
+			_physBoneColliders = _components.Where(c => c is VRCPhysBoneCollider)
+				.Select(c => c as VRCPhysBoneCollider).ToList();
 			
 			// 変更を通知
 			InvokeChanged();

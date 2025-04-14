@@ -42,6 +42,8 @@ namespace colloid.PBReplacer
 		/// </summary>
 		public override void LoadComponents()
 		{
+			base.LoadComponents();
+			/**
 			_components.Clear();
 
 			if (CurrentAvatar?.Armature == null)
@@ -59,6 +61,8 @@ namespace colloid.PBReplacer
 			var receiverComponents = CurrentAvatar.Armature.GetComponentsInChildren<ContactReceiver>(true);
 			_components.AddRange(receiverComponents);
 			_components.AddRange(GetAvatarDynamicsComponent<ContactReceiver>());
+			**/
+			_components = _components.Where(c => c is VRCContactSender || c is VRCContactReceiver).ToList();
 			
 			InvokeChanged();
 		}

@@ -44,6 +44,9 @@ namespace colloid.PBReplacer
 		// 未使用のオブジェクトを生成するかどうか
 		public bool DestroyUnusedObject = true;
 		
+		// コンポーネントを検索する階層
+		public FindComponent FindComponent = 0;
+		
 		/// <summary>
 		/// ProcessorSettings関連
 		/// </summary>
@@ -202,7 +205,8 @@ namespace colloid.PBReplacer
 				ReceiverFolder = this.ReceiverFolder,
 				
 				UnpackPrefab = this.UnpackPrefab,
-				DestroyUnusedObject = this.DestroyUnusedObject
+				DestroyUnusedObject = this.DestroyUnusedObject,
+				FindComponent = this.FindComponent
 			};
 		}
 		
@@ -210,5 +214,15 @@ namespace colloid.PBReplacer
 		{
 			OnSettingsChanged?.Invoke();
 		}
+	}
+	
+	public enum FindComponent
+	{
+		[InspectorName("アーマチュア内のみ")]
+		InArmature = 0,
+		[InspectorName("同一Prefab内まで")]
+		InPrefab = 1,
+		[InspectorName("子階層全て")]
+		AllChilds = 2
 	}
 }
