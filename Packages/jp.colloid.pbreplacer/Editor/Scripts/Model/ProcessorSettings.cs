@@ -15,6 +15,7 @@ namespace colloid.PBReplacer
 	    public bool ShowConfirmDialog { get; set; } = true;
 	    public bool UnpackPrefab { get; set; } = true;
 	    public bool DestroyUnusedObject { get; set; } = true;
+	    public FindComponent FindComponent { get; set; } = 0;
         
         // 親オブジェクト設定
         public string RootObjectName { get; set; } = "AvatarDynamics";
@@ -62,7 +63,8 @@ namespace colloid.PBReplacer
 	            ReceiverFolder = this.ReceiverFolder,
                 
 	            UnpackPrefab = this.UnpackPrefab,
-	            DestroyUnusedObject = this.DestroyUnusedObject
+	            DestroyUnusedObject = this.DestroyUnusedObject,
+	            FindComponent = this.FindComponent
             };
         }
     }
