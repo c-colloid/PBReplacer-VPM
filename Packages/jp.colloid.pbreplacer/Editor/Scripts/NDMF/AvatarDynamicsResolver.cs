@@ -1,4 +1,5 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
@@ -168,7 +169,7 @@ namespace colloid.PBReplacer.NDMF
                         }
                     }
                 }
-                physBone.colliders = colliderList;
+                physBone.colliders = colliderList.Cast<VRC.Dynamics.VRCPhysBoneColliderBase>().ToList();
             }
         }
 
@@ -284,7 +285,7 @@ namespace colloid.PBReplacer.NDMF
                 return;
             }
 
-            VRCConstraintBase constraint = null;
+            VRC.Dynamics.VRCConstraintBase constraint = null;
 
             switch (refData.componentType)
             {

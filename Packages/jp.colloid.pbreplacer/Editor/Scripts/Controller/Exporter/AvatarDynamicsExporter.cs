@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
@@ -409,7 +409,7 @@ namespace colloid.PBReplacer
 
             // ソースTransformの参照
             var sources = constraint.Sources;
-            if (sources != null)
+	        try
             {
                 for (int i = 0; i < sources.Count; i++)
                 {
@@ -421,6 +421,10 @@ namespace colloid.PBReplacer
                     }
                 }
             }
+	        catch (System.Exception e)
+	        {
+	        	
+	        }
 
             return refData;
         }

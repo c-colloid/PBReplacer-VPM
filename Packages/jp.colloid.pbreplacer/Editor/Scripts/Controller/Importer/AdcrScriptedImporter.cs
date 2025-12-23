@@ -1,8 +1,9 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Compression;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.AssetImporters;
+using VRC.SDK3.Avatars.Components;
 
 namespace colloid.PBReplacer
 {
@@ -158,7 +159,7 @@ namespace colloid.PBReplacer
         private void ShowAvatarSelectionDialog(AdcrAssetPreview preview)
         {
             // VRCAvatarDescriptorを持つオブジェクトを検索
-            var avatars = FindObjectsByType<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>(FindObjectsSortMode.None);
+	        var avatars = FindObjectsByType<VRCAvatarDescriptor>(FindObjectsSortMode.None);
 
             if (avatars.Length == 0)
             {

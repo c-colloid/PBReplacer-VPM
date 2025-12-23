@@ -9,8 +9,8 @@
         "GUID:5ce33783346c3124990afbe7b0390a06",
         "GUID:fc900867c0f47cd49b6e2ae4ef907300",
         "GUID:46b240ba6ff100649be07bf79579f8ac",
-        "jp.colloid.pbreplacer.runtime",
-        "nadena.dev.ndmf"
+        "GUID:18dd5a474ece681408dd028143d87fba",
+        "GUID:62ced99b048af7f4d8dfe4bed8373d76"
     ],
     "includePlatforms": [
         "Editor"
@@ -23,7 +23,8 @@
         "VRC.Dynamics.dll",
         "VRCSDKBase.dll",
         "VRC.SDK3.Dynamics.Constraint.dll",
-        "VRC.SDK3.Dynamics.Contact.dll"
+        "VRC.SDK3.Dynamics.Contact.dll",
+        "VRCSDK3A.dll"
     ],
     "autoReferenced": false,
     "defineConstraints": [],
