@@ -43,6 +43,10 @@
         <ui:Label text="アバターをセットしてください" name="ToolBarLabel" />
     </uie:Toolbar>
     <ui:Button name="ReloadButton" tooltip="リロード" text="↻" style="-unity-text-align: lower-center; white-space: normal; position: absolute; bottom: 4px; height: 19px; left: 5px; width: 19px; -unity-font-style: bold;" />
-    <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="width: 74px; margin-left: auto; margin-right: auto; margin-bottom: 5px; margin-top: 5px; align-items: auto;" />
+    <ui:GroupBox style="flex-direction: row; justify-content: center; margin-top: 5px; margin-bottom: 5px; padding-top: 0; padding-bottom: 0;">
+        <ui:Button text="Import" name="ImportButton" tooltip="設定をインポート" style="width: 60px; margin-right: 5px;" />
+        <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="width: 74px;" />
+        <ui:Button text="Export" name="ExportButton" tooltip="設定をエクスポート" style="width: 60px; margin-left: 5px;" />
+    </ui:GroupBox>
     <ui:Button name="SettingsButton" tooltip="設定" style="-unity-text-align: lower-center; white-space: normal; position: absolute; height: 19px; width: 19px; -unity-font-style: bold; top: 1px; right: 0; background-image: resource(&apos;Settings Icon&apos;);" />
 </ui:UXML>

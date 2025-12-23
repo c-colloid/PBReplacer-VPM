@@ -9,7 +9,8 @@
   "repo": "https://c-colloid.github.io/PBReplacer-VPM/index.json",
   "gitDependencies": {},
   "vpmDependencies": {
-    "com.vrchat.avatars": ""
+    "com.vrchat.avatars": "",
+    "nadena.dev.ndmf": ">=1.4.0"
   },
   "legacyFolders": {
     "Assets\\Editor\\PBReplacer": ""

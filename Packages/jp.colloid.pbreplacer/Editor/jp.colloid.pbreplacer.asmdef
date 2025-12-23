@@ -8,7 +8,9 @@
         "GUID:6e9c6119ac4eb334284fb7b4bc6d1f05",
         "GUID:5ce33783346c3124990afbe7b0390a06",
         "GUID:fc900867c0f47cd49b6e2ae4ef907300",
-        "GUID:46b240ba6ff100649be07bf79579f8ac"
+        "GUID:46b240ba6ff100649be07bf79579f8ac",
+        "jp.colloid.pbreplacer.runtime",
+        "nadena.dev.ndmf"
     ],
     "includePlatforms": [
         "Editor"

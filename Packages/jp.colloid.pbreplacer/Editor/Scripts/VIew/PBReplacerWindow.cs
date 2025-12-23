@@ -30,6 +30,8 @@ namespace colloid.PBReplacer
 		private Button _applyButton;
 		private Button _reloadButton;
 		private Button _settingsButton;
+		private Button _exportButton;
+		private Button _importButton;
 		private VerticalTabContainer _tabContainer;
 		private Box _physBoneBox;
 		private Box _constraintBox;
@@ -387,16 +389,30 @@ namespace colloid.PBReplacer
 		{
 			// Applyボタンのイベント登録
 			_applyButton.clicked += OnApplyButtonClicked;
-            
+
 			// Reloadボタンのイベント登録
 			_reloadButton.clicked += OnReloadButtonClicked;
-            
+
 			// 設定ボタンの作成と登録（存在する場合）
 			var settingsButton = _root.Query<Button>("SettingsButton").First();
 			if (settingsButton != null)
 			{
 				_settingsButton = settingsButton;
 				_settingsButton.clicked += OnSettingsButtonClicked;
+			}
+
+			// エクスポートボタンの初期化
+			_exportButton = _root.Query<Button>("ExportButton").First();
+			if (_exportButton != null)
+			{
+				_exportButton.clicked += OnExportButtonClicked;
+			}
+
+			// インポートボタンの初期化
+			_importButton = _root.Query<Button>("ImportButton").First();
+			if (_importButton != null)
+			{
+				_importButton.clicked += OnImportButtonClicked;
 			}
 		}
         
@@ -645,7 +661,51 @@ namespace colloid.PBReplacer
 			// 設定ウィンドウを表示
 			PBReplacerSettingsWindow.ShowWindow();
 		}
-        
+
+		/// <summary>
+		/// エクスポートボタンクリック時の処理
+		/// </summary>
+		private void OnExportButtonClicked()
+		{
+			// アバターが設定されているか確認
+			if (AvatarFieldHelper.CurrentAvatar == null)
+			{
+				EditorUtility.DisplayDialog("エラー", "アバターが設定されていません", "OK");
+				return;
+			}
+
+			// AvatarDynamicsオブジェクトを検索
+			var avatarRoot = AvatarFieldHelper.CurrentAvatar.AvatarObject;
+			var dynamicsRoot = avatarRoot.transform.Find(_settings.RootObjectName);
+
+			if (dynamicsRoot == null)
+			{
+				EditorUtility.DisplayDialog("エラー",
+					$"{_settings.RootObjectName}が見つかりません。\n先にApplyを実行してコンポーネントを整理してください。",
+					"OK");
+				return;
+			}
+
+			// エクスポートダイアログを表示
+			AvatarDynamicsExporter.ShowExportDialog(dynamicsRoot.gameObject, avatarRoot);
+		}
+
+		/// <summary>
+		/// インポートボタンクリック時の処理
+		/// </summary>
+		private void OnImportButtonClicked()
+		{
+			// アバターが設定されているか確認
+			Transform targetParent = null;
+			if (AvatarFieldHelper.CurrentAvatar != null)
+			{
+				targetParent = AvatarFieldHelper.CurrentAvatar.AvatarObject.transform;
+			}
+
+			// インポートダイアログを表示
+			AvatarDynamicsImporter.ShowImportDialog(targetParent);
+		}
+
 		/// <summary>
 		/// Undo/Redo時の処理
 		/// </summary>
