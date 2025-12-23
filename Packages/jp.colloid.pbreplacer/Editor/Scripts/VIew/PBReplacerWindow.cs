@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Text;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -17,6 +18,7 @@ using nadena.dev.modular_avatar.core;
 
 namespace colloid.PBReplacer
 {
+	using UnityEditor.UIElements;
 	/// <summary>
 	/// PBReplacerのメインUI部分を担当するEditorWindowクラス
 	/// </summary>
@@ -24,6 +26,7 @@ namespace colloid.PBReplacer
 	{
         #region UI Variables
 		[SerializeField] private VisualTreeAsset _windowLayout;
+		[SerializeField] private VisualTreeAsset _listItemLayout;
 		private TemplateContainer _root;
 		private Label _statusLabel;
 		private ObjectField _avatarField;
@@ -316,17 +319,38 @@ namespace colloid.PBReplacer
 			
 			// 要素作成コールバック
 			listView.makeItem = () => {
-				var label = new Label();
-				label.AddToClassList(LIST_ITEM_CLASS_NAME);
-				label.focusable = true;
+				VisualElement container = new VisualElement();
+				_listItemLayout.CloneTree(container);
+				var label = container.Q<Label>("ItemNameDisplay");
+				//label.AddToClassList(LIST_ITEM_CLASS_NAME);
+				//label.focusable = true;
 				label.AddManipulator(new ContextualMenuManipulator(evt => {
 					var target = label.userData as Component;
+					
 					evt.menu.AppendAction("Delete", action => {
 						Undo.DestroyObjectImmediate(target);
 						DataManagerHelper.NotifyComponentsRemoved(target);
+						listView.itemsSource.Remove(target);
 					});
+					
+					// 問題がある場合に詳細メニューを表示
+					if (_pbDataManager.LastValidationResult?.HasProblems(target) == true)
+					{
+						evt.menu.AppendSeparator();
+						evt.menu.AppendAction("問題の詳細を表示", action => {
+							ShowProblemsDialog(target, _pbDataManager.LastValidationResult.GetProblems(target));
+						});
+					}
 				}));
-				return label;
+				
+				var userData = new Dictionary<string, object>();
+				userData["label"] = label;
+				userData["warningIcon"] = container.Q<VisualElement>("WarningIcon");
+				//userData["component"] = null;
+				userData["toggle"] = container.Q<Toggle>("ItemProcessorToggle");
+				container.userData = userData;
+				
+				return container;
 			};
 
 			GetProcessedComponents();
@@ -335,12 +359,20 @@ namespace colloid.PBReplacer
 				if (listView.itemsSource == null || index >= listView.itemsSource.Count) return;
                 
 				var component = listView.itemsSource[index] as Component;
-				if (component != null)
-				{
-					(element as Label).text = component.name;
+				if (component == null) return;
+				
+				var userData = element.userData as Dictionary<string, object>;
+				var label = userData["label"] as Label;
+				var warningIcon = userData["warningIcon"] as VisualElement;
+				
+				//if (component != null)
+				//{
+					label.text = component.name;
 					element.SetEnabled(!_processed.Contains(listView.itemsSource[index]));
-				}
-				element.userData = component;
+				//}
+				label.userData = component;
+				
+				UpdateElementWithValidation(element, component);
 			};
             
 			// 選択タイプを複数選択に設定
@@ -443,11 +475,13 @@ namespace colloid.PBReplacer
 		private void RegisterEvents()
 		{
 			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
+			_pbDataManager.OnValidationComplete += OnVaridationComplete;
 		}
 		
 		private void UnregisterEvents()
 		{
 			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
+			_pbDataManager.OnValidationComplete -= OnVaridationComplete;
 		}
         
 		private void OnSettingsChanged()
@@ -654,6 +688,11 @@ namespace colloid.PBReplacer
 			// データの再読み込み
 			_pbDataManager.ReloadData();
 		}
+		
+		private void OnVaridationComplete(ValidationResult result)
+		{
+			RepaintAllListViews();
+		}
         #endregion
 
         #region Data Event Handlers
@@ -793,7 +832,7 @@ namespace colloid.PBReplacer
 			// UIスレッドで更新
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
-				_pbListView.itemsSource = new List<Component>(physBones.Cast<Component>());
+				_pbListView.itemsSource = physBones;
 				//SetComponentListViewBindItem<VRCPhysBone>(_pbListView, _pbDataManager);
                 
 				// リストビューを再描画
@@ -811,7 +850,7 @@ namespace colloid.PBReplacer
 			// UIスレッドで更新
 			EditorApplication.delayCall += () => {
 				// リストビューのアイテムソースを更新
-				_pbcListView.itemsSource = new List<Component>(colliders.Cast<Component>());
+				_pbcListView.itemsSource = colliders;
 				//SetComponentListViewBindItem<VRCPhysBone, VRCPhysBoneCollider>(_pbcListView, _pbDataManager);
                 
 				// リストビューを再描画
@@ -903,6 +942,61 @@ namespace colloid.PBReplacer
         #endregion
 
         #region UI Helper Methods
+		private void UpdateElementWithValidation(VisualElement element, Component component)
+		{
+			var userData = element.userData as Dictionary<String, object>;
+			var label = userData["label"] as Label;
+			var warningIcon = userData["warningIcon"] as VisualElement;
+			
+			var validationResult = _pbDataManager.LastValidationResult;
+			
+			if(validationResult.HasProblems(component))
+			{
+				warningIcon.style.display = DisplayStyle.Flex;
+				
+				element.AddToClassList("pb-warning");
+				
+				var problems = validationResult.GetProblems(component);
+				element.tooltip = $"{problems.Count}件の問題があります。右クリックでメニューから詳細を確認できます。";
+			}
+			else
+			{
+				warningIcon.style.display = DisplayStyle.None;
+				element.RemoveFromClassList("pb-warning");
+				element.tooltip = null;
+			}
+		}
+		
+		private void ShowProblemsDialog(Component component, List<ValidationProblem> problems)
+		{
+			if (problems == null || problems.Count == 0) return;
+    
+			var builder = new StringBuilder();
+			builder.AppendLine($"{component.gameObject.name}の問題:");
+			builder.AppendLine();
+			builder.AppendLine("Colliders");
+    
+			foreach (var problem in problems)
+			{
+				string problemType = problem.ProblemType switch
+				{
+					ValidationProblemType.NullReference => "未設定",
+					ValidationProblemType.MissingReference => "Missing参照",
+					_ => "無効な値"
+				};
+                             
+				builder.AppendLine($"• {problem.PropertyName}: {problemType}");
+			}
+			
+			Selection.activeGameObject = component.gameObject;
+			Highlighter.Highlight("Inspector", problems.First().PropertyName);
+    
+			EditorUtility.DisplayDialog(
+				$"{component.gameObject.name}の問題",
+				builder.ToString(),
+				"OK");
+		}
+        
 		/// <summary>
 		/// すべてのリストビューを再描画
 		/// </summary>

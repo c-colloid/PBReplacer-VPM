@@ -42,6 +42,32 @@ namespace colloid.PBReplacer
 
 		}
         #endregion
+        
+        #region Validation
+		// バリデーション結果を保持するフィールド
+		private ValidationResult _lastValidationResult = new ValidationResult();
+		public ValidationResult LastValidationResult => _lastValidationResult;
+
+		// バリデーション完了イベント
+		public event Action<ValidationResult> OnValidationComplete;
+
+		/// <summary>
+		/// PhysBoneとPhysBoneColliderのコンポーネントを検証する
+		/// </summary>
+		/// <returns>検証結果</returns>
+		public ValidationResult ValidateComponents()
+		{
+			if (CurrentAvatar == null) return new ValidationResult();
+    
+			var targetPB = _physBones.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c)).ToList();
+			var targetPBC = _physBoneColliders.Where(c => !GetAvatarDynamicsComponent<VRCPhysBoneCollider>().Contains(c)).ToList();
+    
+			_lastValidationResult = ComponentProcessingHelper.ValidatePhysBones(targetPB, targetPBC);
+			OnValidationComplete?.Invoke(_lastValidationResult);
+    
+			return _lastValidationResult;
+		}
+		#endregion
 
         #region Public Methods	
 		public override void LoadComponents()
@@ -119,6 +145,34 @@ namespace colloid.PBReplacer
 				var targetPB = _physBones.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c)).ToList();
 				var targetPBC = _physBoneColliders.Where(c => !GetAvatarDynamicsComponent<VRCPhysBoneCollider>().Contains(c)).ToList();
 				
+				// PhysBoneの検証を実行
+				_lastValidationResult = ComponentProcessingHelper.ValidatePhysBones(targetPB, targetPBC);
+				OnValidationComplete?.Invoke(_lastValidationResult);
+        
+				// 問題がある場合は確認ダイアログを表示
+				if (!_lastValidationResult.IsValid)
+				{
+					bool proceed = EditorUtility.DisplayDialog(
+						"PhysBone設定に問題があります",
+						_lastValidationResult.GetFormattedMessage(),
+						"続行",
+						"キャンセル");
+            
+					if (!proceed)
+					{
+						NotifyStatusMessage("処理がキャンセルされました");
+						return false;
+					}
+					else
+					{
+						foreach (var pb in targetPB)
+						{
+							pb.colliders.Where(c => c == null).ToList()
+								.ForEach(c => pb.colliders.Remove(c));
+						}
+					}
+				}
+				
 				// 単一プロセッサを使用してPhysBoneを処理
 				var result = _processor.ProcessPhysBones(
 					CurrentAvatar.AvatarObject, 
@@ -179,62 +233,61 @@ namespace colloid.PBReplacer
 		/// <summary>
 		/// PhysBoneとPhysBoneColliderのコンポーネントを読み込む
 		/// </summary>
-		public void LoadPhysBoneComponents()
-		{
-			_components.Clear();
-			_physBoneColliders.Clear();
+		//public void LoadPhysBoneComponents()
+		//{
+		//	_components.Clear();
+		//	_physBoneColliders.Clear();
 
-			if (CurrentAvatar?.Armature == null) return;
+		//	if (CurrentAvatar?.Armature == null) return;
 
-			// アーマチュア内のコンポーネントを取得
-			var pbComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBone>(true);
-			var pbcComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
+		//	// アーマチュア内のコンポーネントを取得
+		//	var pbComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBone>(true);
+		//	var pbcComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCPhysBoneCollider>(true);
 
-			_components.AddRange(pbComponents);
-			_physBoneColliders.AddRange(pbcComponents);
+		//	_components.AddRange(pbComponents);
+		//	_physBoneColliders.AddRange(pbcComponents);
             
-			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
-			if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
-			{
-				var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
+		//	// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
+		//	if (CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics") != null)
+		//	{
+		//		var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics").gameObject;
                 
-				// PhysBoneを検索して追加
-				if (avatarDynamics.transform.Find("PhysBones") != null)
-				{
-					var physBonesParent = avatarDynamics.transform.Find("PhysBones");
-					var additionalPBs = physBonesParent.GetComponentsInChildren<VRCPhysBone>(true);
-					foreach (var pb in additionalPBs)
-					{
-						if (!_components.Contains(pb))
-						{
-							_components.Add(pb);
-						}
-					}
-				}
+		//		// PhysBoneを検索して追加
+		//		if (avatarDynamics.transform.Find("PhysBones") != null)
+		//		{
+		//			var physBonesParent = avatarDynamics.transform.Find("PhysBones");
+		//			var additionalPBs = physBonesParent.GetComponentsInChildren<VRCPhysBone>(true);
+		//			foreach (var pb in additionalPBs)
+		//			{
+		//				if (!_components.Contains(pb))
+		//				{
+		//					_components.Add(pb);
+		//				}
+		//			}
+		//		}
                 
-				// PhysBoneColliderを検索して追加
-				if (avatarDynamics.transform.Find("PhysBoneColliders") != null)
-				{
-					var collidersParent = avatarDynamics.transform.Find("PhysBoneColliders");
-					var additionalColliders = collidersParent.GetComponentsInChildren<VRCPhysBoneCollider>(true);
-					foreach (var collider in additionalColliders)
-					{
-						if (!_physBoneColliders.Contains(collider))
-						{
-							_physBoneColliders.Add(collider);
-						}
-					}
-				}
-			}
+		//		// PhysBoneColliderを検索して追加
+		//		if (avatarDynamics.transform.Find("PhysBoneColliders") != null)
+		//		{
+		//			var collidersParent = avatarDynamics.transform.Find("PhysBoneColliders");
+		//			var additionalColliders = collidersParent.GetComponentsInChildren<VRCPhysBoneCollider>(true);
+		//			foreach (var collider in additionalColliders)
+		//			{
+		//				if (!_physBoneColliders.Contains(collider))
+		//				{
+		//					_physBoneColliders.Add(collider);
+		//				}
+		//			}
+		//		}
+		//	}
 			
-			InvokeChanged();
-		}
+		//	InvokeChanged();
+		//}
 		
-		public override void InvokeChanged()
-		{
-			base.InvokeChanged();
-			OnPhysBoneCollidersChanged?.Invoke(_physBoneColliders);
-		}
+		//public override void InvokeChanged()
+		//{
+		//	base.InvokeChanged();
+		//}
 		
 		protected override void NotifyComponentsChanged()
 		{
@@ -242,12 +295,14 @@ namespace colloid.PBReplacer
         
 			// 従来のイベントも発火
 			OnPhysBonesChanged?.Invoke(_physBones);
+			OnPhysBoneCollidersChanged?.Invoke(_physBoneColliders);
 		}
 		
 		public override void Cleanup()
 		{
 			base.Cleanup();
 			OnPhysBonesChanged = null;
+			OnPhysBoneCollidersChanged = null;
 		}
         #endregion
         

@@ -1,0 +1,8 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
+    <ui:VisualElement name="Container" style="flex-direction: row; align-items: center; flex-grow: 1;">
+        <ui:VisualElement name="WarningIcon" class="warning-icon" style="margin-right: 4px; display: none;" />
+        <ui:Label tabindex="-1" text="ItemName" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ItemNameDisplay" class="LIST_ITEM_CLASS_NAME" style="flex-grow: 1;" />
+        <ui:Toggle name="ItemProcessorToggle" style="display: none;" />
+    </ui:VisualElement>
+</ui:UXML>

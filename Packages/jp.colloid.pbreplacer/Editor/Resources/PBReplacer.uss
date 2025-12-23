@@ -19,3 +19,17 @@ ObjectFieldDisplay {
 ObjectFieldSelector {
     flex-shrink: 0;
 }
+
+.pb-warning {
+    background-color: rgba(255, 220, 220, 0.5);
+}
+
+.pb-warning:hover {
+    background-color: rgba(255, 200, 200, 0.7);
+}
+
+.warning-icon {
+    width: 16px;
+    height: 16px;
+    background-image: resource("console.warnicon");
+}

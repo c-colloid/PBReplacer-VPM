@@ -167,6 +167,106 @@ namespace colloid.PBReplacer
             }
         }
         
+	    /// <summary>
+	    /// PhysBoneとPhysBoneColliderの問題をチェックするメソッド
+	    /// </summary>
+	    public static ValidationResult ValidatePhysBones(
+		    List<VRCPhysBone> physBones, 
+		    List<VRCPhysBoneCollider> colliders)
+	    {
+		    var result = new ValidationResult();
+    
+		    // PhysBoneをチェック
+		    if (physBones != null)
+		    {
+			    foreach (var pb in physBones)
+			    {
+				    if (pb == null) continue;
+            
+				    // NullまたはMissingのrootTransformをチェック
+				    /**
+				    if (pb.rootTransform == null)
+				    {
+					    result.AddProblem(pb, new ValidationProblem
+					    {
+						    ComponentName = "VRCPhysBone",
+						    ObjectName = pb.gameObject.name,
+						    PropertyName = "Root Transform",
+						    ProblemType = ValidationProblemType.NullReference
+					    });
+				    }
+				    **/
+            
+				    // Nullまたは削除されたColliderの参照をチェック
+				    if (pb.colliders != null)
+				    {
+					    var serializedProp = new SerializedObject(pb).GetIterator();
+					    var count = -3;
+					    while(serializedProp.NextVisible(true))
+					    {
+						    if (serializedProp.propertyType != SerializedPropertyType.ObjectReference) continue;
+						    count++;
+						    if (count < 0) continue;
+						    if (serializedProp.objectReferenceValue != null) continue;
+
+						    var fileId = serializedProp.FindPropertyRelative("m_FileID");
+						    if (fileId == null || fileId.intValue == 0)
+						    {
+							    result.AddProblem(pb, new ValidationProblem
+							    {
+								    ComponentName = "VRCPhysBone",
+								    ObjectName = pb.gameObject.name,
+								    PropertyPath = serializedProp.propertyPath,
+								    PropertyName = $"Element {count}",
+								    ProblemType = ValidationProblemType.NullReference
+							    });
+						    	continue;
+						    }
+
+						    result.AddProblem(pb, new ValidationProblem
+						    {
+							    ComponentName = "VRCPhysBone",
+							    ObjectName = pb.gameObject.name,
+							    PropertyPath = serializedProp.propertyPath,
+							    PropertyName = $"Element {count}",
+							    ProblemType = ValidationProblemType.MissingReference
+						    });
+					    }
+					    //for (int i = 0; i < pb.colliders.Count; i++)
+					    //{
+						    //if (pb.colliders[count] == null)
+						    //{
+						    //}
+					    //}
+				    }
+			    }
+		    }
+    
+		    // PhysBoneColliderをチェック
+		    if (colliders != null)
+		    {
+			    foreach (var collider in colliders)
+			    {
+				    if (collider == null) continue;
+            
+				    // NullまたはMissingのrootTransformをチェック
+				    /**
+				    if (collider.rootTransform == null)
+				    {
+					    result.AddProblem(collider, new ValidationProblem
+					    {
+						    ComponentName = "VRCPhysBoneCollider",
+						    ObjectName = collider.gameObject.name,
+						    PropertyName = "Root Transform",
+						    ProblemType = ValidationProblemType.NullReference
+					    });
+				    }
+				    **/
+			    }
+		    }
+    
+		    return result;
+	    }
         #endregion
         
         #region コンストレイント関連処理

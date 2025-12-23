@@ -118,13 +118,15 @@ namespace colloid.PBReplacer
 				return;
 			}
 			
+			//var prefabOverrideObjects = PrefabUtility.GetObjectOverrides(PrefabUtility.GetNearestPrefabInstanceRoot(CurrentAvatar.AvatarObject)).Select(o => o.GetAssetObject()).Select(o => (GameObject)o);
+			
 			IEnumerable<T> targetComponents = _settings.FindComponent switch
 			{
 				FindComponent.InArmature => CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
 				
 				FindComponent.InPrefab => PrefabUtility.IsPartOfAnyPrefab(CurrentAvatar.AvatarObject)
 				? CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true)
-				.Where(c => PrefabUtility.GetNearestPrefabInstanceRoot(c) == PrefabUtility.GetNearestPrefabInstanceRoot(CurrentAvatar.AvatarObject))
+				.Where(c => PrefabUtility.GetPrefabInstanceHandle(c) == PrefabUtility.GetPrefabInstanceHandle(CurrentAvatar.AvatarObject))
 				: CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
 				
 				FindComponent.AllChilds => CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true),
