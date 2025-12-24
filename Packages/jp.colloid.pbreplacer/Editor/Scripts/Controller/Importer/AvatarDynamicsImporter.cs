@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using UnityEngine;
 using UnityEditor;
+using colloid.PBReplacer.NDMF;
 
 namespace colloid.PBReplacer
 {
@@ -22,6 +23,8 @@ namespace colloid.PBReplacer
             public string Message { get; set; }
             public GameObject ImportedObject { get; set; }
             public AvatarDynamicsConfig Config { get; set; }
+            public bool ReferencesResolved { get; set; }
+            public int ResolvedCount { get; set; }
         }
 
         /// <summary>
@@ -101,11 +104,13 @@ namespace colloid.PBReplacer
 
                     // 結果を設定
                     result.Success = true;
-                    result.Message = $"インポートしました: {prefabName}";
                     result.ImportedObject = instance;
                     result.Config = instance.GetComponent<AvatarDynamicsConfig>();
 
                     Undo.RegisterCreatedObjectUndo(instance, "Import AvatarDynamics");
+
+                    // インポート後に参照を解決
+                    ResolveReferencesOnImport(result, targetParent);
                 }
                 finally
                 {
@@ -173,11 +178,13 @@ namespace colloid.PBReplacer
                 }
 
                 result.Success = true;
-                result.Message = $"インポートしました: {instance.name}";
                 result.ImportedObject = instance;
                 result.Config = instance.GetComponent<AvatarDynamicsConfig>();
 
                 Undo.RegisterCreatedObjectUndo(instance, "Import AvatarDynamics");
+
+                // インポート後に参照を解決
+                ResolveReferencesOnImport(result, targetParent);
             }
             catch (Exception ex)
             {
@@ -187,6 +194,55 @@ namespace colloid.PBReplacer
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// インポート後に参照を解決
+        /// </summary>
+        private static void ResolveReferencesOnImport(ImportResult result, Transform targetParent)
+        {
+            if (result.Config == null || targetParent == null)
+            {
+                result.Message = $"インポートしました: {result.ImportedObject.name}（参照解決なし - アバターが未選択）";
+                result.ReferencesResolved = false;
+                return;
+            }
+
+            // アバタールートを取得
+            var avatarDescriptor = targetParent.GetComponentInParent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            if (avatarDescriptor == null)
+            {
+                avatarDescriptor = targetParent.GetComponent<VRC.SDK3.Avatars.Components.VRCAvatarDescriptor>();
+            }
+
+            if (avatarDescriptor == null)
+            {
+                result.Message = $"インポートしました: {result.ImportedObject.name}（参照解決なし - アバターが見つかりません）";
+                result.ReferencesResolved = false;
+                return;
+            }
+
+            var avatarRoot = avatarDescriptor.gameObject;
+
+            try
+            {
+                // 参照を解決
+                AvatarDynamicsResolver.ResolveReferences(result.Config, avatarRoot);
+
+                result.ReferencesResolved = true;
+                result.ResolvedCount = result.Config.ComponentCount;
+                result.Message = $"インポートしました: {result.ImportedObject.name}\n" +
+                    $"（{result.ResolvedCount}個のコンポーネントの参照を解決）";
+
+                Debug.Log($"[PBReplacer] 参照を解決しました: {result.ResolvedCount}個のコンポーネント");
+            }
+            catch (Exception ex)
+            {
+                result.ReferencesResolved = false;
+                result.Message = $"インポートしました: {result.ImportedObject.name}\n" +
+                    $"（参照解決中にエラー: {ex.Message}）";
+                Debug.LogWarning($"[PBReplacer] 参照解決中にエラー: {ex.Message}");
+            }
         }
 
         /// <summary>
