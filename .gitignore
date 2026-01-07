@@ -1,0 +1,13 @@
+# Visual Studio / IDE
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+
+# OS files
+.DS_Store
+Thumbs.db
