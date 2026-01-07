@@ -56,6 +56,10 @@ jobs:
             ~/.nuget/packages
           key: ${{ runner.os }}-${{ hashFiles('**/global.json', '**/*.csproj') }}
       
+      # Create output directory
+      - name: Create Output Directory
+        run: mkdir -p $GITHUB_WORKSPACE/${{ env.listPublishDirectory }}
+
       # Build Package Version Listing with Nuke
       - name: Build Package Version Listing
         run: ${{ env.pathToCi }}/build.cmd BuildRepoListing --root ${{ env.pathToCi }} --list-publish-directory $GITHUB_WORKSPACE/${{ env.listPublishDirectory }} --current-package-name ${{ vars.PACKAGE_NAME }}
