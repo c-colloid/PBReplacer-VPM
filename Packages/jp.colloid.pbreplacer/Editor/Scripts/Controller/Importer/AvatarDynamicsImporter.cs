@@ -96,9 +96,6 @@ namespace colloid.PBReplacer
                         instance.transform.localScale = Vector3.one;
                     }
 
-                    // Prefabリンクを解除
-                    PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-
                     // 一時Prefabを削除
                     AssetDatabase.DeleteAsset(tempAssetPath);
 
@@ -169,12 +166,6 @@ namespace colloid.PBReplacer
                     instance.transform.localPosition = Vector3.zero;
                     instance.transform.localRotation = Quaternion.identity;
                     instance.transform.localScale = Vector3.one;
-                }
-
-                // Prefabの場合はリンクを解除
-                if (PrefabUtility.IsPartOfPrefabInstance(instance))
-                {
-                    PrefabUtility.UnpackPrefabInstance(instance, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
                 }
 
                 result.Success = true;
