@@ -610,13 +610,10 @@ namespace colloid.PBReplacer
                 var expectedCount = refData.sourceTransformPaths.Count;
                 var actualCount = 0;
 
-                if (sources != null)
+                for (int i = 0; i < sources.Count; i++)
                 {
-                    for (int i = 0; i < sources.Count; i++)
-                    {
-                        if (sources[i].SourceTransform != null)
-                            actualCount++;
-                    }
+                    if (sources[i].SourceTransform != null)
+                        actualCount++;
                 }
 
                 if (actualCount < expectedCount)
