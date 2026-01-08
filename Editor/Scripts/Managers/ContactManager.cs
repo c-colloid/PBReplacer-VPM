@@ -70,14 +70,9 @@ namespace colloid.PBReplacer
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
 				// 使用するフォルダをPrefabから復元（削除されていた場合）
-				// Contactsフォルダとそのサブフォルダを復元
-				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ContactsFolder);
-				var contactsFolder = avatarDynamics.transform.Find(_settings.ContactsFolder);
-				if (contactsFolder != null)
-				{
-					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.SenderFolder);
-					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.ReceiverFolder);
-				}
+				// Contactsフォルダとそのサブフォルダを階層パスで復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ContactsFolder}/{_settings.SenderFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ContactsFolder}/{_settings.ReceiverFolder}");
 
 				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
 				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
