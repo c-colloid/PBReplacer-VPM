@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(unity-ui-toolkit)",
+      "Bash(git worktree:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ]
+  }
+}
