@@ -60,6 +60,7 @@ namespace colloid.PBReplacer
         #region Data References
 		// データマネージャーへの参照
 		private PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
+		private PhysBoneColliderManager _pbcDataManager => PhysBoneColliderManager.Instance;
 		private ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
 		private ContactDataManager _contactDataManager => ContactDataManager.Instance;
         
@@ -663,24 +664,26 @@ namespace colloid.PBReplacer
 		private void RegisterDataManagerEvents()
 		{
 			if (_pbDataManager == null) return;
-            
+
 			UnregisterDataManagerEvents(); // 重複登録を防止
-            
+
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
-			_pbDataManager.OnPhysBoneCollidersChanged += OnPhysBoneCollidersDataChanged;
-			_pbDataManager.OnComponentsChanged += SetPBTabNotification;
-			_pbDataManager.OnComponentsChanged += SetCompoentCountStatus;
+			_pbcDataManager.OnCollidersChanged += OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnPhysBonesChanged += SetPBTabNotification;
+			_pbDataManager.OnPhysBonesChanged += SetCompoentCountStatus;
+			_pbcDataManager.OnCollidersChanged += SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
-			
+
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
+			_pbcDataManager.OnProcessingComplete += OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete += OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete += OnProcessingComplete;
-			
+
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
 			_constraintDataManager.OnComponentsChanged += SetCompoentCountStatus;
-			
+
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged += SetContactTabNotification;
 			_contactDataManager.OnComponentsChanged += SetCompoentCountStatus;
@@ -692,22 +695,24 @@ namespace colloid.PBReplacer
 		private void UnregisterDataManagerEvents()
 		{
 			if (_pbDataManager == null) return;
-            
+
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
-			_pbDataManager.OnPhysBoneCollidersChanged -= OnPhysBoneCollidersDataChanged;
-			_pbDataManager.OnComponentsChanged -= SetPBTabNotification;
-			_pbDataManager.OnComponentsChanged -= SetCompoentCountStatus;
+			_pbcDataManager.OnCollidersChanged -= OnPhysBoneCollidersDataChanged;
+			_pbDataManager.OnPhysBonesChanged -= SetPBTabNotification;
+			_pbDataManager.OnPhysBonesChanged -= SetCompoentCountStatus;
+			_pbcDataManager.OnCollidersChanged -= SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
-			
+
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
+			_pbcDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete -= OnProcessingComplete;
-			
+
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
 			_constraintDataManager.OnComponentsChanged -= SetCompoentCountStatus;
-			
+
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
 			_contactDataManager.OnComponentsChanged -= SetCompoentCountStatus;
@@ -739,13 +744,23 @@ namespace colloid.PBReplacer
 		{
 			OnStatusMessageChanged(ComponentCountStatus());
 		}
-		
-		private void SetCompoentCountStatus(List<Component> list)
+
+		private void SetCompoentCountStatus(List<VRCPhysBone> list)
 		{
 			SetCompoentCountStatus();
 		}
-		
+
+		private void SetCompoentCountStatus(List<VRCPhysBoneCollider> list)
+		{
+			SetCompoentCountStatus();
+		}
+
 		private void SetCompoentCountStatus(List<VRCConstraintBase> list)
+		{
+			SetCompoentCountStatus();
+		}
+
+		private void SetCompoentCountStatus(List<Component> list)
 		{
 			SetCompoentCountStatus();
 		}
@@ -762,7 +777,7 @@ namespace colloid.PBReplacer
 				target.value = !list.All(_processed.Contains);
 		}
 		
-		private void SetPBTabNotification(List<Component> list)
+		private void SetPBTabNotification(List<VRCPhysBone> list)
 		{
 			var notification = _tabContainer.Query<Toggle>().AtIndex(0);
 			var components = list.Select(c => c as Component).ToList();

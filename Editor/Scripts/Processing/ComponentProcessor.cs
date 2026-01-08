@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
-using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.Dynamics;
 
@@ -194,23 +193,7 @@ namespace colloid.PBReplacer
         }
         
         #endregion
-        
-        #region PhysBone特有の処理メソッド
-        
-        /// <summary>
-        /// PhysBoneとPhysBoneColliderを一緒に処理するメソッド
-        /// </summary>
-        public ProcessingResult ProcessPhysBones(
-            GameObject avatar, 
-            List<VRCPhysBone> physBones, 
-            List<VRCPhysBoneCollider> colliders)
-        {
-            // 処理をヘルパーに委譲
-            return ComponentProcessingHelper.ProcessPhysBones(this, avatar, physBones, colliders);
-        }
-        
-        #endregion
-        
+
         #region コンストレイント特有の処理メソッド
         
         /// <summary>
