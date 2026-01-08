@@ -128,6 +128,9 @@ namespace colloid.PBReplacer
 				// Step 4: ルートオブジェクトを準備
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
+				// Step 4.5: 既存のAvatarDynamicsの場合、Prefabから削除されたフォルダを復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.PhysBonesFolder);
+
 				// Step 5: PhysBoneを処理
 				var result = _processor.ProcessComponents<VRCPhysBone>(
 					CurrentAvatar.AvatarObject,

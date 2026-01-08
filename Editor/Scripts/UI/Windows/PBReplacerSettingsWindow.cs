@@ -196,12 +196,13 @@ namespace colloid.PBReplacer
 	        	_settings.UnpackPrefab = evt.newValue;
 	        });
 	        
-	        // DestroyUnusedObject設定は削除されました（Prefabのフォルダ構造を保持するため）
 	        var destroyUnusedObject = panel.Query<Toggle>().AtIndex(8);
-	        if (destroyUnusedObject != null)
-	        {
-	        	destroyUnusedObject.style.display = DisplayStyle.None;
-	        }
+	        destroyUnusedObject.label = "未使用フォルダを削除";
+	        destroyUnusedObject.tooltip = "AvatarDynamics内の使用しないフォルダを削除します（新規作成時のみ）";
+	        destroyUnusedObject.value = _settings.DestroyUnusedObject;
+	        destroyUnusedObject.RegisterValueChangedCallback(evt => {
+	        	_settings.DestroyUnusedObject = evt.newValue;
+	        });
 
 	        var findComponent = panel.Query<EnumField>().AtIndex(0);
 	        findComponent.value = _settings.FindComponent;

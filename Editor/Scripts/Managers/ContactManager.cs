@@ -66,9 +66,19 @@ namespace colloid.PBReplacer
 
 			try
 			{
-				// ルートオブジェクトを準備し、未使用フォルダを削除
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
-				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
+				// ルートオブジェクトを準備
+				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject, out bool isNewlyCreated);
+
+				// 新規作成時のみ未使用フォルダを削除、既存の場合はフォルダを復元
+				if (isNewlyCreated)
+				{
+					_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
+				}
+				else
+				{
+					// 既存のAvatarDynamicsの場合、Prefabから削除されたフォルダを復元
+					_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ContactsFolder);
+				}
 
 				// 各コンタクト型のリストを作成
 				var contactSenders = _components.OfType<VRCContactSender>().Where(c => !GetAvatarDynamicsComponent<VRCContactSender>().Contains(c)).ToList();

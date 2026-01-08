@@ -148,12 +148,20 @@ namespace colloid.PBReplacer
 				int undoGroup = Undo.GetCurrentGroup();
 
 				// Step 4: ルートオブジェクトを準備
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
+				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject, out bool isNewlyCreated);
 
-				// Step 4.5: 未使用フォルダを削除（PhysBone処理ではPB/PBCフォルダのみ保持）
-				_processor.CleanupUnusedFolders(avatarDynamics,
-					_settings.PhysBonesFolder,
-					_settings.PhysBoneCollidersFolder);
+				// Step 4.5: 新規作成時のみ未使用フォルダを削除、既存の場合はフォルダを復元
+				if (isNewlyCreated)
+				{
+					_processor.CleanupUnusedFolders(avatarDynamics,
+						_settings.PhysBonesFolder,
+						_settings.PhysBoneCollidersFolder);
+				}
+				else
+				{
+					// 既存のAvatarDynamicsの場合、Prefabから削除されたフォルダを復元
+					_processor.RevertFolderFromPrefab(avatarDynamics, _settings.PhysBoneCollidersFolder);
+				}
 
 				// Step 5: コライダーを処理
 				var result = _processor.ProcessComponents<VRCPhysBoneCollider>(

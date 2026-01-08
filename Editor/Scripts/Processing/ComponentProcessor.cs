@@ -231,8 +231,12 @@ namespace colloid.PBReplacer
         /// <summary>
         /// ルートオブジェクトを準備
         /// </summary>
-        public GameObject PrepareRootObject(GameObject avatar)
+        /// <param name="avatar">アバターのGameObject</param>
+        /// <param name="isNewlyCreated">新規作成された場合はtrue</param>
+        public GameObject PrepareRootObject(GameObject avatar, out bool isNewlyCreated)
         {
+            isNewlyCreated = false;
+
             // 既存のルートオブジェクトを検索
             var existingRoot = avatar.transform.Find(_settings.RootObjectName);
             if (existingRoot != null)
@@ -242,6 +246,7 @@ namespace colloid.PBReplacer
             }
 
             Debug.Log($"[PBReplacer] ルートオブジェクトが見つかりません。新規作成します: {_settings.RootObjectName}");
+            isNewlyCreated = true;
 
             // プレハブを読み込み
             var prefab = Resources.Load<GameObject>(_settings.RootPrefabName);
@@ -251,12 +256,12 @@ namespace colloid.PBReplacer
             }
 
             // プレハブをインスタンス化
-	        var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
 
-	        if (_settings.UnpackPrefab)
-	        {
-	        	PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
-	        }
+            if (_settings.UnpackPrefab)
+            {
+                PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+            }
 
             if (rootObject == null)
             {
@@ -276,13 +281,22 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// 使用しないフォルダを削除する
+        /// ルートオブジェクトを準備（isNewlyCreatedなしのオーバーロード）
+        /// </summary>
+        public GameObject PrepareRootObject(GameObject avatar)
+        {
+            return PrepareRootObject(avatar, out _);
+        }
+
+        /// <summary>
+        /// 使用しないフォルダを削除する（新規作成時のみ）
         /// </summary>
         /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
         /// <param name="foldersToKeep">保持するフォルダ名のリスト</param>
         public void CleanupUnusedFolders(GameObject rootObject, params string[] foldersToKeep)
         {
             if (rootObject == null) return;
+            if (!_settings.DestroyUnusedObject) return;
 
             var keepSet = new HashSet<string>(foldersToKeep);
             var childCount = rootObject.transform.childCount;
@@ -298,6 +312,59 @@ namespace colloid.PBReplacer
                     Debug.Log($"[PBReplacer] 未使用フォルダを削除: {child.name}");
                     Undo.DestroyObjectImmediate(child.gameObject);
                 }
+            }
+        }
+
+        /// <summary>
+        /// Prefabから削除されたフォルダを復元する
+        /// </summary>
+        /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
+        /// <param name="folderName">復元するフォルダ名</param>
+        public void RevertFolderFromPrefab(GameObject rootObject, string folderName)
+        {
+            if (rootObject == null) return;
+
+            // 既にフォルダが存在する場合は何もしない
+            var existingFolder = rootObject.transform.Find(folderName);
+            if (existingFolder != null) return;
+
+            // Prefabインスタンスかどうか確認
+            if (!PrefabUtility.IsPartOfPrefabInstance(rootObject))
+            {
+                Debug.Log($"[PBReplacer] {rootObject.name}はPrefabインスタンスではないため、フォルダを新規作成します");
+                return;
+            }
+
+            // Prefabのソースを取得
+            var prefabAsset = PrefabUtility.GetCorrespondingObjectFromSource(rootObject);
+            if (prefabAsset == null) return;
+
+            // Prefab内の対応するフォルダを検索
+            var prefabFolder = prefabAsset.transform.Find(folderName);
+            if (prefabFolder == null)
+            {
+                Debug.Log($"[PBReplacer] Prefab内にフォルダ '{folderName}' が見つかりません");
+                return;
+            }
+
+            // 削除されたGameObjectを復元
+            try
+            {
+                // GetRemovedGameObjectsで削除されたオブジェクトを取得
+                var removedObjects = PrefabUtility.GetRemovedGameObjects(rootObject);
+                foreach (var removed in removedObjects)
+                {
+                    if (removed.assetGameObject != null && removed.assetGameObject.name == folderName)
+                    {
+                        removed.Revert();
+                        Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {folderName}");
+                        return;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PBReplacer] フォルダ復元中にエラー: {ex.Message}");
             }
         }
 
