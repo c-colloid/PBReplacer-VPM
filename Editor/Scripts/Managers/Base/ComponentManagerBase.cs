@@ -8,13 +8,17 @@ namespace colloid.PBReplacer
 {
 	/// <summary>
 	/// VRCコンポーネント管理の抽象基底クラス
+	/// EventBusとの統合によりイベント管理を改善
 	/// </summary>
 	public abstract class ComponentManagerBase<T> : IComponentManager<T> where T : Component
 	{
-		// イベント
+		// 従来のイベント（後方互換性のため維持）
 		public event Action<List<T>> OnComponentsChanged;
 		public event Action OnProcessingComplete;
 		public event Action<string> OnStatusMessageChanged;
+
+		// EventBus購読管理
+		protected List<IDisposable> _subscriptions = new List<IDisposable>();
     
 		// コンポーネントリスト
 		protected List<T> _components = new List<T>();
@@ -169,11 +173,18 @@ namespace colloid.PBReplacer
 		protected void NotifyStatusMessage(string message)
 		{
 			OnStatusMessageChanged?.Invoke(message);
+			// EventBus経由でも通知
+			EventBus.Publish(new StatusMessageEvent(message));
 		}
-    
+
 		protected void NotifyProcessingComplete()
 		{
 			OnProcessingComplete?.Invoke();
+			// EventBus経由でも処理完了を通知
+			EventBus.Publish(new ProcessingCompletedEvent(
+				GetType().Name,
+				_components.Count,
+				true));
 		}
 		
 		// クリーンアップ（シャットダウン時）
@@ -183,12 +194,27 @@ namespace colloid.PBReplacer
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
 			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
 			DataManagerHelper.OnComponentsRemoved -= RemoveComponent;
-        
+
+			// EventBus購読解除
+			foreach (var subscription in _subscriptions)
+			{
+				subscription?.Dispose();
+			}
+			_subscriptions.Clear();
+
 			// データをクリア
 			_components.Clear();
 			OnComponentsChanged = null;
 			OnProcessingComplete = null;
 			OnStatusMessageChanged = null;
+		}
+
+		/// <summary>
+		/// EventBusに購読を追加（自動解除のため）
+		/// </summary>
+		protected void AddSubscription(IDisposable subscription)
+		{
+			_subscriptions.Add(subscription);
 		}
 	}
 }

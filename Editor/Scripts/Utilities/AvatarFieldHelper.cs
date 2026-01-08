@@ -44,12 +44,18 @@ namespace colloid.PBReplacer
 
 			try
 			{
+				// 古いアバターを保存
+				var oldAvatar = _currentAvatar;
+
 				// アバターデータを生成
 				_currentAvatar = new AvatarData(avatarObject);
-                
-				// 変更通知
-				OnAvatarChanged.Invoke(_currentAvatar);
-				
+
+				// 変更通知（従来方式）
+				OnAvatarChanged?.Invoke(_currentAvatar);
+
+				// EventBus経由でも通知
+				EventBus.Publish(new AvatarChangedEvent(_currentAvatar, oldAvatar));
+
 				return true;
 			}
 				catch (Exception ex)
@@ -63,8 +69,12 @@ namespace colloid.PBReplacer
 		
 		public static void ClearAvatar()
 		{
+			var oldAvatar = _currentAvatar;
 			_currentAvatar = null;
 			OnAvatarChanged?.Invoke(null);
+
+			// EventBus経由でも通知
+			EventBus.Publish(new AvatarChangedEvent(null, oldAvatar));
 		}
 		
 		public static void Cleanup()
@@ -78,6 +88,8 @@ namespace colloid.PBReplacer
 		private static void NotifyStatusMessage(string message)
 		{
 			OnStatusMessageChanged?.Invoke(message);
+			// EventBus経由でも通知
+			EventBus.Publish(new StatusMessageEvent(message));
 		}
-	}	
+	}
 }

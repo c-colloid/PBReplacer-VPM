@@ -31,8 +31,19 @@ namespace colloid.PBReplacer
 
 		private PhysBoneDataManager() : base()
 		{
-			// PhysBoneColliderManagerの処理完了イベントを購読
+			// PhysBoneColliderManagerの処理完了イベントを購読（従来方式）
 			PhysBoneColliderManager.Instance.OnCollidersProcessed += OnCollidersProcessed;
+
+			// EventBus経由でアバター変更を購読
+			AddSubscription(EventBus.Subscribe<AvatarChangedEvent>(OnAvatarChangedEvent));
+		}
+
+		/// <summary>
+		/// EventBus経由のアバター変更イベントハンドラ
+		/// </summary>
+		private void OnAvatarChangedEvent(AvatarChangedEvent e)
+		{
+			// 既にOnAvatarDataChangedで処理されるため、追加処理が必要な場合のみ実装
 		}
 		#endregion
 
@@ -54,32 +65,70 @@ namespace colloid.PBReplacer
 		/// <returns>成功した場合はtrue</returns>
 		public bool ProcessPhysBones()
 		{
+			// Result型を使った処理
+			var result = ProcessPhysBonesWithResult();
+
+			// 結果に応じて処理
+			return result.Match(
+				onSuccess: data =>
+				{
+					NotifyStatusMessage($"PhysBone処理完了! 処理数: {data.AffectedCount}");
+					ReloadData();
+					NotifyProcessingComplete();
+					return true;
+				},
+				onFailure: error =>
+				{
+					NotifyStatusMessage($"エラー: {error.Message}");
+					if (error.Exception != null)
+					{
+						Debug.LogError($"PhysBone置換中にエラーが発生しました: {error.Exception.Message}");
+					}
+					return false;
+				});
+		}
+
+		/// <summary>
+		/// PhysBone処理のResult型バージョン
+		/// Railway Oriented Programmingによるエラーハンドリング
+		/// </summary>
+		public Result<CommandResult, ProcessingError> ProcessPhysBonesWithResult()
+		{
+			// Step 1: アバター検証
 			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
 			{
-				NotifyStatusMessage("アバターが設定されていません");
-				return false;
+				return Result<CommandResult, ProcessingError>.Failure(
+					new ProcessingError("アバターが設定されていません", ErrorType.AvatarNotSet));
 			}
 
 			try
 			{
+				// Step 2: 処理対象の取得（Specificationパターンを使用）
+				var existingInDynamics = GetAvatarDynamicsComponent<VRCPhysBone>();
+				var notInDynamicsSpec = new ComponentSpecs.NotInCollection<VRCPhysBone>(existingInDynamics);
+
 				var targetPB = _components
-					.Where(c => !GetAvatarDynamicsComponent<VRCPhysBone>().Contains(c))
+					.Where(c => notInDynamicsSpec.IsSatisfiedBy(c))
 					.ToList();
 
 				if (targetPB.Count == 0)
 				{
-					NotifyStatusMessage("処理対象のPhysBoneがありません");
-					return true;
+					return Result<CommandResult, ProcessingError>.Success(
+						new CommandResult
+						{
+							AffectedCount = 0,
+							Message = "処理対象のPhysBoneがありません"
+						});
 				}
 
-				// Undoグループ開始
+				// Step 3: Undoグループ開始
 				Undo.SetCurrentGroupName("PBReplacer - PhysBone置換");
 				int undoGroup = Undo.GetCurrentGroup();
 
-				// ルートオブジェクトを準備
+				// Step 4: ルートオブジェクトを準備
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
-				// PhysBoneを処理
+				// Step 5: PhysBoneを処理
 				var result = _processor.ProcessComponents<VRCPhysBone>(
 					CurrentAvatar.AvatarObject,
 					targetPB,
@@ -102,27 +151,22 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-					return false;
+					return Result<CommandResult, ProcessingError>.Failure(
+						new ProcessingError(result.ErrorMessage, ErrorType.ProcessingFailed));
 				}
 
-				// 処理結果を通知
-				string message = $"PhysBone処理完了! 処理数: {result.ProcessedComponentCount}";
-				NotifyStatusMessage(message);
-
-				// データを再読み込み
-				ReloadData();
-
-				// 処理完了通知
-				NotifyProcessingComplete();
-
-				return true;
+				return Result<CommandResult, ProcessingError>.Success(
+					new CommandResult
+					{
+						AffectedCount = result.ProcessedComponentCount,
+						CreatedObjects = result.CreatedObjects,
+						Message = $"PhysBone処理完了! 処理数: {result.ProcessedComponentCount}"
+					});
 			}
 			catch (Exception ex)
 			{
-				Debug.LogError($"PhysBone置換中にエラーが発生しました: {ex.Message}");
-				NotifyStatusMessage($"エラー: {ex.Message}");
-				return false;
+				return Result<CommandResult, ProcessingError>.Failure(
+					ProcessingError.FromException(ex, ErrorType.ProcessingFailed));
 			}
 		}
 
