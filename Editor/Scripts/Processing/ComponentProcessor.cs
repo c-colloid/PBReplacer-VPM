@@ -237,8 +237,11 @@ namespace colloid.PBReplacer
             var existingRoot = avatar.transform.Find(_settings.RootObjectName);
             if (existingRoot != null)
             {
+                Debug.Log($"[PBReplacer] 既存のルートオブジェクトを使用: {existingRoot.name}");
                 return existingRoot.gameObject;
             }
+
+            Debug.Log($"[PBReplacer] ルートオブジェクトが見つかりません。新規作成します: {_settings.RootObjectName}");
 
             // プレハブを読み込み
             var prefab = Resources.Load<GameObject>(_settings.RootPrefabName);
@@ -289,8 +292,11 @@ namespace colloid.PBReplacer
             var folder = parent.transform.Find(folderName);
             if (folder != null)
             {
+                Debug.Log($"[PBReplacer] 既存のフォルダを使用: {parent.name}/{folderName}");
                 return folder;
             }
+
+            Debug.Log($"[PBReplacer] フォルダが見つかりません。新規作成します: {parent.name}/{folderName}");
 
 	        // パスが階層的かどうか確認
 	        if (folderName.Contains("/"))
