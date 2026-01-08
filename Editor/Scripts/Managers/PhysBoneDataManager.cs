@@ -60,43 +60,7 @@ namespace colloid.PBReplacer
 			// 変更を通知
 			InvokeChanged();
 		}
-		
-		/*
-		private void LoadComponentsFromAvatarDynamics()
-		{
-			if (CurrentAvatar?.AvatarObject == null) return;
-        
-			var avatarDynamics = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
-			if (avatarDynamics == null) return;
-        
-			var physBonesParent = avatarDynamics.Find("PhysBones");
-			if (physBonesParent != null)
-			{
-				var additionalPBs = physBonesParent.GetComponentsInChildren<VRCPhysBone>(true);
-				foreach (var pb in additionalPBs)
-				{
-					if (!_components.Contains(pb))
-					{
-						_components.Add(pb);
-					}
-				}
-			}
-			
-			var collidersParent = avatarDynamics.transform.Find("PhysBoneColliders");
-			if (collidersParent != null)
-			{
-				var additionalColliders = collidersParent.GetComponentsInChildren<VRCPhysBoneCollider>(true);
-				foreach (var collider in additionalColliders)
-				{
-					if (!_physBoneColliders.Contains(collider))
-					{
-						_physBoneColliders.Add(collider);
-					}
-				}
-			}
-		}
-		*/
-		
+
 		public override bool ProcessComponents()
 		{
 			return ProcessReplacement();

@@ -43,27 +43,8 @@ namespace colloid.PBReplacer
 		public override void LoadComponents()
 		{
 			base.LoadComponents();
-			/**
-			_components.Clear();
-
-			if (CurrentAvatar?.Armature == null)
-			{
-				InvokeChanged();
-				return;
-			}
-
-			// アーマチュア内のコンポーネントを取得
-			var senderComponents = CurrentAvatar.Armature.GetComponentsInChildren<VRCContactSender>(true);
-			_components.AddRange(senderComponents);
-			// AvatarDynamics内のコンポーネントを取得
-			_components.AddRange(GetAvatarDynamicsComponent<VRCContactSender>());
-			
-			var receiverComponents = CurrentAvatar.Armature.GetComponentsInChildren<ContactReceiver>(true);
-			_components.AddRange(receiverComponents);
-			_components.AddRange(GetAvatarDynamicsComponent<ContactReceiver>());
-			**/
 			_components = _components.Where(c => c is VRCContactSender || c is VRCContactReceiver).ToList();
-			
+
 			InvokeChanged();
 		}
 		

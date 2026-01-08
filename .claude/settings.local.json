@@ -4,7 +4,17 @@
       "Skill(unity-ui-toolkit)",
       "Bash(git worktree:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(cat:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(git mv:*)",
+      "Bash(for:*)",
+      "Bash(do git mv \"$f\" \"Editor/Scripts/Models/\")",
+      "Bash(done)",
+      "Bash(do git mv \"$f\" \"Editor/Scripts/UI/Windows/\")",
+      "Bash(do git mv \"$f\" \"Editor/Scripts/UI/Elements/\")",
+      "Bash(do git mv \"$f\" \"Editor/Scripts/Utilities/\")"
     ]
   }
 }
