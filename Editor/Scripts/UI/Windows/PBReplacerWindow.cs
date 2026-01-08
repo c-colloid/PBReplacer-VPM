@@ -598,36 +598,77 @@ namespace colloid.PBReplacer
 				EditorUtility.DisplayProgressBar("処理中", "コンポーネントを処理しています...", 0.5f);
 			}
             
+			// Commandパターンを使用して処理を実行
+			ExecuteCommand(_tabContainer.value);
+		}
+
+		/// <summary>
+		/// Commandパターンを使用してコンポーネント処理を実行
+		/// </summary>
+		/// <param name="tabIndex">タブインデックス（0: PhysBone, 1: Constraint, 2: Contact）</param>
+		private void ExecuteCommand(int tabIndex)
+		{
+			// タブに応じたコマンドを作成
+			ICommand command = CreateCommand(tabIndex);
+			if (command == null) return;
+
 			try
 			{
-				// データマネージャーに処理を依頼
-				switch (_tabContainer.value)
-				{
-				case 0: // PhysBone
-					_pbcDataManager.ProcessComponents();
-					_pbDataManager.ProcessComponents();
-					break;
-				case 1: // Constraint
-					_constraintDataManager.ProcessConstraints();
-					break;
-				case 2: // Contact
-					_contactDataManager.ProcessComponents();
-					break;
-				}
+				// コマンドを実行してResult型で結果を受け取る
+				var result = command.Execute();
+
+				// Result型のMatchで成功/失敗を処理
+				result.Match(
+					onSuccess: data =>
+					{
+						// 成功時の処理
+						if (data.AffectedCount > 0)
+						{
+							Debug.Log($"{command.Description}完了: {data.AffectedCount}件処理");
+						}
+						return data;
+					},
+					onFailure: error =>
+					{
+						// 失敗時の処理
+						Debug.LogError($"{command.Description}エラー: {error.Message}");
+						EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {error.Message}", "OK");
+						return null;
+					});
 			}
-				catch (Exception ex)
-				{
-					// エラーハンドリング
-					Debug.LogError($"コンポーネント処理中にエラーが発生しました: {ex.Message}");
-					EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {ex.Message}", "OK");
-				}
-				finally
+			finally
 			{
 				// プログレスバーをクリア
 				if (_settings.ShowProgressBar)
 				{
 					EditorUtility.ClearProgressBar();
 				}
+			}
+		}
+
+		/// <summary>
+		/// タブインデックスに応じたコマンドを作成
+		/// CompositeCommandを使用してPB+PBCを一括処理
+		/// </summary>
+		private ICommand CreateCommand(int tabIndex)
+		{
+			switch (tabIndex)
+			{
+			case 0: // PhysBone
+				// CompositeCommandでPBCとPBを順番に処理
+				var pbComposite = new CompositeCommand("PhysBone一括処理");
+				pbComposite.Add(new ProcessPhysBoneColliderCommand());
+				pbComposite.Add(new ProcessPhysBoneCommand());
+				return pbComposite;
+
+			case 1: // Constraint
+				return new ProcessConstraintCommand();
+
+			case 2: // Contact
+				return new ProcessContactCommand();
+
+			default:
+				return null;
 			}
 		}
         
