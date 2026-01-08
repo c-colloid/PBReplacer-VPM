@@ -171,7 +171,7 @@ const setTheme = () => {
       packageInfoName.textContent = packageInfo.displayName;
       packageInfoId.textContent = packageId;
       packageInfoVersion.textContent = `v${packageInfo.version}`;
-      packageInfoDescription.textContent = packageInfo.description;
+      packageInfoDescription.innerHTML = packageInfo.description.replace(/\\n/g, '<br>');
       packageInfoAuthor.textContent = packageInfo.author.name;
       packageInfoAuthor.href = packageInfo.author.url;
 

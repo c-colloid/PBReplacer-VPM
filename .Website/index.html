@@ -186,7 +186,7 @@
             <fluent-data-grid-cell grid-column="1">
               <div class="col">
                 <div class="packageName">{{ package.DisplayName }}</div>
-                <div class="caption1">{{ package.Description }}</div>
+                <div class="caption1">{{ package.Description | string.replace "\r\n" "<br>" | string.replace "\n" "<br>" | string.replace "\r" "<br>" }}</div>
                 <div class="caption2">{{ package.Name }}</div>
               </div>
             </fluent-data-grid-cell>
