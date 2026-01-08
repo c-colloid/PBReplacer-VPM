@@ -40,10 +40,11 @@ jobs:
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
 
       # Checkout Automation Repository without removing prior checkouts
+      # NOTE: Change to c-colloid/package-list-action after forking
       - name: Checkout Automation Repository
         uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
         with:
-          repository: vrchat-community/package-list-action
+          repository: c-colloid/package-list-action
           path: ${{ env.pathToCi }}
           clean: false
 
@@ -65,6 +66,7 @@ jobs:
         run: ${{ env.pathToCi }}/build.cmd BuildRepoListing --root ${{ env.pathToCi }} --list-publish-directory $GITHUB_WORKSPACE/${{ env.listPublishDirectory }} --current-package-name ${{ vars.PACKAGE_NAME }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEBSITE_FOLDER_NAME: ${{ env.listPublishDirectory }}
 
       # Prepare for GitHub Pages deployment
       - name: Setup Pages
