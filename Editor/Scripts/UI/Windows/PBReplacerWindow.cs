@@ -672,6 +672,7 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
 			_pbcDataManager.OnCollidersChanged += OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnPhysBonesChanged += SetPBTabNotification;
+			_pbcDataManager.OnCollidersChanged += SetPBCTabNotification;
 			_pbDataManager.OnPhysBonesChanged += SetCompoentCountStatus;
 			_pbcDataManager.OnCollidersChanged += SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
@@ -701,6 +702,7 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
 			_pbcDataManager.OnCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnPhysBonesChanged -= SetPBTabNotification;
+			_pbcDataManager.OnCollidersChanged -= SetPBCTabNotification;
 			_pbDataManager.OnPhysBonesChanged -= SetCompoentCountStatus;
 			_pbcDataManager.OnCollidersChanged -= SetCompoentCountStatus;
 			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
@@ -780,9 +782,22 @@ namespace colloid.PBReplacer
 		
 		private void SetPBTabNotification(List<VRCPhysBone> list)
 		{
+			UpdatePBTabNotification();
+		}
+
+		private void SetPBCTabNotification(List<VRCPhysBoneCollider> list)
+		{
+			UpdatePBTabNotification();
+		}
+
+		private void UpdatePBTabNotification()
+		{
 			var notification = _tabContainer.Query<Toggle>().AtIndex(0);
-			var components = list.Select(c => c as Component).ToList();
-			SetTabNotification(notification, components);
+			// PhysBoneとPhysBoneCollider両方を結合してチェック
+			var pbComponents = _pbDataManager.Components.Select(c => c as Component);
+			var pbcComponents = _pbcDataManager.Components.Select(c => c as Component);
+			var allComponents = pbComponents.Concat(pbcComponents).ToList();
+			SetTabNotification(notification, allComponents);
 		}
 		
 		private void SetConstraintTabNotification(List<VRCConstraintBase> list)
