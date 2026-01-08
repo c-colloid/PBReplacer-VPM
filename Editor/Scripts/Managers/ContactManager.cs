@@ -67,18 +67,20 @@ namespace colloid.PBReplacer
 			try
 			{
 				// ルートオブジェクトを準備
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject, out bool isNewlyCreated);
+				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
-				// 新規作成時のみ未使用フォルダを削除、既存の場合はフォルダを復元
-				if (isNewlyCreated)
+				// 使用するフォルダをPrefabから復元（削除されていた場合）
+				// Contactsフォルダとそのサブフォルダを復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ContactsFolder);
+				var contactsFolder = avatarDynamics.transform.Find(_settings.ContactsFolder);
+				if (contactsFolder != null)
 				{
-					_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
+					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.SenderFolder);
+					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.ReceiverFolder);
 				}
-				else
-				{
-					// 既存のAvatarDynamicsの場合、Prefabから削除されたフォルダを復元
-					_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ContactsFolder);
-				}
+
+				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
+				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
 
 				// 各コンタクト型のリストを作成
 				var contactSenders = _components.OfType<VRCContactSender>().Where(c => !GetAvatarDynamicsComponent<VRCContactSender>().Contains(c)).ToList();

@@ -68,18 +68,24 @@ namespace colloid.PBReplacer
 			try
 			{
 				// ルートオブジェクトを準備
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject, out bool isNewlyCreated);
+				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
-				// 新規作成時のみ未使用フォルダを削除、既存の場合はフォルダを復元
-				if (isNewlyCreated)
+				// 使用するフォルダをPrefabから復元（削除されていた場合）
+				// Constraintsフォルダとそのサブフォルダを復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ConstraintsFolder);
+				var constraintsFolder = avatarDynamics.transform.Find(_settings.ConstraintsFolder);
+				if (constraintsFolder != null)
 				{
-					_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.PositionConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.RotationConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ScaleConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ParentConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.LookAtConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.AimConstraintsFolder);
 				}
-				else
-				{
-					// 既存のAvatarDynamicsの場合、Prefabから削除されたフォルダを復元
-					_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ConstraintsFolder);
-				}
+
+				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
+				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
 
 				// 各コンストレイント型のリストを作成
 				var positionConstraints = _components.OfType<VRCPositionConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCPositionConstraint>().Contains(c)).ToList();

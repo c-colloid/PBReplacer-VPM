@@ -289,69 +289,126 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// 使用しないフォルダを削除する（新規作成時のみ）
+        /// 使用しないフォルダを削除する
+        /// 子にコンポーネントが存在しない空のフォルダのみを削除
         /// </summary>
         /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
-        /// <param name="foldersToKeep">保持するフォルダ名のリスト</param>
+        /// <param name="foldersToKeep">保持するフォルダ名のリスト（使用予定のフォルダ）</param>
         public void CleanupUnusedFolders(GameObject rootObject, params string[] foldersToKeep)
         {
             if (rootObject == null) return;
             if (!_settings.DestroyUnusedObject) return;
 
             var keepSet = new HashSet<string>(foldersToKeep);
-            var childCount = rootObject.transform.childCount;
 
-            // 逆順で削除（インデックスがずれないように）
+            // 再帰的に空のフォルダを削除
+            CleanupEmptyFoldersRecursive(rootObject.transform, keepSet);
+        }
+
+        /// <summary>
+        /// 再帰的に空のフォルダを削除する
+        /// </summary>
+        /// <param name="parent">親のTransform</param>
+        /// <param name="foldersToKeep">保持するフォルダ名のセット</param>
+        /// <returns>このフォルダが空になった場合はtrue</returns>
+        private bool CleanupEmptyFoldersRecursive(Transform parent, HashSet<string> foldersToKeep)
+        {
+            var childCount = parent.childCount;
+            var childrenToRemove = new List<GameObject>();
+
+            // 子オブジェクトを逆順で処理
             for (int i = childCount - 1; i >= 0; i--)
             {
-                var child = rootObject.transform.GetChild(i);
+                var child = parent.GetChild(i);
 
-                // フォルダ名が保持リストに含まれていない場合は削除
-                if (!keepSet.Contains(child.name))
+                // 子にコンポーネント（Transform以外）があるかチェック
+                var components = child.GetComponents<Component>();
+                bool hasComponents = components.Length > 1; // Transform以外のコンポーネントがあるか
+
+                if (hasComponents)
                 {
-                    Debug.Log($"[PBReplacer] 未使用フォルダを削除: {child.name}");
-                    Undo.DestroyObjectImmediate(child.gameObject);
+                    // コンポーネントがあるオブジェクトは削除しない
+                    continue;
+                }
+
+                // 再帰的にサブフォルダを処理
+                bool isChildEmpty = CleanupEmptyFoldersRecursive(child, foldersToKeep);
+
+                // 子フォルダが空で、保持リストにも含まれていない場合は削除候補
+                if (isChildEmpty && !foldersToKeep.Contains(child.name))
+                {
+                    childrenToRemove.Add(child.gameObject);
+                }
+            }
+
+            // 削除候補のオブジェクトを削除
+            foreach (var child in childrenToRemove)
+            {
+                Debug.Log($"[PBReplacer] 未使用フォルダを削除: {child.name}");
+                Undo.DestroyObjectImmediate(child);
+            }
+
+            // このフォルダが空かどうかを返す（子がいない、またはTransformのみ）
+            var remainingComponents = parent.GetComponents<Component>();
+            return parent.childCount == 0 && remainingComponents.Length <= 1;
+        }
+
+        /// <summary>
+        /// Prefabから削除されたフォルダを復元する（サブフォルダも含む）
+        /// </summary>
+        /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
+        /// <param name="folderPath">復元するフォルダパス（例: "Contacts/Sender"）</param>
+        public void RevertFolderFromPrefab(GameObject rootObject, string folderPath)
+        {
+            if (rootObject == null) return;
+
+            // パスを分割して階層的に処理
+            var folders = folderPath.Split('/');
+            Transform currentParent = rootObject.transform;
+
+            foreach (var folderName in folders)
+            {
+                if (string.IsNullOrEmpty(folderName)) continue;
+
+                var existingFolder = currentParent.Find(folderName);
+                if (existingFolder != null)
+                {
+                    currentParent = existingFolder;
+                    continue;
+                }
+
+                // フォルダが存在しない場合、Prefabから復元を試みる
+                RevertSingleFolderFromPrefab(currentParent.gameObject, folderName);
+
+                // 復元後に再度検索
+                existingFolder = currentParent.Find(folderName);
+                if (existingFolder != null)
+                {
+                    currentParent = existingFolder;
+                }
+                else
+                {
+                    // 復元に失敗した場合は終了（PrepareComponentFolderで新規作成される）
+                    return;
                 }
             }
         }
 
         /// <summary>
-        /// Prefabから削除されたフォルダを復元する
+        /// 単一のフォルダをPrefabから復元する
         /// </summary>
-        /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
-        /// <param name="folderName">復元するフォルダ名</param>
-        public void RevertFolderFromPrefab(GameObject rootObject, string folderName)
+        private void RevertSingleFolderFromPrefab(GameObject parent, string folderName)
         {
-            if (rootObject == null) return;
-
-            // 既にフォルダが存在する場合は何もしない
-            var existingFolder = rootObject.transform.Find(folderName);
-            if (existingFolder != null) return;
-
             // Prefabインスタンスかどうか確認
-            if (!PrefabUtility.IsPartOfPrefabInstance(rootObject))
+            if (!PrefabUtility.IsPartOfPrefabInstance(parent))
             {
-                Debug.Log($"[PBReplacer] {rootObject.name}はPrefabインスタンスではないため、フォルダを新規作成します");
                 return;
             }
 
-            // Prefabのソースを取得
-            var prefabAsset = PrefabUtility.GetCorrespondingObjectFromSource(rootObject);
-            if (prefabAsset == null) return;
-
-            // Prefab内の対応するフォルダを検索
-            var prefabFolder = prefabAsset.transform.Find(folderName);
-            if (prefabFolder == null)
-            {
-                Debug.Log($"[PBReplacer] Prefab内にフォルダ '{folderName}' が見つかりません");
-                return;
-            }
-
-            // 削除されたGameObjectを復元
             try
             {
                 // GetRemovedGameObjectsで削除されたオブジェクトを取得
-                var removedObjects = PrefabUtility.GetRemovedGameObjects(rootObject);
+                var removedObjects = PrefabUtility.GetRemovedGameObjects(parent);
                 foreach (var removed in removedObjects)
                 {
                     if (removed.assetGameObject != null && removed.assetGameObject.name == folderName)
