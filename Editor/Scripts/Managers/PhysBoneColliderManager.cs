@@ -150,6 +150,11 @@ namespace colloid.PBReplacer
 				// Step 4: ルートオブジェクトを準備
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
+				// Step 4.5: 未使用フォルダを削除（PhysBone処理ではPB/PBCフォルダのみ保持）
+				_processor.CleanupUnusedFolders(avatarDynamics,
+					_settings.PhysBonesFolder,
+					_settings.PhysBoneCollidersFolder);
+
 				// Step 5: コライダーを処理
 				var result = _processor.ProcessComponents<VRCPhysBoneCollider>(
 					CurrentAvatar.AvatarObject,

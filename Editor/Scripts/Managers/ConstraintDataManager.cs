@@ -67,6 +67,10 @@ namespace colloid.PBReplacer
 
 			try
 			{
+				// ルートオブジェクトを準備し、未使用フォルダを削除
+				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
+				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
+
 				// 各コンストレイント型のリストを作成
 				var positionConstraints = _components.OfType<VRCPositionConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCPositionConstraint>().Contains(c)).ToList();
 				var rotationConstraints = _components.OfType<VRCRotationConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCRotationConstraint>().Contains(c)).ToList();

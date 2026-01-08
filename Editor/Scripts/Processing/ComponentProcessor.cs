@@ -258,9 +258,6 @@ namespace colloid.PBReplacer
 	        	PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 	        }
 
-	        // DestroyUnusedObjectは削除
-	        // Prefab内のフォルダ構造（PhysBones, PhysBoneColliders等）を保持する必要があるため
-	        
             if (rootObject == null)
             {
                 throw new Exception($"{_settings.RootPrefabName}プレハブのインスタンス化に失敗しました");
@@ -277,7 +274,33 @@ namespace colloid.PBReplacer
 
             return rootObject;
         }
-        
+
+        /// <summary>
+        /// 使用しないフォルダを削除する
+        /// </summary>
+        /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
+        /// <param name="foldersToKeep">保持するフォルダ名のリスト</param>
+        public void CleanupUnusedFolders(GameObject rootObject, params string[] foldersToKeep)
+        {
+            if (rootObject == null) return;
+
+            var keepSet = new HashSet<string>(foldersToKeep);
+            var childCount = rootObject.transform.childCount;
+
+            // 逆順で削除（インデックスがずれないように）
+            for (int i = childCount - 1; i >= 0; i--)
+            {
+                var child = rootObject.transform.GetChild(i);
+
+                // フォルダ名が保持リストに含まれていない場合は削除
+                if (!keepSet.Contains(child.name))
+                {
+                    Debug.Log($"[PBReplacer] 未使用フォルダを削除: {child.name}");
+                    Undo.DestroyObjectImmediate(child.gameObject);
+                }
+            }
+        }
+
         /// <summary>
         /// コンポーネントフォルダを準備
         /// </summary>
