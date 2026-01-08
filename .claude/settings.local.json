@@ -14,7 +14,12 @@
       "Bash(done)",
       "Bash(do git mv \"$f\" \"Editor/Scripts/UI/Windows/\")",
       "Bash(do git mv \"$f\" \"Editor/Scripts/UI/Elements/\")",
-      "Bash(do git mv \"$f\" \"Editor/Scripts/Utilities/\")"
+      "Bash(do git mv \"$f\" \"Editor/Scripts/Utilities/\")",
+      "Skill(merge-to-unity)",
+      "Bash(git pull:*)",
+      "Bash(git stash:*)",
+      "Bash(git merge:*)",
+      "Bash(git rm:*)"
     ]
   }
 }

@@ -41,7 +41,7 @@ namespace colloid.PBReplacer
 		public Result<Unit, ProcessingError> Undo()
 		{
 			// Unity標準のUndoを使用
-			Undo.PerformUndo();
+			UnityEditor.Undo.PerformUndo();
 			return Result<Unit, ProcessingError>.Success(Unit.Value);
 		}
 	}
