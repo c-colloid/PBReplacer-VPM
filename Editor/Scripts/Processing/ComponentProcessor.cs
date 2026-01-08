@@ -40,17 +40,16 @@ namespace colloid.PBReplacer
     public class ComponentProcessor
     {
         // プロセッサの設定
-        private ProcessorSettings _settings;
-        
+        private PBReplacerSettings _settings;
+
         // コンストラクタ
-	    public ComponentProcessor(PBReplacerSettings settings = null)
+        public ComponentProcessor(PBReplacerSettings settings = null)
         {
-        	var pbreplacerSettings = settings ?? PBReplacerSettings.Load();   
-	        _settings = pbreplacerSettings.GetProcessorSettings();
+            _settings = settings ?? PBReplacerSettings.Load();
         }
-        
+
         // 設定のゲッター・セッター
-        public ProcessorSettings Settings
+        public PBReplacerSettings Settings
         {
             get => _settings;
             set => _settings = value;

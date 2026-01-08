@@ -47,9 +47,6 @@ namespace colloid.PBReplacer
 		// コンポーネントを検索する階層
 		public FindComponent FindComponent = 0;
 		
-		/// <summary>
-		/// ProcessorSettings関連
-		/// </summary>
 		// 親オブジェクト設定
 		public string RootObjectName { get; set; } = "AvatarDynamics";
 		public string RootPrefabName { get; set; } = "AvatarDynamics";
@@ -179,35 +176,6 @@ namespace colloid.PBReplacer
 				}
             
 			return null;
-		}
-		
-		// ProcessorSettings相当のインスタンスを取得するメソッド
-		public ProcessorSettings GetProcessorSettings()
-		{
-			return new ProcessorSettings
-			{
-				ShowProgressBar = this.ShowProgressBar,
-				PreserveHierarchy = this.PreserveHierarchy,
-				ShowConfirmDialog = this.ShowConfirmDialog,
-				RootObjectName = this.RootObjectName,
-				RootPrefabName = this.RootPrefabName,
-				PhysBonesFolder = this.PhysBonesFolder,
-				PhysBoneCollidersFolder = this.PhysBoneCollidersFolder,
-				ConstraintsFolder = this.ConstraintsFolder,
-				PositionConstraintsFolder = this.PositionConstraintsFolder,
-				RotationConstraintsFolder = this.RotationConstraintsFolder,
-				ScaleConstraintsFolder = this.ScaleConstraintsFolder,
-				ParentConstraintsFolder = this.ParentConstraintsFolder,
-				LookAtConstraintsFolder = this.LookAtConstraintsFolder,
-				AimConstraintsFolder = this.AimConstraintsFolder,
-				ContactsFolder = this.ContactsFolder,
-				SenderFolder = this.SenderFolder,
-				ReceiverFolder = this.ReceiverFolder,
-				
-				UnpackPrefab = this.UnpackPrefab,
-				DestroyUnusedObject = this.DestroyUnusedObject,
-				FindComponent = this.FindComponent
-			};
 		}
 		
 		protected void NotifySettingsChanged()
