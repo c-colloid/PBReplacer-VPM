@@ -208,6 +208,10 @@ namespace colloid.PBReplacer
 						{
 							Debug.Log($"{command.Description}完了: {data.AffectedCount}件処理");
 						}
+
+						// データを再読み込みしてUIを更新
+						ReloadDataForTab(tabIndex);
+
 						return data;
 					},
 					onFailure: error =>
@@ -226,6 +230,30 @@ namespace colloid.PBReplacer
 					EditorUtility.ClearProgressBar();
 				}
 			}
+		}
+
+		/// <summary>
+		/// タブに応じたデータマネージャーを再読み込み
+		/// </summary>
+		private void ReloadDataForTab(int tabIndex)
+		{
+			switch (tabIndex)
+			{
+			case 0: // PhysBone
+				_pbcDataManager.ReloadData();
+				_pbDataManager.ReloadData();
+				break;
+			case 1: // Constraint
+				_constraintDataManager.ReloadData();
+				break;
+			case 2: // Contact
+				_contactDataManager.ReloadData();
+				break;
+			}
+
+			// 処理済みコンポーネントリストを更新してUIを再描画
+			GetProcessedComponents();
+			RepaintAllListViews();
 		}
 
 		/// <summary>
