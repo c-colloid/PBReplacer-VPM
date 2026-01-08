@@ -140,7 +140,7 @@ namespace colloid.PBReplacer
 
 				for (int i = 0; i < pb.colliders.Count; i++)
 				{
-					var oldCollider = pb.colliders[i];
+					var oldCollider = pb.colliders[i] as VRCPhysBoneCollider;
 					if (oldCollider == null) continue;
 
 					var newCollider = resolver.Resolve(oldCollider);

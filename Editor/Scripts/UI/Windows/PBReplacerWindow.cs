@@ -604,7 +604,8 @@ namespace colloid.PBReplacer
 				switch (_tabContainer.value)
 				{
 				case 0: // PhysBone
-					_pbDataManager.ProcessReplacement();
+					_pbcDataManager.ProcessComponents();
+					_pbDataManager.ProcessComponents();
 					break;
 				case 1: // Constraint
 					_constraintDataManager.ProcessConstraints();
