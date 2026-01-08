@@ -41,9 +41,6 @@ namespace colloid.PBReplacer
 		// Prefabの継承を破棄するかどうか
 		public bool UnpackPrefab = true;
 		
-		// 未使用のオブジェクトを生成するかどうか
-		public bool DestroyUnusedObject = true;
-		
 		// コンポーネントを検索する階層
 		public FindComponent FindComponent = 0;
 		

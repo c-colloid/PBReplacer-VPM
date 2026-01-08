@@ -252,20 +252,14 @@ namespace colloid.PBReplacer
 
             // プレハブをインスタンス化
 	        var rootObject = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
-	        
+
 	        if (_settings.UnpackPrefab)
 	        {
 	        	PrefabUtility.UnpackPrefabInstance(rootObject, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
 	        }
-	        
-	        if (_settings.DestroyUnusedObject)
-	        {
-	        	var lengs = rootObject.transform.childCount;
-	        	for (int i = lengs-1; i >= 0; i--)
-	        	{
-	        		GameObject.DestroyImmediate(rootObject.transform.GetChild(i).gameObject);
-	        	}
-	        }
+
+	        // DestroyUnusedObjectは削除
+	        // Prefab内のフォルダ構造（PhysBones, PhysBoneColliders等）を保持する必要があるため
 	        
             if (rootObject == null)
             {
