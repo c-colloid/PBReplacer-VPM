@@ -289,10 +289,8 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged += SetComponentCountStatus;
 			_pbcDataManager.OnCollidersChanged += SetComponentCountStatus;
 
-			// StatusMessageManager経由でメッセージを受信
+			// StatusMessageManager経由でメッセージを受信（優先度制御のため一元化）
 			StatusMessageManager.OnMessageChanged += OnStatusMessageChanged;
-			// 後方互換性のためAvatarFieldHelperのイベントも維持
-			AvatarFieldHelper.OnStatusMessageChanged += OnStatusMessageChanged;
 
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete += OnProcessingComplete;
@@ -325,7 +323,6 @@ namespace colloid.PBReplacer
 
 			// StatusMessageManager購読解除
 			StatusMessageManager.OnMessageChanged -= OnStatusMessageChanged;
-			AvatarFieldHelper.OnStatusMessageChanged -= OnStatusMessageChanged;
 
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete -= OnProcessingComplete;

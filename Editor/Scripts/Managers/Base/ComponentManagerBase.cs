@@ -174,22 +174,21 @@ namespace colloid.PBReplacer
     
 		protected void NotifyStatusMessage(string message)
 		{
-			OnStatusMessageChanged?.Invoke(message);
-			// StatusMessageManager経由で通知（優先度: Info）
+			// StatusMessageManager経由のみで通知（優先度: Info）
+			// OnStatusMessageChangedは後方互換性のため維持するが、
+			// StatusMessageManagerの優先度システムをバイパスしないよう直接呼び出さない
 			StatusMessageManager.Info(message);
 		}
 
 		protected void NotifyStatusError(string message)
 		{
-			OnStatusMessageChanged?.Invoke($"エラー: {message}");
-			// StatusMessageManager経由で通知（優先度: Error）
+			// StatusMessageManager経由のみで通知（優先度: Error）
 			StatusMessageManager.Error(message);
 		}
 
 		protected void NotifyStatusSuccess(string message)
 		{
-			OnStatusMessageChanged?.Invoke(message);
-			// StatusMessageManager経由で通知（優先度: Success）
+			// StatusMessageManager経由のみで通知（優先度: Success）
 			StatusMessageManager.Success(message);
 		}
 
