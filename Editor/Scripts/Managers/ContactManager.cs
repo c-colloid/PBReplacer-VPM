@@ -58,86 +58,67 @@ namespace colloid.PBReplacer
 		/// </summary>
 		public bool ProcessContacts()
 		{
-			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
+			return ExecuteWithErrorHandling(() => ProcessContactsInternal(), "コンタクト処理");
+		}
+
+		/// <summary>
+		/// コンタクト処理の内部実装
+		/// </summary>
+		private bool ProcessContactsInternal()
+		{
+			// ルートオブジェクトを準備
+			var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
+
+			// フォルダ階層を準備（Prefab復元とクリーンアップを一括処理）
+			_processor.PrepareFolderHierarchy(
+				avatarDynamics,
+				_settings.ContactsFolder,
+				_settings.SenderFolder,
+				_settings.ReceiverFolder);
+
+			// 各コンタクト型のリストを作成
+			var contactSenders = _components.OfType<VRCContactSender>().Where(c => !GetAvatarDynamicsComponent<VRCContactSender>().Contains(c)).ToList();
+			var contactReceivers = _components.OfType<VRCContactReceiver>().Where(c => !GetAvatarDynamicsComponent<VRCContactReceiver>().Contains(c)).ToList();
+
+			int processedCount = 0;
+
+			// 各コンタクト型を処理
+			if (contactSenders.Count > 0)
 			{
-				NotifyStatusMessage("アバターが設定されていません");
-				return false;
-			}
+				var result = _processor.ProcessContacts(
+					CurrentAvatar.AvatarObject,
+					contactSenders,
+					_processor.Settings.SenderFolder);
 
-			try
-			{
-				// ルートオブジェクトを準備
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
-
-				// 使用するフォルダをPrefabから復元（削除されていた場合）
-				// Contactsフォルダとそのサブフォルダを復元
-				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ContactsFolder);
-				var contactsFolder = avatarDynamics.transform.Find(_settings.ContactsFolder);
-				if (contactsFolder != null)
+				if (!result.Success)
 				{
-					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.SenderFolder);
-					_processor.RevertFolderFromPrefab(contactsFolder.gameObject, _settings.ReceiverFolder);
-				}
-
-				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
-				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ContactsFolder);
-
-				// 各コンタクト型のリストを作成
-				var contactSenders = _components.OfType<VRCContactSender>().Where(c => !GetAvatarDynamicsComponent<VRCContactSender>().Contains(c)).ToList();
-				var contactReceivers = _components.OfType<VRCContactReceiver>().Where(c => !GetAvatarDynamicsComponent<VRCContactReceiver>().Contains(c)).ToList();
-                
-				int processedCount = 0;
-                
-				// 各コンタクト型を処理
-				if (contactSenders.Count > 0)
-				{
-					var result = _processor.ProcessContacts(
-						CurrentAvatar.AvatarObject, 
-						contactSenders, 
-						_processor.Settings.SenderFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (contactReceivers.Count > 0)
-				{
-					var result = _processor.ProcessContacts(
-						CurrentAvatar.AvatarObject, 
-						contactReceivers, 
-						_processor.Settings.ReceiverFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				// 処理結果を通知
-				NotifyStatusMessage($"処理完了! 処理コンポーネント数: {processedCount}");
-                
-				// データを再読み込み
-				ReloadData();
-                
-				// 処理完了通知
-				NotifyProcessingComplete();
-                
-				return true;
-			}
-				catch (Exception ex)
-				{
-					Debug.LogError($"コンストレイント処理中にエラーが発生しました: {ex.Message}");
-					NotifyStatusMessage($"エラー: {ex.Message}");
+					NotifyStatusError(result.ErrorMessage);
 					return false;
 				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (contactReceivers.Count > 0)
+			{
+				var result = _processor.ProcessContacts(
+					CurrentAvatar.AvatarObject,
+					contactReceivers,
+					_processor.Settings.ReceiverFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			// 処理結果を通知
+			NotifyStatusSuccess($"処理完了! 処理コンポーネント数: {processedCount}");
+
+			return true;
 		}
 		
 		protected override void NotifyComponentsChanged()

@@ -351,6 +351,33 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
+        /// フォルダ階層を準備する（Prefabからの復元とクリーンアップを含む）
+        /// ConstraintDataManagerやContactDataManagerで重複していたパターンを共通化
+        /// </summary>
+        /// <param name="root">ルートオブジェクト</param>
+        /// <param name="parentFolder">親フォルダ名</param>
+        /// <param name="subfolders">サブフォルダ名（可変長）</param>
+        public void PrepareFolderHierarchy(GameObject root, string parentFolder, params string[] subfolders)
+        {
+            // 親フォルダをPrefabから復元
+            RevertFolderFromPrefab(root, parentFolder);
+
+            // 親フォルダを取得
+            var folder = root.transform.Find(parentFolder);
+            if (folder != null)
+            {
+                // 各サブフォルダをPrefabから復元
+                foreach (var subfolder in subfolders)
+                {
+                    RevertFolderFromPrefab(folder.gameObject, subfolder);
+                }
+            }
+
+            // 未使用フォルダをクリーンアップ
+            CleanupUnusedFolders(root, parentFolder);
+        }
+
+        /// <summary>
         /// Prefabから削除されたフォルダを復元する（サブフォルダも含む）
         /// </summary>
         /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>

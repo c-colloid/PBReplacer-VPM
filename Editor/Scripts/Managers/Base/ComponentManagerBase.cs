@@ -9,6 +9,7 @@ namespace colloid.PBReplacer
 	/// <summary>
 	/// VRCコンポーネント管理の抽象基底クラス
 	/// EventBusとの統合によりイベント管理を改善
+	/// IAvatarContext経由で依存関係を注入
 	/// </summary>
 	public abstract class ComponentManagerBase<T> : IComponentManager<T> where T : Component
 	{
@@ -19,43 +20,44 @@ namespace colloid.PBReplacer
 
 		// EventBus購読管理
 		protected List<IDisposable> _subscriptions = new List<IDisposable>();
-    
+
 		// コンポーネントリスト
 		protected List<T> _components = new List<T>();
-    
-		// 設定
-		protected PBReplacerSettings _settings;
-    
-		// 処理機能への参照
-		protected ComponentProcessor _processor;
-		
+
+		// アバターコンテキスト（IAvatarContext経由でアクセス）
+		protected IAvatarContext _context;
+
+		// 設定（コンテキスト経由でアクセス）
+		protected PBReplacerSettings _settings => _context.Settings;
+
+		// 処理機能への参照（コンテキスト経由でアクセス）
+		protected ComponentProcessor _processor => _context.Processor;
+
 		// プロパティ実装
 		public List<T> Components => _components;
-    
-		public AvatarData CurrentAvatar => AvatarFieldHelper.CurrentAvatar;
+
+		// 現在のアバター（コンテキスト経由でアクセス）
+		public AvatarData CurrentAvatar => _context.CurrentAvatar;
 		
 		public virtual string FolderName => "AvatarDinamics";
     
-		// コンストラクタ
-		protected ComponentManagerBase()
+		// コンストラクタ（IAvatarContext注入）
+		protected ComponentManagerBase() : this(AvatarContext.Instance)
 		{
-			_settings = PBReplacerSettings.Load();
-			_processor = new ComponentProcessor(_settings);
-			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
+		}
+
+		// コンストラクタ（テスト用：カスタムコンテキスト注入）
+		protected ComponentManagerBase(IAvatarContext context)
+		{
+			_context = context ?? AvatarContext.Instance;
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
 			DataManagerHelper.OnComponentsRemoved += RemoveComponent;
 		}
-		
+
 		// デコンストラクタ
 		~ComponentManagerBase()
 		{
 			Cleanup();
-		}
-		
-		protected void OnSettingsChanged()
-		{
-			_settings = PBReplacerSettings.GetLatestSettings();
-			_processor = new ComponentProcessor(_settings);
 		}
 		
 		protected virtual void OnAvatarDataChanged(AvatarData avatarData)
@@ -173,8 +175,59 @@ namespace colloid.PBReplacer
 		protected void NotifyStatusMessage(string message)
 		{
 			OnStatusMessageChanged?.Invoke(message);
-			// EventBus経由でも通知
-			EventBus.Publish(new StatusMessageEvent(message));
+			// StatusMessageManager経由で通知（優先度: Info）
+			StatusMessageManager.Info(message);
+		}
+
+		protected void NotifyStatusError(string message)
+		{
+			OnStatusMessageChanged?.Invoke($"エラー: {message}");
+			// StatusMessageManager経由で通知（優先度: Error）
+			StatusMessageManager.Error(message);
+		}
+
+		protected void NotifyStatusSuccess(string message)
+		{
+			OnStatusMessageChanged?.Invoke(message);
+			// StatusMessageManager経由で通知（優先度: Success）
+			StatusMessageManager.Success(message);
+		}
+
+		/// <summary>
+		/// エラーハンドリングを含むテンプレートメソッド
+		/// アバターnullチェック、try-catch、結果通知を共通化
+		/// </summary>
+		/// <param name="action">実行するアクション（成功時true、失敗時false）</param>
+		/// <param name="operationName">操作名（エラーメッセージ用）</param>
+		/// <returns>処理が成功した場合はtrue</returns>
+		protected bool ExecuteWithErrorHandling(Func<bool> action, string operationName)
+		{
+			// アバターnullチェック
+			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
+			{
+				NotifyStatusMessage("アバターが設定されていません");
+				return false;
+			}
+
+			// 処理開始時に優先度をリセット
+			StatusMessageManager.ResetPriority();
+
+			try
+			{
+				var result = action();
+				if (result)
+				{
+					ReloadData();
+					NotifyProcessingComplete();
+				}
+				return result;
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"{operationName}中にエラーが発生しました: {ex.Message}");
+				NotifyStatusError(ex.Message);
+				return false;
+			}
 		}
 
 		protected void NotifyProcessingComplete()
@@ -192,7 +245,6 @@ namespace colloid.PBReplacer
 		{
 			// イベント購読解除
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
-			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
 			DataManagerHelper.OnComponentsRemoved -= RemoveComponent;
 
 			// EventBus購読解除

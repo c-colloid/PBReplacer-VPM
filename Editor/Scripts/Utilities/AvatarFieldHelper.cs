@@ -62,7 +62,9 @@ namespace colloid.PBReplacer
 				{
 					Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
 					ClearAvatar();
-					OnStatusMessageChanged.Invoke($"エラー: {ex.Message}");
+					// StatusMessageManager経由で通知（優先度: Error）
+					StatusMessageManager.Error(ex.Message);
+					OnStatusMessageChanged?.Invoke($"エラー: {ex.Message}");
 					return false;
 				}
 		}
@@ -88,8 +90,8 @@ namespace colloid.PBReplacer
 		private static void NotifyStatusMessage(string message)
 		{
 			OnStatusMessageChanged?.Invoke(message);
-			// EventBus経由でも通知
-			EventBus.Publish(new StatusMessageEvent(message));
+			// StatusMessageManager経由で通知
+			StatusMessageManager.Info(message);
 		}
 	}
 }

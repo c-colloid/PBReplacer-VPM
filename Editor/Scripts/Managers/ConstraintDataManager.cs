@@ -59,158 +59,139 @@ namespace colloid.PBReplacer
 		/// </summary>
 		public bool ProcessConstraints()
 		{
-			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
+			return ExecuteWithErrorHandling(() => ProcessConstraintsInternal(), "コンストレイント処理");
+		}
+
+		/// <summary>
+		/// コンストレイント処理の内部実装
+		/// </summary>
+		private bool ProcessConstraintsInternal()
+		{
+			// ルートオブジェクトを準備
+			var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
+
+			// フォルダ階層を準備（Prefab復元とクリーンアップを一括処理）
+			_processor.PrepareFolderHierarchy(
+				avatarDynamics,
+				_settings.ConstraintsFolder,
+				_settings.PositionConstraintsFolder,
+				_settings.RotationConstraintsFolder,
+				_settings.ScaleConstraintsFolder,
+				_settings.ParentConstraintsFolder,
+				_settings.LookAtConstraintsFolder,
+				_settings.AimConstraintsFolder);
+
+			// 各コンストレイント型のリストを作成
+			var positionConstraints = _components.OfType<VRCPositionConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCPositionConstraint>().Contains(c)).ToList();
+			var rotationConstraints = _components.OfType<VRCRotationConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCRotationConstraint>().Contains(c)).ToList();
+			var scaleConstraints = _components.OfType<VRCScaleConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCScaleConstraint>().Contains(c)).ToList();
+			var parentConstraints = _components.OfType<VRCParentConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCParentConstraint>().Contains(c)).ToList();
+			var lookAtConstraints = _components.OfType<VRCLookAtConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCLookAtConstraint>().Contains(c)).ToList();
+			var aimConstraints = _components.OfType<VRCAimConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCAimConstraint>().Contains(c)).ToList();
+
+			int processedCount = 0;
+
+			// 各コンストレイント型を処理
+			if (positionConstraints.Count > 0)
 			{
-				NotifyStatusMessage("アバターが設定されていません");
-				return false;
-			}
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					positionConstraints,
+					_processor.Settings.PositionConstraintsFolder);
 
-			try
-			{
-				// ルートオブジェクトを準備
-				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
-
-				// 使用するフォルダをPrefabから復元（削除されていた場合）
-				// Constraintsフォルダとそのサブフォルダを復元
-				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ConstraintsFolder);
-				var constraintsFolder = avatarDynamics.transform.Find(_settings.ConstraintsFolder);
-				if (constraintsFolder != null)
+				if (!result.Success)
 				{
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.PositionConstraintsFolder);
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.RotationConstraintsFolder);
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ScaleConstraintsFolder);
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ParentConstraintsFolder);
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.LookAtConstraintsFolder);
-					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.AimConstraintsFolder);
-				}
-
-				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
-				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
-
-				// 各コンストレイント型のリストを作成
-				var positionConstraints = _components.OfType<VRCPositionConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCPositionConstraint>().Contains(c)).ToList();
-				var rotationConstraints = _components.OfType<VRCRotationConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCRotationConstraint>().Contains(c)).ToList();
-				var scaleConstraints = _components.OfType<VRCScaleConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCScaleConstraint>().Contains(c)).ToList();
-				var parentConstraints = _components.OfType<VRCParentConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCParentConstraint>().Contains(c)).ToList();
-				var lookAtConstraints = _components.OfType<VRCLookAtConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCLookAtConstraint>().Contains(c)).ToList();
-				var aimConstraints = _components.OfType<VRCAimConstraint>().Where(c => !GetAvatarDynamicsComponent<VRCAimConstraint>().Contains(c)).ToList();
-                
-				int processedCount = 0;
-                
-				// 各コンストレイント型を処理
-				if (positionConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						positionConstraints, 
-						_processor.Settings.PositionConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (rotationConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						rotationConstraints, 
-						_processor.Settings.RotationConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (scaleConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						scaleConstraints, 
-						_processor.Settings.ScaleConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (parentConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						parentConstraints, 
-						_processor.Settings.ParentConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (lookAtConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						lookAtConstraints, 
-						_processor.Settings.LookAtConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				if (aimConstraints.Count > 0)
-				{
-					var result = _processor.ProcessConstraints(
-						CurrentAvatar.AvatarObject, 
-						aimConstraints, 
-						_processor.Settings.AimConstraintsFolder);
-                        
-					if (!result.Success)
-					{
-						NotifyStatusMessage($"エラー: {result.ErrorMessage}");
-						return false;
-					}
-                    
-					processedCount += result.ProcessedComponentCount;
-				}
-                
-				// 処理結果を通知
-				NotifyStatusMessage($"処理完了! 処理コンポーネント数: {processedCount}");
-                
-				// データを再読み込み
-				ReloadData();
-                
-				// 処理完了通知
-				NotifyProcessingComplete();
-                
-				return true;
-			}
-				catch (Exception ex)
-				{
-					Debug.LogError($"コンストレイント処理中にエラーが発生しました: {ex.Message}");
-					NotifyStatusMessage($"エラー: {ex.Message}");
+					NotifyStatusError(result.ErrorMessage);
 					return false;
 				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (rotationConstraints.Count > 0)
+			{
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					rotationConstraints,
+					_processor.Settings.RotationConstraintsFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (scaleConstraints.Count > 0)
+			{
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					scaleConstraints,
+					_processor.Settings.ScaleConstraintsFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (parentConstraints.Count > 0)
+			{
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					parentConstraints,
+					_processor.Settings.ParentConstraintsFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (lookAtConstraints.Count > 0)
+			{
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					lookAtConstraints,
+					_processor.Settings.LookAtConstraintsFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			if (aimConstraints.Count > 0)
+			{
+				var result = _processor.ProcessConstraints(
+					CurrentAvatar.AvatarObject,
+					aimConstraints,
+					_processor.Settings.AimConstraintsFolder);
+
+				if (!result.Success)
+				{
+					NotifyStatusError(result.ErrorMessage);
+					return false;
+				}
+
+				processedCount += result.ProcessedComponentCount;
+			}
+
+			// 処理結果を通知
+			NotifyStatusSuccess($"処理完了! 処理コンポーネント数: {processedCount}");
+
+			return true;
 		}
 		
 		protected override void NotifyComponentsChanged()
