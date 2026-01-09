@@ -16,7 +16,6 @@ namespace colloid.PBReplacer
 		// 従来のイベント（後方互換性のため維持）
 		public event Action<List<T>> OnComponentsChanged;
 		public event Action OnProcessingComplete;
-		public event Action<string> OnStatusMessageChanged;
 
 		// EventBus購読管理
 		protected List<IDisposable> _subscriptions = new List<IDisposable>();
@@ -174,9 +173,7 @@ namespace colloid.PBReplacer
     
 		protected void NotifyStatusMessage(string message)
 		{
-			// StatusMessageManager経由のみで通知（優先度: Info）
-			// OnStatusMessageChangedは後方互換性のため維持するが、
-			// StatusMessageManagerの優先度システムをバイパスしないよう直接呼び出さない
+			// StatusMessageManager経由で通知（優先度: Info）
 			StatusMessageManager.Info(message);
 		}
 
@@ -257,7 +254,6 @@ namespace colloid.PBReplacer
 			_components.Clear();
 			OnComponentsChanged = null;
 			OnProcessingComplete = null;
-			OnStatusMessageChanged = null;
 		}
 
 		/// <summary>

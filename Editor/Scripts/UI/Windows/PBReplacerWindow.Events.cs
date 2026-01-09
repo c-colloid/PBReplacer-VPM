@@ -293,8 +293,8 @@ namespace colloid.PBReplacer
 			_pbcDataManager.OnCollidersChanged += OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnPhysBonesChanged += SetPBTabNotification;
 			_pbcDataManager.OnCollidersChanged += SetPBCTabNotification;
-			_pbDataManager.OnPhysBonesChanged += SetComponentCountStatus;
-			_pbcDataManager.OnCollidersChanged += SetComponentCountStatus;
+			_pbDataManager.OnPhysBonesChanged += ScheduleComponentCountStatusUpdate;
+			_pbcDataManager.OnCollidersChanged += ScheduleComponentCountStatusUpdate;
 
 			// StatusMessageManager経由でメッセージを受信（優先度制御のため一元化）
 			StatusMessageManager.OnMessageChanged += OnStatusMessageChanged;
@@ -306,11 +306,11 @@ namespace colloid.PBReplacer
 
 			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
-			_constraintDataManager.OnComponentsChanged += SetComponentCountStatus;
+			_constraintDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
 
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged += SetContactTabNotification;
-			_contactDataManager.OnComponentsChanged += SetComponentCountStatus;
+			_contactDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
 		}
 
 		/// <summary>
@@ -325,8 +325,8 @@ namespace colloid.PBReplacer
 			_pbcDataManager.OnCollidersChanged -= OnPhysBoneCollidersDataChanged;
 			_pbDataManager.OnPhysBonesChanged -= SetPBTabNotification;
 			_pbcDataManager.OnCollidersChanged -= SetPBCTabNotification;
-			_pbDataManager.OnPhysBonesChanged -= SetComponentCountStatus;
-			_pbcDataManager.OnCollidersChanged -= SetComponentCountStatus;
+			_pbDataManager.OnPhysBonesChanged -= ScheduleComponentCountStatusUpdate;
+			_pbcDataManager.OnCollidersChanged -= ScheduleComponentCountStatusUpdate;
 
 			// StatusMessageManager購読解除
 			StatusMessageManager.OnMessageChanged -= OnStatusMessageChanged;
@@ -338,11 +338,11 @@ namespace colloid.PBReplacer
 
 			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
 			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
-			_constraintDataManager.OnComponentsChanged -= SetComponentCountStatus;
+			_constraintDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
 
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
-			_contactDataManager.OnComponentsChanged -= SetComponentCountStatus;
+			_contactDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
 		}
 
 		/// <summary>
@@ -395,22 +395,42 @@ namespace colloid.PBReplacer
 		#endregion
 
 		#region Status Helpers
+		private bool _componentCountStatusScheduled = false;
+
+		private void ScheduleComponentCountStatusUpdate<T>(List<T> _)
+		{
+			ScheduleComponentCountStatusUpdate();
+		}
+
+		private void ScheduleComponentCountStatusUpdate()
+		{
+			if (_componentCountStatusScheduled) return;
+			_componentCountStatusScheduled = true;
+			EditorApplication.delayCall += () =>
+			{
+				_componentCountStatusScheduled = false;
+				SetComponentCountStatus();
+			};
+		}
+
 		private string ComponentCountStatus()
 		{
-			bool isValid = true;
+			bool hasUnprocessedComponents = false;
 			switch (_tabContainer.value)
 			{
-			case 0: // PhysBone
-				isValid = !_pbDataManager.Components.All(_processed.Contains);
+			case 0: // PhysBone (PB + PBC両方をチェック)
+				var pbUnprocessed = _pbDataManager.Components.Any(c => !_processed.Contains(c));
+				var pbcUnprocessed = _pbcDataManager.Components.Any(c => !_processed.Contains(c));
+				hasUnprocessedComponents = pbUnprocessed || pbcUnprocessed;
 				break;
 			case 1: // Constraint
-				isValid = !_constraintDataManager.Components.All(_processed.Contains);
+				hasUnprocessedComponents = _constraintDataManager.Components.Any(c => !_processed.Contains(c));
 				break;
 			case 2: // Contact
-				isValid = !_contactDataManager.Components.All(_processed.Contains);
+				hasUnprocessedComponents = _contactDataManager.Components.Any(c => !_processed.Contains(c));
 				break;
 			}
-			return isValid ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
+			return hasUnprocessedComponents ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
 		}
 
 		private void SetComponentCountStatus()
