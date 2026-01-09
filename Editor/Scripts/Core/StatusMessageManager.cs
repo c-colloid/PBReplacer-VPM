@@ -24,10 +24,6 @@ namespace colloid.PBReplacer
         private static MessagePriority _currentPriority = MessagePriority.Info;
         private static double _messageTime;
 
-        // デバウンス用フィールド（Infoメッセージの遅延処理）
-        private static string _pendingInfoMessage;
-        private static bool _infoUpdateScheduled;
-
         /// <summary>
         /// メッセージが変更された時に発火するイベント
         /// </summary>
@@ -46,40 +42,13 @@ namespace colloid.PBReplacer
         /// <summary>
         /// 優先度付きでメッセージを設定
         /// 現在のメッセージより優先度が高いか、一定時間経過した場合のみ更新
-        /// Info優先度メッセージはデバウンス処理される
         /// </summary>
         /// <param name="message">表示するメッセージ</param>
         /// <param name="priority">メッセージの優先度</param>
         public static void SetMessage(string message, MessagePriority priority = MessagePriority.Info)
         {
-            // Info優先度メッセージのデバウンス（同一フレーム内の最後のメッセージのみ表示）
-            if (priority == MessagePriority.Info)
-            {
-                _pendingInfoMessage = message;
-                if (!_infoUpdateScheduled)
-                {
-                    _infoUpdateScheduled = true;
-                    EditorApplication.delayCall += ProcessPendingInfoMessage;
-                }
-                return;
-            }
-
-            // Info以外は即座に処理
+            // すべての優先度で即座に処理
             SetMessageInternal(message, priority);
-        }
-
-        /// <summary>
-        /// 遅延されたInfoメッセージを処理
-        /// </summary>
-        private static void ProcessPendingInfoMessage()
-        {
-            _infoUpdateScheduled = false;
-            if (!string.IsNullOrEmpty(_pendingInfoMessage))
-            {
-                var msg = _pendingInfoMessage;
-                _pendingInfoMessage = null;
-                SetMessageInternal(msg, MessagePriority.Info);
-            }
         }
 
         /// <summary>
@@ -173,8 +142,6 @@ namespace colloid.PBReplacer
             _currentMessage = "";
             _currentPriority = MessagePriority.Info;
             _messageTime = 0;
-            _pendingInfoMessage = null;
-            _infoUpdateScheduled = false;
         }
     }
 }
