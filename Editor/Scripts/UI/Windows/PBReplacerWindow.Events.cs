@@ -411,7 +411,9 @@ namespace colloid.PBReplacer
 
 		private void SetComponentCountStatus()
 		{
-			OnStatusMessageChanged(ComponentCountStatus());
+			// StatusMessageManager経由で通知（優先度: Info）
+			// 処理完了メッセージ（Success）より優先度が低いため上書きしない
+			StatusMessageManager.Info(ComponentCountStatus());
 		}
 
 		private void SetComponentCountStatus(List<VRCPhysBone> list)
