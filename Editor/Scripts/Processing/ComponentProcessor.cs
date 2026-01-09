@@ -356,8 +356,8 @@ namespace colloid.PBReplacer
         /// <summary>
         /// Prefabから削除されたフォルダを復元する（サブフォルダも含む）
         /// </summary>
-        /// <param name="rootObject">AvatarDynamicsルートオブジェクト または サブフォルダ</param>
-        /// <param name="folderPath">復元するフォルダパス（例: "Contacts/Sender" または "Sender"）</param>
+        /// <param name="rootObject">AvatarDynamicsルートオブジェクト</param>
+        /// <param name="folderPath">復元するフォルダパス（例: "Contacts/Sender"）</param>
         public void RevertFolderFromPrefab(GameObject rootObject, string folderPath)
         {
             if (rootObject == null) return;
@@ -384,13 +384,11 @@ namespace colloid.PBReplacer
                 existingFolder = currentParent.Find(folderName);
                 if (existingFolder != null)
                 {
-                    Debug.Log($"[PBReplacer] フォルダ復元成功: {currentParent.name}/{folderName}");
                     currentParent = existingFolder;
                 }
                 else
                 {
-                    // 復元に失敗した場合はログを出して終了（PrepareComponentFolderで新規作成される）
-                    Debug.Log($"[PBReplacer] フォルダをPrefabから復元できませんでした（新規作成されます）: {currentParent.name}/{folderName}");
+                    // 復元に失敗した場合は終了（PrepareComponentFolderで新規作成される）
                     return;
                 }
             }
@@ -409,38 +407,15 @@ namespace colloid.PBReplacer
 
             try
             {
-                // Prefabインスタンスのルートを取得
-                var prefabRoot = PrefabUtility.GetOutermostPrefabInstanceRoot(parent);
-                if (prefabRoot == null)
-                {
-                    return;
-                }
-
-                // GetRemovedGameObjectsで削除されたオブジェクトを取得（ルートから取得する必要がある）
-                var removedObjects = PrefabUtility.GetRemovedGameObjects(prefabRoot);
+                // GetRemovedGameObjectsで削除されたオブジェクトを取得
+                var removedObjects = PrefabUtility.GetRemovedGameObjects(parent);
                 foreach (var removed in removedObjects)
                 {
-                    if (removed.assetGameObject == null) continue;
-
-                    // 削除されたオブジェクトの名前が一致し、
-                    // かつその親がparentに対応するオブジェクトであるかを確認
-                    if (removed.assetGameObject.name == folderName)
+                    if (removed.assetGameObject != null && removed.assetGameObject.name == folderName)
                     {
-                        // 削除されたオブジェクトの親パスを取得
-                        var removedParent = removed.assetGameObject.transform.parent;
-                        if (removedParent == null) continue;
-
-                        // parentのPrefabソースに対応するTransformを取得
-                        var parentCorresponding = PrefabUtility.GetCorrespondingObjectFromSource(parent);
-
-                        // 親が一致するか確認（parentがPrefabソースの場合も考慮）
-                        if (removedParent.gameObject == parentCorresponding ||
-                            (parentCorresponding != null && removedParent == parentCorresponding.transform))
-                        {
-                            removed.Revert();
-                            Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {parent.name}/{folderName}");
-                            return;
-                        }
+                        removed.Revert();
+                        Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {folderName}");
+                        return;
                     }
                 }
             }

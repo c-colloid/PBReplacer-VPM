@@ -71,13 +71,18 @@ namespace colloid.PBReplacer
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
 				// 使用するフォルダをPrefabから復元（削除されていた場合）
-				// Constraintsフォルダとそのサブフォルダを階層パスで復元
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.PositionConstraintsFolder}");
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.RotationConstraintsFolder}");
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.ScaleConstraintsFolder}");
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.ParentConstraintsFolder}");
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.LookAtConstraintsFolder}");
-				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.AimConstraintsFolder}");
+				// Constraintsフォルダとそのサブフォルダを復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, _settings.ConstraintsFolder);
+				var constraintsFolder = avatarDynamics.transform.Find(_settings.ConstraintsFolder);
+				if (constraintsFolder != null)
+				{
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.PositionConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.RotationConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ScaleConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.ParentConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.LookAtConstraintsFolder);
+					_processor.RevertFolderFromPrefab(constraintsFolder.gameObject, _settings.AimConstraintsFolder);
+				}
 
 				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
 				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
