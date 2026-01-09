@@ -65,6 +65,9 @@ namespace colloid.PBReplacer
 		/// <returns>成功した場合はtrue</returns>
 		public bool ProcessPhysBones()
 		{
+			// 処理開始時に優先度をリセット
+			StatusMessageManager.ResetPriority();
+
 			// Result型を使った処理
 			var result = ProcessPhysBonesWithResult();
 
@@ -72,14 +75,15 @@ namespace colloid.PBReplacer
 			return result.Match(
 				onSuccess: data =>
 				{
-					NotifyStatusMessage($"PhysBone処理完了! 処理数: {data.AffectedCount}");
+					// Success優先度でメッセージを設定（Info優先度のSetComponentCountStatusに上書きされない）
+					NotifyStatusSuccess($"PhysBone処理完了! 処理数: {data.AffectedCount}");
 					ReloadData();
 					NotifyProcessingComplete();
 					return true;
 				},
 				onFailure: error =>
 				{
-					NotifyStatusMessage($"エラー: {error.Message}");
+					NotifyStatusError(error.Message);
 					if (error.Exception != null)
 					{
 						Debug.LogError($"PhysBone置換中にエラーが発生しました: {error.Exception.Message}");

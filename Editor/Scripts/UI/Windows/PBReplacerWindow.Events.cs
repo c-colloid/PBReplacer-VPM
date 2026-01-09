@@ -194,6 +194,9 @@ namespace colloid.PBReplacer
 			ICommand command = CreateCommand(tabIndex);
 			if (command == null) return;
 
+			// 処理開始時に優先度をリセット
+			StatusMessageManager.ResetPriority();
+
 			try
 			{
 				// コマンドを実行してResult型で結果を受け取る
@@ -209,6 +212,9 @@ namespace colloid.PBReplacer
 							Debug.Log($"{command.Description}完了: {data.AffectedCount}件処理");
 						}
 
+						// Success優先度でステータスメッセージを設定
+						StatusMessageManager.Success($"処理完了! 処理コンポーネント数: {data.AffectedCount}");
+
 						// データを再読み込みしてUIを更新
 						ReloadDataForTab(tabIndex);
 
@@ -218,6 +224,7 @@ namespace colloid.PBReplacer
 					{
 						// 失敗時の処理
 						Debug.LogError($"{command.Description}エラー: {error.Message}");
+						StatusMessageManager.Error(error.Message);
 						EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {error.Message}", "OK");
 						return null;
 					});
