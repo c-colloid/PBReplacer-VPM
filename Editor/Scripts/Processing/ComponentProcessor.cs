@@ -241,11 +241,9 @@ namespace colloid.PBReplacer
             var existingRoot = avatar.transform.Find(_settings.RootObjectName);
             if (existingRoot != null)
             {
-                Debug.Log($"[PBReplacer] 既存のルートオブジェクトを使用: {existingRoot.name}");
                 return existingRoot.gameObject;
             }
 
-            Debug.Log($"[PBReplacer] ルートオブジェクトが見つかりません。新規作成します: {_settings.RootObjectName}");
             isNewlyCreated = true;
 
             // プレハブを読み込み
@@ -344,7 +342,6 @@ namespace colloid.PBReplacer
             // 削除候補のオブジェクトを削除
             foreach (var child in childrenToRemove)
             {
-                Debug.Log($"[PBReplacer] 未使用フォルダを削除: {child.name}");
                 Undo.DestroyObjectImmediate(child);
             }
 
@@ -435,7 +432,6 @@ namespace colloid.PBReplacer
                         removed.assetGameObject.transform.parent == parentInPrefab.transform)
                     {
                         removed.Revert();
-                        Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {parent.name}/{folderName}");
                         return true;
                     }
                 }
@@ -480,7 +476,6 @@ namespace colloid.PBReplacer
             var folder = parent.transform.Find(folderName);
             if (folder != null)
             {
-                Debug.Log($"[PBReplacer] 既存のフォルダを使用: {parent.name}/{folderName}");
                 return folder;
             }
 
@@ -496,7 +491,6 @@ namespace colloid.PBReplacer
             }
 
             // 新規作成
-            Debug.Log($"[PBReplacer] フォルダを新規作成: {parent.name}/{folderName}");
             var folderObj = new GameObject(folderName);
             folderObj.transform.SetParent(parent.transform);
             folderObj.transform.localPosition = Vector3.zero;
