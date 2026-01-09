@@ -397,25 +397,46 @@ namespace colloid.PBReplacer
         /// <summary>
         /// 単一のフォルダをPrefabから復元する
         /// </summary>
-        private void RevertSingleFolderFromPrefab(GameObject parent, string folderName)
+        /// <param name="parent">親オブジェクト</param>
+        /// <param name="folderName">復元するフォルダ名</param>
+        /// <returns>復元に成功した場合はtrue</returns>
+        private bool RevertSingleFolderFromPrefab(GameObject parent, string folderName)
         {
             // Prefabインスタンスかどうか確認
             if (!PrefabUtility.IsPartOfPrefabInstance(parent))
             {
-                return;
+                return false;
             }
 
             try
             {
+                // Prefabインスタンスのルートを取得（GetRemovedGameObjectsはルートから呼び出す必要がある）
+                var prefabRoot = PrefabUtility.GetOutermostPrefabInstanceRoot(parent);
+                if (prefabRoot == null)
+                {
+                    return false;
+                }
+
+                // parentに対応するPrefabアセット内のオブジェクトを取得
+                var parentInPrefab = PrefabUtility.GetCorrespondingObjectFromSource(parent);
+                if (parentInPrefab == null)
+                {
+                    return false;
+                }
+
                 // GetRemovedGameObjectsで削除されたオブジェクトを取得
-                var removedObjects = PrefabUtility.GetRemovedGameObjects(parent);
+                var removedObjects = PrefabUtility.GetRemovedGameObjects(prefabRoot);
                 foreach (var removed in removedObjects)
                 {
-                    if (removed.assetGameObject != null && removed.assetGameObject.name == folderName)
+                    if (removed.assetGameObject == null) continue;
+
+                    // 削除されたオブジェクトの名前と親が一致するか確認
+                    if (removed.assetGameObject.name == folderName &&
+                        removed.assetGameObject.transform.parent == parentInPrefab.transform)
                     {
                         removed.Revert();
-                        Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {folderName}");
-                        return;
+                        Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {parent.name}/{folderName}");
+                        return true;
                     }
                 }
             }
@@ -423,6 +444,8 @@ namespace colloid.PBReplacer
             {
                 Debug.LogWarning($"[PBReplacer] フォルダ復元中にエラー: {ex.Message}");
             }
+
+            return false;
         }
 
         /// <summary>
@@ -430,6 +453,30 @@ namespace colloid.PBReplacer
         /// </summary>
         public Transform PrepareComponentFolder(GameObject parent, string folderName)
         {
+            // パスが階層的かどうか確認
+            if (folderName.Contains("/"))
+            {
+                string[] folders = folderName.Split('/');
+                Transform currentParent = parent.transform;
+                Transform result = null;
+
+                // 各階層を順番に処理
+                foreach (string splitFolderName in folders)
+                {
+                    if (string.IsNullOrEmpty(splitFolderName))
+                        continue;
+
+                    // 再帰的に次の階層のフォルダを準備
+                    GameObject currentParentGO = currentParent.gameObject;
+                    Transform childTransform = PrepareComponentFolder(currentParentGO, splitFolderName);
+                    currentParent = childTransform;
+                    result = childTransform;
+                }
+
+                return result;
+            }
+
+            // 既存のフォルダを検索
             var folder = parent.transform.Find(folderName);
             if (folder != null)
             {
@@ -437,44 +484,29 @@ namespace colloid.PBReplacer
                 return folder;
             }
 
-            Debug.Log($"[PBReplacer] フォルダが見つかりません。新規作成します: {parent.name}/{folderName}");
+            // Prefabから復元を試みる
+            if (RevertSingleFolderFromPrefab(parent, folderName))
+            {
+                // 復元後に再度検索
+                folder = parent.transform.Find(folderName);
+                if (folder != null)
+                {
+                    return folder;
+                }
+            }
 
-	        // パスが階層的かどうか確認
-	        if (folderName.Contains("/"))
-	        {
-		        string[] folders = folderName.Split('/');
-		        Transform currentParent = parent.transform;
-		        Transform result = null;
+            // 新規作成
+            Debug.Log($"[PBReplacer] フォルダを新規作成: {parent.name}/{folderName}");
+            var folderObj = new GameObject(folderName);
+            folderObj.transform.SetParent(parent.transform);
+            folderObj.transform.localPosition = Vector3.zero;
+            folderObj.transform.localRotation = Quaternion.identity;
+            folderObj.transform.localScale = Vector3.one;
 
-		        // 各階層を順番に処理
-		        foreach (string splitFolderName in folders)
-		        {
-			        if (string.IsNullOrEmpty(splitFolderName))
-				        continue;
+            // Undo登録
+            Undo.RegisterCreatedObjectUndo(folderObj, $"Create {folderName}");
 
-			        // 再帰的に次の階層のフォルダを準備
-			        GameObject currentParentGO = currentParent.gameObject;
-			        Transform childTransform = PrepareComponentFolder(currentParentGO, splitFolderName);
-			        currentParent = childTransform;
-			        result = childTransform;
-		        }
-
-		        return result;
-	        }
-	        else
-	        {
-		        // フォルダを新規作成
-		        var folderObj = new GameObject(folderName);
-		        folderObj.transform.SetParent(parent.transform);
-		        folderObj.transform.localPosition = Vector3.zero;
-		        folderObj.transform.localRotation = Quaternion.identity;
-		        folderObj.transform.localScale = Vector3.one;
-            
-		        // Undo登録
-		        Undo.RegisterCreatedObjectUndo(folderObj, $"Create {folderName}");
-            
-		        return folderObj.transform;	
-	        }
+            return folderObj.transform;
         }
         
         /// <summary>
