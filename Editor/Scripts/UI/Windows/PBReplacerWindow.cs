@@ -63,11 +63,11 @@ namespace colloid.PBReplacer
 		#endregion
 
 		#region Data References
-		// データマネージャーへの参照
-		private PhysBoneDataManager _pbDataManager => PhysBoneDataManager.Instance;
-		private PhysBoneColliderManager _pbcDataManager => PhysBoneColliderManager.Instance;
-		private ConstraintDataManager _constraintDataManager => ConstraintDataManager.Instance;
-		private ContactDataManager _contactDataManager => ContactDataManager.Instance;
+		// データマネージャーへの参照（Managersレジストリ経由）
+		private PhysBoneDataManager _pbDataManager => Managers.PhysBone;
+		private PhysBoneColliderManager _pbcDataManager => Managers.PhysBoneCollider;
+		private ConstraintDataManager _constraintDataManager => Managers.Constraint;
+		private ContactDataManager _contactDataManager => Managers.Contact;
 
 		// 設定への参照
 		private PBReplacerSettings _settings;
