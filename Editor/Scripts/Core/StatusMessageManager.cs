@@ -1,5 +1,5 @@
 using System;
-using UnityEngine;
+using UnityEditor;
 
 namespace colloid.PBReplacer
 {
@@ -22,7 +22,7 @@ namespace colloid.PBReplacer
     {
         private static string _currentMessage = "";
         private static MessagePriority _currentPriority = MessagePriority.Info;
-        private static float _messageTime;
+        private static double _messageTime;
 
         /// <summary>
         /// メッセージが変更された時に発火するイベント
@@ -52,7 +52,7 @@ namespace colloid.PBReplacer
             {
                 _currentMessage = message;
                 _currentPriority = priority;
-                _messageTime = Time.realtimeSinceStartup;
+                _messageTime = EditorApplication.timeSinceStartup;
                 OnMessageChanged?.Invoke(message);
 
                 // EventBus経由でも通知（後方互換性）
@@ -98,12 +98,22 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// メッセージの期限切れをチェック
-        /// エラーは3秒、その他は1秒で上書き可能になる
+        /// エラーは3秒、Successは2秒、その他は1秒で上書き可能になる
         /// </summary>
         private static bool HasMessageExpired()
         {
-            float expireTime = _currentPriority == MessagePriority.Error ? 3f : 1f;
-            return Time.realtimeSinceStartup - _messageTime > expireTime;
+            // _messageTimeが0の場合は期限切れとみなす（初期状態）
+            if (_messageTime <= 0) return true;
+
+            double expireTime = _currentPriority switch
+            {
+                MessagePriority.Error => 3f,
+                MessagePriority.Success => 2f,
+                _ => 1f
+            };
+
+            // EditorApplication.timeSinceStartupを使用（Editorで確実に動作）
+            return EditorApplication.timeSinceStartup - _messageTime > expireTime;
         }
 
         /// <summary>
@@ -112,7 +122,7 @@ namespace colloid.PBReplacer
         public static void ResetPriority()
         {
             _currentPriority = MessagePriority.Info;
-            _messageTime = 0f;
+            _messageTime = 0;
         }
 
         /// <summary>
@@ -122,7 +132,7 @@ namespace colloid.PBReplacer
         {
             _currentMessage = "";
             _currentPriority = MessagePriority.Info;
-            _messageTime = 0f;
+            _messageTime = 0;
         }
     }
 }
