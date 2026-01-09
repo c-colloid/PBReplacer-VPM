@@ -354,6 +354,103 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
+        /// Prefabから削除されたフォルダを復元する（サブフォルダも含む）
+        /// </summary>
+        /// <param name="rootObject">AvatarDynamicsルートオブジェクト または サブフォルダ</param>
+        /// <param name="folderPath">復元するフォルダパス（例: "Contacts/Sender" または "Sender"）</param>
+        public void RevertFolderFromPrefab(GameObject rootObject, string folderPath)
+        {
+            if (rootObject == null) return;
+
+            // パスを分割して階層的に処理
+            var folders = folderPath.Split('/');
+            Transform currentParent = rootObject.transform;
+
+            foreach (var folderName in folders)
+            {
+                if (string.IsNullOrEmpty(folderName)) continue;
+
+                var existingFolder = currentParent.Find(folderName);
+                if (existingFolder != null)
+                {
+                    currentParent = existingFolder;
+                    continue;
+                }
+
+                // フォルダが存在しない場合、Prefabから復元を試みる
+                RevertSingleFolderFromPrefab(currentParent.gameObject, folderName);
+
+                // 復元後に再度検索
+                existingFolder = currentParent.Find(folderName);
+                if (existingFolder != null)
+                {
+                    Debug.Log($"[PBReplacer] フォルダ復元成功: {currentParent.name}/{folderName}");
+                    currentParent = existingFolder;
+                }
+                else
+                {
+                    // 復元に失敗した場合はログを出して終了（PrepareComponentFolderで新規作成される）
+                    Debug.Log($"[PBReplacer] フォルダをPrefabから復元できませんでした（新規作成されます）: {currentParent.name}/{folderName}");
+                    return;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 単一のフォルダをPrefabから復元する
+        /// </summary>
+        private void RevertSingleFolderFromPrefab(GameObject parent, string folderName)
+        {
+            // Prefabインスタンスかどうか確認
+            if (!PrefabUtility.IsPartOfPrefabInstance(parent))
+            {
+                return;
+            }
+
+            try
+            {
+                // Prefabインスタンスのルートを取得
+                var prefabRoot = PrefabUtility.GetOutermostPrefabInstanceRoot(parent);
+                if (prefabRoot == null)
+                {
+                    return;
+                }
+
+                // GetRemovedGameObjectsで削除されたオブジェクトを取得（ルートから取得する必要がある）
+                var removedObjects = PrefabUtility.GetRemovedGameObjects(prefabRoot);
+                foreach (var removed in removedObjects)
+                {
+                    if (removed.assetGameObject == null) continue;
+
+                    // 削除されたオブジェクトの名前が一致し、
+                    // かつその親がparentに対応するオブジェクトであるかを確認
+                    if (removed.assetGameObject.name == folderName)
+                    {
+                        // 削除されたオブジェクトの親パスを取得
+                        var removedParent = removed.assetGameObject.transform.parent;
+                        if (removedParent == null) continue;
+
+                        // parentのPrefabソースに対応するTransformを取得
+                        var parentCorresponding = PrefabUtility.GetCorrespondingObjectFromSource(parent);
+
+                        // 親が一致するか確認（parentがPrefabソースの場合も考慮）
+                        if (removedParent.gameObject == parentCorresponding ||
+                            (parentCorresponding != null && removedParent == parentCorresponding.transform))
+                        {
+                            removed.Revert();
+                            Debug.Log($"[PBReplacer] Prefabからフォルダを復元: {parent.name}/{folderName}");
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[PBReplacer] フォルダ復元中にエラー: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// コンポーネントフォルダを準備
         /// </summary>
         public Transform PrepareComponentFolder(GameObject parent, string folderName)

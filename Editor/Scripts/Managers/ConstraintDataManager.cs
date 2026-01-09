@@ -70,6 +70,15 @@ namespace colloid.PBReplacer
 				// ルートオブジェクトを準備
 				var avatarDynamics = _processor.PrepareRootObject(CurrentAvatar.AvatarObject);
 
+				// 使用するフォルダをPrefabから復元（削除されていた場合）
+				// Constraintsフォルダとそのサブフォルダを階層パスで復元
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.PositionConstraintsFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.RotationConstraintsFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.ScaleConstraintsFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.ParentConstraintsFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.LookAtConstraintsFolder}");
+				_processor.RevertFolderFromPrefab(avatarDynamics, $"{_settings.ConstraintsFolder}/{_settings.AimConstraintsFolder}");
+
 				// 空の未使用フォルダを削除（コンポーネントが存在するフォルダは保持）
 				_processor.CleanupUnusedFolders(avatarDynamics, _settings.ConstraintsFolder);
 
