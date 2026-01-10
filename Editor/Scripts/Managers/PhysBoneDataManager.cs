@@ -72,15 +72,12 @@ namespace colloid.PBReplacer
 			return result.Match(
 				onSuccess: data =>
 				{
-					// Success優先度でメッセージを設定（Info優先度のSetComponentCountStatusに上書きされない）
-					NotifyStatusSuccess($"PhysBone処理完了! 処理数: {data.AffectedCount}");
 					ReloadData();
 					NotifyProcessingComplete();
 					return true;
 				},
 				onFailure: error =>
 				{
-					NotifyStatusError(error.Message);
 					if (error.Exception != null)
 					{
 						Debug.LogError($"PhysBone置換中にエラーが発生しました: {error.Exception.Message}");

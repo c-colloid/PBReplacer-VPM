@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,20 +13,19 @@ namespace colloid.PBReplacer
 		#region Events
 		// データの変更を通知するイベント
 		public static event Action<AvatarData> OnAvatarChanged;
-		public static event Action<string> OnStatusMessageChanged;
-        #endregion
-		
+		#endregion
+
 		#region Data References
 		// 設定への参照
 		private static PBReplacerSettings _settings;
-        #endregion
-        
-        #region Properties
+		#endregion
+
+		#region Properties
 		// 現在のアバターデータ
 		private static AvatarData _currentAvatar;
 		public static AvatarData CurrentAvatar => _currentAvatar;
-        #endregion
-		
+		#endregion
+
 		#region Public Methods
 		/// <summary>
 		/// アバターを設定し、コンポーネントを読み込む
@@ -38,7 +37,6 @@ namespace colloid.PBReplacer
 			if (avatarObject == null)
 			{
 				ClearAvatar();
-				NotifyStatusMessage("アバターをセットしてください");
 				return false;
 			}
 
@@ -62,11 +60,10 @@ namespace colloid.PBReplacer
 			{
 				Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
 				ClearAvatar();
-				OnStatusMessageChanged?.Invoke($"エラー: {ex.Message}");
 				return false;
 			}
 		}
-		
+
 		public static void ClearAvatar()
 		{
 			var oldAvatar = _currentAvatar;
@@ -76,18 +73,12 @@ namespace colloid.PBReplacer
 			// EventBus経由でも通知
 			EventBus.Publish(new AvatarChangedEvent(null, oldAvatar));
 		}
-		
+
 		public static void Cleanup()
 		{
 			_currentAvatar = null;
 			OnAvatarChanged = null;
-			OnStatusMessageChanged = null;
 		}
 		#endregion
-		
-		private static void NotifyStatusMessage(string message)
-		{
-			OnStatusMessageChanged?.Invoke(message);
-		}
 	}
 }

@@ -177,19 +177,6 @@ namespace colloid.PBReplacer
 	}
 
 	/// <summary>
-	/// ステータスメッセージ変更イベント
-	/// </summary>
-	public struct StatusMessageEvent : IEvent
-	{
-		public string Message { get; }
-
-		public StatusMessageEvent(string message)
-		{
-			Message = message;
-		}
-	}
-
-	/// <summary>
 	/// 設定変更イベント
 	/// </summary>
 	public struct SettingsChangedEvent : IEvent

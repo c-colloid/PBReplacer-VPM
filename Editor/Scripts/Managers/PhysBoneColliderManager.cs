@@ -87,8 +87,6 @@ namespace colloid.PBReplacer
 			return result.Match(
 				onSuccess: data =>
 				{
-					NotifyStatusSuccess($"PhysBoneCollider処理完了! 処理数: {data.AffectedCount}");
-
 					// コライダー処理完了イベントを発火（PhysBoneManagerが参照を更新）
 					OnCollidersProcessed?.Invoke(this);
 
@@ -98,7 +96,6 @@ namespace colloid.PBReplacer
 				},
 				onFailure: error =>
 				{
-					NotifyStatusError(error.Message);
 					if (error.Exception != null)
 					{
 						Debug.LogError($"PhysBoneCollider置換中にエラーが発生しました: {error.Exception.Message}");

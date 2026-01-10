@@ -170,24 +170,6 @@ namespace colloid.PBReplacer
 		{
 			OnComponentsChanged?.Invoke(_components);
 		}
-    
-		protected void NotifyStatusMessage(string message)
-		{
-			// EventBus経由で通知（ステータスメッセージイベント）
-			EventBus.Publish(new StatusMessageEvent(message));
-		}
-
-		protected void NotifyStatusError(string message)
-		{
-			// EventBus経由で通知（ステータスメッセージイベント）
-			EventBus.Publish(new StatusMessageEvent($"エラー: {message}"));
-		}
-
-		protected void NotifyStatusSuccess(string message)
-		{
-			// EventBus経由で通知（ステータスメッセージイベント）
-			EventBus.Publish(new StatusMessageEvent(message));
-		}
 
 		/// <summary>
 		/// エラーハンドリングを含むテンプレートメソッド
@@ -201,7 +183,7 @@ namespace colloid.PBReplacer
 			// アバターnullチェック
 			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
 			{
-				NotifyStatusMessage("アバターが設定されていません");
+				Debug.LogWarning("アバターが設定されていません");
 				return false;
 			}
 
@@ -218,7 +200,6 @@ namespace colloid.PBReplacer
 			catch (Exception ex)
 			{
 				Debug.LogError($"{operationName}中にエラーが発生しました: {ex.Message}");
-				NotifyStatusError(ex.Message);
 				return false;
 			}
 		}

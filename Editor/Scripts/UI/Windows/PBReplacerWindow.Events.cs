@@ -52,13 +52,15 @@ namespace colloid.PBReplacer
 		{
 			var avatarObject = evt.newValue as Component;
 
+			// 先にステートマシンに通知（Loading状態に遷移）
+			// これにより、データ読み込みイベント発火時にはLoading状態になっている
+			_stateMachine?.SetAvatar(avatarObject != null);
+
+			// その後でデータ読み込み（イベント発火時にはLoading状態）
 			AvatarFieldHelper.SetAvatar(avatarObject?.gameObject);
 
 			// 設定に保存
 			_settings.SaveLastAvatarGUID(avatarObject?.gameObject);
-
-			// ステートマシンに通知
-			_stateMachine?.SetAvatar(avatarObject != null);
 
 			if (avatarObject != null) return;
 			InitializeAvatarFieldLabel();
