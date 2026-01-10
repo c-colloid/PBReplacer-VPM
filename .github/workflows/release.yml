@@ -76,9 +76,9 @@ jobs:
           type: "zip"
           directory: "."
           filename: "${{env.zipFile}}"
-          exclusions: "*.git* .github/* .Website/* source.json"
+          exclusions: "*.git* .github/* .Website/* .claude/* OLD/* source.json CLAUDE.md"
 
-      - run: find "." -name \*.meta -not -path "./.git/*" -not -path "./.github/*" -not -path "./.Website/*" >> metaList
+      - run: find "." -name \*.meta -not -path "./.git/*" -not -path "./.github/*" -not -path "./.Website/*" -not -path "./.claude/*" -not -path "./OLD/*" -not -name "CLAUDE.md.meta" >> metaList
 
       - name: Create UnityPackage
         uses: pCYSl5EDgo/create-unitypackage@cfcd3cf0391a5ef1306342794866a9897c32af0b

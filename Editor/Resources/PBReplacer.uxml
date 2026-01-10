@@ -44,5 +44,5 @@
     </uie:Toolbar>
     <ui:Button name="ReloadButton" tooltip="リロード" text="↻" style="-unity-text-align: lower-center; white-space: normal; position: absolute; bottom: 4px; height: 19px; left: 5px; width: 19px; -unity-font-style: bold;" />
     <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="width: 74px; margin-left: auto; margin-right: auto; margin-bottom: 5px; margin-top: 5px; align-items: auto;" />
-    <ui:Button name="SettingsButton" tooltip="設定" style="-unity-text-align: lower-center; white-space: normal; position: absolute; height: 19px; width: 19px; -unity-font-style: bold; top: 1px; right: 0; background-image: resource(&apos;Settings Icon&apos;);" />
+    <ui:Button name="SettingsButton" tooltip="設定" text="⚙" style="position: absolute; height: 19px; width: 19px; top: 1px; right: 0; -unity-font-definition: initial; -unity-font: url(&quot;project://database/Assets/Plugins/Editor/ScriptInspector3/EditorResources/Smooth%20Fonts/DejaVu%20Sans%20Mono.ttf?fileID=12800000&amp;guid=9714d8baeb8cc6745981b27436bd07a1&amp;type=3#DejaVu Sans Mono&quot;); padding-bottom: 3px; font-size: 20px;" />
 </ui:UXML>
