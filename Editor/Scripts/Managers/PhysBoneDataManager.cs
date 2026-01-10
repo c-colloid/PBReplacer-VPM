@@ -65,9 +65,6 @@ namespace colloid.PBReplacer
 		/// <returns>成功した場合はtrue</returns>
 		public bool ProcessPhysBones()
 		{
-			// 処理開始時に優先度をリセット
-			StatusMessageManager.ResetPriority();
-
 			// Result型を使った処理
 			var result = ProcessPhysBonesWithResult();
 

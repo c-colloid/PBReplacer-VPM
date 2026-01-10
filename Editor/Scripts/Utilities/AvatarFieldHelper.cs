@@ -58,15 +58,13 @@ namespace colloid.PBReplacer
 
 				return true;
 			}
-				catch (Exception ex)
-				{
-					Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
-					ClearAvatar();
-					// StatusMessageManager経由で通知（優先度: Error）
-					StatusMessageManager.Error(ex.Message);
-					OnStatusMessageChanged?.Invoke($"エラー: {ex.Message}");
-					return false;
-				}
+			catch (Exception ex)
+			{
+				Debug.LogError($"アバターの設定中にエラーが発生しました: {ex.Message}");
+				ClearAvatar();
+				OnStatusMessageChanged?.Invoke($"エラー: {ex.Message}");
+				return false;
+			}
 		}
 		
 		public static void ClearAvatar()
@@ -90,8 +88,6 @@ namespace colloid.PBReplacer
 		private static void NotifyStatusMessage(string message)
 		{
 			OnStatusMessageChanged?.Invoke(message);
-			// StatusMessageManager経由で通知
-			StatusMessageManager.Info(message);
 		}
 	}
 }

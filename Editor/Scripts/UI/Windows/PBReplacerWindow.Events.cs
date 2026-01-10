@@ -56,15 +56,9 @@ namespace colloid.PBReplacer
 
 			// 設定に保存
 			_settings.SaveLastAvatarGUID(avatarObject?.gameObject);
-			 //アバターの設定を実行
-			if (avatarObject != null)
-			{
-				SetComponentCountStatus();
-			}
-			else
-			{
-				_statusLabel.text = STATUS_SET_AVATAR;
-			}
+
+			// ステートマシンに通知
+			_stateMachine?.SetAvatar(avatarObject != null);
 
 			if (avatarObject != null) return;
 			InitializeAvatarFieldLabel();
@@ -194,8 +188,8 @@ namespace colloid.PBReplacer
 			ICommand command = CreateCommand(tabIndex);
 			if (command == null) return;
 
-			// 処理開始時に優先度をリセット
-			StatusMessageManager.ResetPriority();
+			// 処理開始をステートマシンに通知
+			_stateMachine?.StartProcessing();
 
 			try
 			{
@@ -212,8 +206,8 @@ namespace colloid.PBReplacer
 							Debug.Log($"{command.Description}完了: {data.AffectedCount}件処理");
 						}
 
-						// Success優先度でステータスメッセージを設定
-						StatusMessageManager.Success($"処理完了! 処理コンポーネント数: {data.AffectedCount}");
+						// ステートマシンに処理完了を通知
+						_stateMachine?.Complete(data.AffectedCount);
 
 						// データを再読み込みしてUIを更新
 						ReloadDataForTab(tabIndex);
@@ -224,7 +218,7 @@ namespace colloid.PBReplacer
 					{
 						// 失敗時の処理
 						Debug.LogError($"{command.Description}エラー: {error.Message}");
-						StatusMessageManager.Error(error.Message);
+						_stateMachine?.Fail(error.Message);
 						EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {error.Message}", "OK");
 						return null;
 					});
@@ -296,8 +290,9 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged += ScheduleComponentCountStatusUpdate;
 			_pbcDataManager.OnCollidersChanged += ScheduleComponentCountStatusUpdate;
 
-			// StatusMessageManager経由でメッセージを受信（優先度制御のため一元化）
-			StatusMessageManager.OnMessageChanged += OnStatusMessageChanged;
+			// データ読み込み完了時にステートマシンに通知
+			_pbDataManager.OnPhysBonesChanged += OnDataLoadedFromManager;
+			_pbcDataManager.OnCollidersChanged += OnDataLoadedFromManager;
 
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete += OnProcessingComplete;
@@ -308,9 +303,15 @@ namespace colloid.PBReplacer
 			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
 			_constraintDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
 
+			// データ読み込み完了時にステートマシンに通知
+			_constraintDataManager.OnConstraintsChanged += OnDataLoadedFromManager;
+
 			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged += SetContactTabNotification;
 			_contactDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
+
+			// データ読み込み完了時にステートマシンに通知
+			_contactDataManager.OnContactsChanged += OnDataLoadedFromManager;
 		}
 
 		/// <summary>
@@ -328,8 +329,9 @@ namespace colloid.PBReplacer
 			_pbDataManager.OnPhysBonesChanged -= ScheduleComponentCountStatusUpdate;
 			_pbcDataManager.OnCollidersChanged -= ScheduleComponentCountStatusUpdate;
 
-			// StatusMessageManager購読解除
-			StatusMessageManager.OnMessageChanged -= OnStatusMessageChanged;
+			// データ読み込み完了通知の購読解除
+			_pbDataManager.OnPhysBonesChanged -= OnDataLoadedFromManager;
+			_pbcDataManager.OnCollidersChanged -= OnDataLoadedFromManager;
 
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete -= OnProcessingComplete;
@@ -340,9 +342,15 @@ namespace colloid.PBReplacer
 			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
 			_constraintDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
 
+			// データ読み込み完了通知の購読解除
+			_constraintDataManager.OnConstraintsChanged -= OnDataLoadedFromManager;
+
 			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
 			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
 			_contactDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
+
+			// データ読み込み完了通知の購読解除
+			_contactDataManager.OnContactsChanged -= OnDataLoadedFromManager;
 		}
 
 		/// <summary>
@@ -354,7 +362,7 @@ namespace colloid.PBReplacer
 
 			if (avatarData != null)
 			{
-				SetComponentCountStatus();
+				UpdateIdleStateFromComponents();
 				// アバターフィールドの値を更新（UIイベント発火なし）
 				if (_avatarField.value != avatarData.AvatarObject)
 				{
@@ -368,16 +376,11 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// ステータスメッセージ変更時の処理
+		/// データマネージャーからのデータ読み込み完了通知
 		/// </summary>
-		private void OnStatusMessageChanged(string message)
+		private void OnDataLoadedFromManager<T>(List<T> _)
 		{
-			if (_statusLabel == null) return;
-
-			// UIスレッドで更新
-			EditorApplication.delayCall += () => {
-				_statusLabel.text = message;
-			};
+			_stateMachine?.OnDataLoaded();
 		}
 
 		/// <summary>
@@ -409,55 +412,45 @@ namespace colloid.PBReplacer
 			EditorApplication.delayCall += () =>
 			{
 				_componentCountStatusScheduled = false;
-				SetComponentCountStatus();
+				UpdateIdleStateFromComponents();
 			};
 		}
 
-		private string ComponentCountStatus()
+		/// <summary>
+		/// 現在のタブの未処理コンポーネントの有無を確認
+		/// </summary>
+		private bool HasUnprocessedComponents()
 		{
-			bool hasUnprocessedComponents = false;
 			switch (_tabContainer.value)
 			{
 			case 0: // PhysBone (PB + PBC両方をチェック)
 				var pbUnprocessed = _pbDataManager.Components.Any(c => !_processed.Contains(c));
 				var pbcUnprocessed = _pbcDataManager.Components.Any(c => !_processed.Contains(c));
-				hasUnprocessedComponents = pbUnprocessed || pbcUnprocessed;
-				break;
+				return pbUnprocessed || pbcUnprocessed;
 			case 1: // Constraint
-				hasUnprocessedComponents = _constraintDataManager.Components.Any(c => !_processed.Contains(c));
-				break;
+				return _constraintDataManager.Components.Any(c => !_processed.Contains(c));
 			case 2: // Contact
-				hasUnprocessedComponents = _contactDataManager.Components.Any(c => !_processed.Contains(c));
-				break;
+				return _contactDataManager.Components.Any(c => !_processed.Contains(c));
+			default:
+				return false;
 			}
-			return hasUnprocessedComponents ? "Applyを押してください" : "Armature内にコンポーネントが見つかりません";
 		}
 
+		/// <summary>
+		/// コンポーネント状態に基づいてステートマシンのIdle状態を更新
+		/// </summary>
+		private void UpdateIdleStateFromComponents()
+		{
+			// ステートマシンのIdle状態を更新
+			_stateMachine?.UpdateIdleState(HasUnprocessedComponents());
+		}
+
+		/// <summary>
+		/// タブ変更時などにステータスを更新（後方互換用）
+		/// </summary>
 		private void SetComponentCountStatus()
 		{
-			// StatusMessageManager経由で通知（優先度: Info）
-			// 処理完了メッセージ（Success）より優先度が低いため上書きしない
-			StatusMessageManager.Info(ComponentCountStatus());
-		}
-
-		private void SetComponentCountStatus(List<VRCPhysBone> list)
-		{
-			SetComponentCountStatus();
-		}
-
-		private void SetComponentCountStatus(List<VRCPhysBoneCollider> list)
-		{
-			SetComponentCountStatus();
-		}
-
-		private void SetComponentCountStatus(List<VRCConstraintBase> list)
-		{
-			SetComponentCountStatus();
-		}
-
-		private void SetComponentCountStatus(List<Component> list)
-		{
-			SetComponentCountStatus();
+			UpdateIdleStateFromComponents();
 		}
 
 		private void GetProcessedComponents()

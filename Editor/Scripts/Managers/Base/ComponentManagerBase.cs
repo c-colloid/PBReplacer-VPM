@@ -173,20 +173,20 @@ namespace colloid.PBReplacer
     
 		protected void NotifyStatusMessage(string message)
 		{
-			// StatusMessageManager経由で通知（優先度: Info）
-			StatusMessageManager.Info(message);
+			// EventBus経由で通知（ステータスメッセージイベント）
+			EventBus.Publish(new StatusMessageEvent(message));
 		}
 
 		protected void NotifyStatusError(string message)
 		{
-			// StatusMessageManager経由のみで通知（優先度: Error）
-			StatusMessageManager.Error(message);
+			// EventBus経由で通知（ステータスメッセージイベント）
+			EventBus.Publish(new StatusMessageEvent($"エラー: {message}"));
 		}
 
 		protected void NotifyStatusSuccess(string message)
 		{
-			// StatusMessageManager経由のみで通知（優先度: Success）
-			StatusMessageManager.Success(message);
+			// EventBus経由で通知（ステータスメッセージイベント）
+			EventBus.Publish(new StatusMessageEvent(message));
 		}
 
 		/// <summary>
@@ -204,9 +204,6 @@ namespace colloid.PBReplacer
 				NotifyStatusMessage("アバターが設定されていません");
 				return false;
 			}
-
-			// 処理開始時に優先度をリセット
-			StatusMessageManager.ResetPriority();
 
 			try
 			{

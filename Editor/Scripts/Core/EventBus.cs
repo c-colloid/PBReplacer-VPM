@@ -202,5 +202,18 @@ namespace colloid.PBReplacer
 		}
 	}
 
+	/// <summary>
+	/// ステータス状態変更イベント
+	/// </summary>
+	public struct StatusStateChangedEvent : IEvent
+	{
+		public StateMachine.StatusStateContext Context { get; }
+
+		public StatusStateChangedEvent(StateMachine.StatusStateContext context)
+		{
+			Context = context;
+		}
+	}
+
 	#endregion
 }

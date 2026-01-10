@@ -11,7 +11,7 @@ PBReplacerはVRChatアバター開発用のUnityエディタ拡張です。ア�
 ### MVC風構造 (Editor/Scripts/)
 
 - **UI/Windows/** - EditorWindowクラス（`PBReplacerWindow.cs`、`PBReplacerSettingsWindow.cs`）。UI ToolkitのUXML/USSファイルはEditor/Resources/に配置
-- **Core/** - `StatusMessageManager`（ステータス表示）、`EventBus`（イベント管理）、`Result`型などの基盤クラス
+- **Core/** - `EventBus`（イベント管理）、`Result`型、`StateMachine/`（ステータス状態マシン）などの基盤クラス
 - **Managers/** - `IComponentManager<T>`を実装するシングルトンデータマネージャー:
   - `PhysBoneDataManager` - VRCPhysBone
   - `PhysBoneColliderManager` - VRCPhysBoneCollider（IReferenceResolver実装で参照解決をサポート）
@@ -29,7 +29,7 @@ PBReplacerはVRChatアバター開発用のUnityエディタ拡張です。ア�
 - コンポーネント処理はUndoグループを使用し完全に元に戻せる
 - UI更新は`EditorApplication.delayCall`でスケジュール
 - `Managers`クラスが全マネージャーへの統一アクセスとタブ別リロードを提供
-- `StatusMessageManager`が優先度ベースのステータスメッセージ表示を一元管理（Info/Success/Warning/Error）
+- `StatusStateMachine`が状態遷移によるステータス表示を管理（None/Loading/Idle/Processing/Complete/Warning/Error）
 - `EventBus`によるパブリッシュ/サブスクライブパターンでコンポーネント間の疎結合を実現
 - Commandパターン（`ICommand`、`CompositeCommand`）で処理を抽象化
 - Result型（`Result<T, E>`）によるRailway Oriented Programmingでエラーハンドリング
