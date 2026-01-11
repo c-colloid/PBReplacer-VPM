@@ -5,6 +5,8 @@ on:
     tags:
       - '*'
   workflow_dispatch:
+    inputs:
+      tag:
 
 env:
   fileName: "PBReplacer"
