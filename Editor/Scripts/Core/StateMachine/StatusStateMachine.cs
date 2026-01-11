@@ -121,23 +121,32 @@ namespace colloid.PBReplacer.StateMachine
 			if (idleState != null)
 			{
 				idleState.SetHasUnprocessed(hasUnprocessed);
+			}
 
-				// 現在Idle状態なら、コンテキストを更新してイベント発火
-				if (CurrentStateType == StatusStateType.Idle)
-				{
-					_context = new StatusStateContext(_currentState);
-					OnStateChanged?.Invoke(_context);
-					EventBus.Publish(new StatusStateChangedEvent(_context));
-				}
+			// Complete/Warning/Error状態からの操作があれば即座にIdleに遷移
+			if (CurrentStateType == StatusStateType.Complete ||
+				CurrentStateType == StatusStateType.Warning ||
+				CurrentStateType == StatusStateType.Error)
+			{
+				TransitionTo(StatusStateType.Idle);
+				return;
+			}
+
+			// 現在Idle状態なら、コンテキストを更新してイベント発火
+			if (CurrentStateType == StatusStateType.Idle)
+			{
+				_context = new StatusStateContext(_currentState);
+				OnStateChanged?.Invoke(_context);
+				EventBus.Publish(new StatusStateChangedEvent(_context));
 			}
 		}
 
 		public void OnTimeout()
 		{
-			// タイムアウト時: アバター維持 → Loading、クリア → None
+			// タイムアウト時: アバター維持 → Idle（データは既にロード済み）、クリア → None
 			if (_hasAvatar)
 			{
-				TransitionTo(StatusStateType.Loading);
+				TransitionTo(StatusStateType.Idle);
 			}
 			else
 			{
