@@ -1,4 +1,4 @@
-using UnityEditor;
+﻿using UnityEditor;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 
 namespace colloid.PBReplacer
@@ -73,7 +73,7 @@ namespace colloid.PBReplacer
 				if (!willModify) continue;
 
 				// Undo登録（変更前に呼ぶ）
-				Undo.RecordObject(pb, "Resolve PhysBone Collider References");
+				UnityEditor.Undo.RecordObject(pb, "Resolve PhysBone Collider References");
 
 				// colliders参照を更新
 				for (int i = 0; i < pb.colliders.Count; i++)
