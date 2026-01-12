@@ -44,8 +44,8 @@ namespace colloid.PBReplacer
 				}
 
 				// Undoグループ開始
-				Undo.SetCurrentGroupName("PBReplacer - PhysBoneCollider置換");
-				int undoGroup = Undo.GetCurrentGroup();
+				UnityEditor.Undo.SetCurrentGroupName("PBReplacer - PhysBoneCollider置換");
+				int undoGroup = UnityEditor.Undo.GetCurrentGroup();
 
 				// フォルダ準備
 				var avatarDynamics = processor.PrepareRootObject(avatar.AvatarObject);
@@ -61,7 +61,7 @@ namespace colloid.PBReplacer
 					processor, avatar.AvatarObject, targetPBC);
 
 				// Undoグループ終了
-				Undo.CollapseUndoOperations(undoGroup);
+				UnityEditor.Undo.CollapseUndoOperations(undoGroup);
 
 				if (!result.Success)
 				{
