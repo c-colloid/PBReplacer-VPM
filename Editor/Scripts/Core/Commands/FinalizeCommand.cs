@@ -58,7 +58,24 @@ namespace colloid.PBReplacer
 			{
 				if (pb?.colliders == null) continue;
 
-				bool modified = false;
+				// 変更が必要かチェック
+				bool willModify = false;
+				for (int i = 0; i < pb.colliders.Count; i++)
+				{
+					var oldCollider = pb.colliders[i] as VRCPhysBoneCollider;
+					if (oldCollider != null && resolver.Resolve(oldCollider) != null)
+					{
+						willModify = true;
+						break;
+					}
+				}
+
+				if (!willModify) continue;
+
+				// Undo登録（変更前に呼ぶ）
+				Undo.RecordObject(pb, "Resolve PhysBone Collider References");
+
+				// colliders参照を更新
 				for (int i = 0; i < pb.colliders.Count; i++)
 				{
 					var oldCollider = pb.colliders[i] as VRCPhysBoneCollider;
@@ -68,14 +85,10 @@ namespace colloid.PBReplacer
 					if (newCollider != null)
 					{
 						pb.colliders[i] = newCollider;
-						modified = true;
 					}
 				}
 
-				if (modified)
-				{
-					EditorUtility.SetDirty(pb);
-				}
+				EditorUtility.SetDirty(pb);
 			}
 		}
 	}
