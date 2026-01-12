@@ -254,23 +254,34 @@ namespace colloid.PBReplacer
 		/// <summary>
 		/// タブインデックスに応じたコマンドを作成
 		/// CompositeCommandを使用してPB+PBCを一括処理
+		/// FinalizeCommandで参照解決と旧コンポーネント削除を実行
 		/// </summary>
 		private ICommand CreateCommand(int tabIndex)
 		{
+			// 処理開始時にコンテキストをリセット
+			ProcessingContext.Instance.BeginProcessing();
+
 			switch (tabIndex)
 			{
 			case 0: // PhysBone
-				// CompositeCommandでPBCとPBを順番に処理
+				// CompositeCommandでPBCとPBを順番に処理し、最後にFinalizeで削除
 				var pbComposite = new CompositeCommand("PhysBone一括処理");
 				pbComposite.Add(new ProcessPhysBoneColliderCommand());
 				pbComposite.Add(new ProcessPhysBoneCommand());
+				pbComposite.Add(new FinalizeCommand());
 				return pbComposite;
 
 			case 1: // Constraint
-				return new ProcessConstraintCommand();
+				var constraintComposite = new CompositeCommand("Constraint処理");
+				constraintComposite.Add(new ProcessConstraintCommand());
+				constraintComposite.Add(new FinalizeCommand());
+				return constraintComposite;
 
 			case 2: // Contact
-				return new ProcessContactCommand();
+				var contactComposite = new CompositeCommand("Contact処理");
+				contactComposite.Add(new ProcessContactCommand());
+				contactComposite.Add(new FinalizeCommand());
+				return contactComposite;
 
 			default:
 				return null;

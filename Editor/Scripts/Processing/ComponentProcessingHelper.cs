@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
+using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.Dynamics;
 
 namespace colloid.PBReplacer
@@ -81,6 +82,73 @@ namespace colloid.PBReplacer
                 });
         }
         
+        #endregion
+
+        #region PhysBone関連処理
+
+        /// <summary>
+        /// PhysBoneを処理する
+        /// </summary>
+        public static ProcessingResult ProcessPhysBones(
+            ComponentProcessor processor,
+            GameObject avatar,
+            List<VRCPhysBone> physBones)
+        {
+            var settings = processor.Settings;
+
+            return processor.ProcessComponents(
+                avatar,
+                physBones,
+                settings.PhysBonesFolder,
+                (oldPB, newPB, newObj, res) =>
+                {
+                    // rootTransformの設定
+                    if (oldPB.rootTransform == null)
+                    {
+                        newPB.rootTransform = oldPB.transform;
+                    }
+                    else
+                    {
+                        newObj.name = processor.GetSafeObjectName(newPB.rootTransform.name);
+                    }
+                });
+        }
+
+        /// <summary>
+        /// PhysBoneColliderを処理する
+        /// </summary>
+        public static ProcessingResult ProcessPhysBoneColliders(
+            ComponentProcessor processor,
+            GameObject avatar,
+            List<VRCPhysBoneCollider> colliders)
+        {
+            var settings = processor.Settings;
+            var resolver = PhysBoneColliderManager.Instance;
+
+            // マッピングをクリア
+            resolver.Clear();
+
+            return processor.ProcessComponents(
+                avatar,
+                colliders,
+                settings.PhysBoneCollidersFolder,
+                (oldPBC, newPBC, newObj, res) =>
+                {
+                    // rootTransformの設定
+                    if (oldPBC.rootTransform == null)
+                    {
+                        newPBC.rootTransform = oldPBC.transform;
+                    }
+                    else
+                    {
+                        newObj.name = processor.GetSafeObjectName(newPBC.rootTransform.name);
+                    }
+
+                    // マッピング登録（参照解決用）
+                    resolver.Register(oldPBC, newPBC);
+                });
+        }
+
         #endregion
     }
 }

@@ -21,7 +21,8 @@
       "Bash(git merge:*)",
       "Bash(git rm:*)",
       "Bash(git fetch:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "SlashCommand(/merge-unity)"
     ]
   }
 }
