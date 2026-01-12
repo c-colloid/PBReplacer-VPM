@@ -157,13 +157,10 @@ namespace colloid.PBReplacer
                 // 処理したコンポーネント数を設定
                 result.ProcessedComponentCount = componentMap.Count;
                 
-                // 元のコンポーネントを削除
+                // 元のコンポーネントを削除待ちリストに追加
                 foreach (var component in components)
                 {
-                    if (component != null)
-                    {
-                        Undo.DestroyObjectImmediate(component);
-                    }
+                    ProcessingContext.Instance.AddPendingDeletion(component);
                 }
 
                 // Undoグループ終了
