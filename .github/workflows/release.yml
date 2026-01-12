@@ -5,6 +5,8 @@ on:
     tags:
       - '*'
   workflow_dispatch:
+    inputs:
+      tag:
 
 env:
   fileName: "PBReplacer"
@@ -87,14 +89,22 @@ jobs:
           package-path: ${{ env.unityPackage }}
           include-files: metaList
 
+      # Make a release tag of the version from the package.json file
+      - name: Create Tag
+        id: tag_version
+        uses: rickstaa/action-create-tag@88dbf7ff6fe2405f8e8f6c6fdfd78829bc631f83
+        with:
+          tag: "${{ env.version }}"
+          force_push_tag: true
+
       - name: Make Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.version }}
           files: |
             ${{ env.zipFile }}
             ${{ env.unityPackage }}
             package.json
-          name: Release ${{ env.fileName }}_v${{ env.version }}
+          release_name: Release ${{ env.fileName }}_v${{ env.version }}
           body: |
             ${{ steps.get_commit_summary.outputs.COMMIT_SUMMARY }}
