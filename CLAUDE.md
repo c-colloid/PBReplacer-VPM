@@ -6,41 +6,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 PBReplacerはVRChatアバター開発用のUnityエディタ拡張です。アバターのArmature内にあるVRC関連コンポーネント（PhysBone、PhysBoneCollider、VRCConstraint、VRCContact）を「AvatarDynamics」階層に1オブジェクト＝1コンポーネントとして再配置します。これにより複数選択での一括編集やアニメーションでのオンオフ制御が容易になります。
 
+## 開発環境
+
+- Unity Editor拡張（Editor-onlyコード）
+- VPMパッケージ（VRChat Package Manager）
+- 依存関係: `com.vrchat.avatars` (VRChat Avatars SDK)
+- 名前空間: `colloid.PBReplacer`
+- アセンブリ定義: `jp.colloid.pbreplacer.asmdef`
+
 ## アーキテクチャ
 
-### MVC風構造 (Editor/Scripts/)
+### ディレクトリ構造 (Editor/Scripts/)
 
-- **UI/Windows/** - EditorWindowクラス（`PBReplacerWindow.cs`、`PBReplacerSettingsWindow.cs`）。UI ToolkitのUXML/USSファイルはEditor/Resources/に配置
-- **Core/** - `EventBus`（イベント管理）、`Result`型、`StateMachine/`（ステータス状態マシン）などの基盤クラス
-- **Managers/** - `IComponentManager<T>`を実装するシングルトンデータマネージャー:
-  - `PhysBoneDataManager` - VRCPhysBone
-  - `PhysBoneColliderManager` - VRCPhysBoneCollider（IReferenceResolver実装で参照解決をサポート）
-  - `ConstraintDataManager` - 全VRCConstraint系
-  - `ContactDataManager` - VRCContactSender/Receiver
-- **Commands/** - `ICommand`実装（ProcessPhysBoneCommand、ProcessConstraintCommand等）
-- **Processor/** - `ComponentProcessor`がリフレクションによるプロパティコピーを含むコンポーネント再配置処理を実行
-- **Models/** - `AvatarData`、`PBReplacerSettings`、`ProcessorSettings`
-- **Utilities/** - `AvatarFieldHelper`（グローバルなアバター状態管理）、`DataManagerHelper`、`UIHelper`
+```
+Core/           - 基盤クラス（EventBus、Result型、StateMachine、Commands、Specifications）
+Managers/       - シングルトンデータマネージャー群
+Models/         - データモデル（AvatarData、Settings等）
+Processing/     - コンポーネント処理ロジック
+UI/Elements/    - カスタムUI要素
+UI/Handlers/    - UIイベントハンドラ
+UI/Windows/     - EditorWindowクラス
+Utilities/      - ヘルパークラス
+```
+
+UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 
 ### 主要パターン
 
-- マネージャーは`ComponentManagerBase<T>`を継承し、共通のロード処理、イベント通知、処理済みコンポーネント検索用の`GetAvatarDynamicsComponent<T>()`を提供
-- `AvatarFieldHelper`は全マネージャー間で選択中のアバターを管理する静的クラス
-- コンポーネント処理はUndoグループを使用し完全に元に戻せる
-- UI更新は`EditorApplication.delayCall`でスケジュール
-- `Managers`クラスが全マネージャーへの統一アクセスとタブ別リロードを提供
-- `StatusStateMachine`が状態遷移によるステータス表示を管理（None/Loading/Idle/Processing/Complete/Warning/Error）
-- `EventBus`によるパブリッシュ/サブスクライブパターンでコンポーネント間の疎結合を実現
-- Commandパターン（`ICommand`、`CompositeCommand`）で処理を抽象化
-- Result型（`Result<T, E>`）によるRailway Oriented Programmingでエラーハンドリング
+**Commandパターン** (`Core/Commands/`)
+- `ICommand`インターフェースで処理を抽象化
+- `CompositeCommand`で複数コマンドを合成
+- Undo/Redo対応を自然に実現
+
+**Result型** (`Core/Result.cs`)
+- Railway Oriented Programmingによるエラーハンドリング
+- `Result<TSuccess, TError>`で成功/失敗を型安全に表現
+- `Map`, `Bind`, `Match`などの関数型操作をサポート
+
+**EventBus** (`Core/EventBus.cs`)
+- 型安全なパブリッシュ/サブスクライブパターン
+- `IDisposable`で購読解除を管理
+- 主要イベント: `AvatarChangedEvent`, `ProcessingCompletedEvent`, `SettingsChangedEvent`, `StatusStateChangedEvent`
+
+**StatusStateMachine** (`Core/StateMachine/`)
+- 状態: None → Loading → Idle → Processing → Complete/Warning/Error
+- UIのステータス表示を状態遷移で管理
+
+**ComponentManager** (`Managers/`)
+- `ComponentManagerBase<T>`を継承したシングルトン
+- `IComponentManager<T>`インターフェースを実装
+- `Managers`静的クラスで全マネージャーへの統一アクセス
+- タブインデックス: 0=PhysBone(PB+PBC), 1=Constraint, 2=Contact
+
+### データフロー
+
+1. `AvatarFieldHelper`でアバター選択を管理
+2. 各`ComponentManager`がアバターからコンポーネントを検索・ロード
+3. `ComponentProcessor`がリフレクションでプロパティをコピーし再配置
+4. `ProcessingContext`で削除待ちコンポーネントを管理
+5. Undoグループで全操作を巻き戻し可能に
+
+### 参照解決
+
+`PhysBoneColliderManager`は`IReferenceResolver`を実装し、PhysBoneのCollider参照を新コンポーネントに解決。
 
 ### 条件付きコンパイル
 
-`#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート。
-
-## VPMパッケージ
-
-VPM（VRChat Package Manager）パッケージです。`package.json`でパッケージメタデータとVPM依存関係（`com.vrchat.avatars`）を定義。
+`#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
 
 ## リリースプロセス
 
