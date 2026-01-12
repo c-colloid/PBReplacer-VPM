@@ -10,6 +10,7 @@ using VRC.SDKBase;
 using VRC.Dynamics;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
+using colloid.PBReplacer.StateMachine;
 
 #if MODULAR_AVATAR
 using nadena.dev.modular_avatar.core;
@@ -71,6 +72,9 @@ namespace colloid.PBReplacer
 
 		// 設定への参照
 		private PBReplacerSettings _settings;
+
+		// ステートマシン
+		private StatusStateMachine _stateMachine;
 		#endregion
 
 		#region Constants
@@ -152,6 +156,9 @@ namespace colloid.PBReplacer
 			// UI初期化
 			InitializeUI();
 
+			// ステートマシンの初期化
+			InitializeStateMachine();
+
 			RegisterEvents();
 
 			// データマネージャのイベント登録
@@ -162,6 +169,32 @@ namespace colloid.PBReplacer
 			{
 				EditorApplication.delayCall += TryLoadLastAvatar;
 			}
+		}
+
+		/// <summary>
+		/// ステートマシンの初期化
+		/// </summary>
+		private void InitializeStateMachine()
+		{
+			_stateMachine = new StatusStateMachine();
+			_stateMachine.OnStateChanged += OnStateMachineStateChanged;
+		}
+
+		/// <summary>
+		/// ステートマシンの状態変更時の処理
+		/// </summary>
+		private void OnStateMachineStateChanged(StatusStateContext context)
+		{
+			if (_statusLabel == null) return;
+
+			// UIスレッドで更新
+			EditorApplication.delayCall += () =>
+			{
+				if (_statusLabel != null)
+				{
+					_statusLabel.text = context.Message;
+				}
+			};
 		}
 		#endregion
 	}

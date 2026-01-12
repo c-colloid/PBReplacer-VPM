@@ -101,7 +101,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"PositionConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -117,7 +117,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"RotationConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -133,7 +133,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"ScaleConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -149,7 +149,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"ParentConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -165,7 +165,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"LookAtConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -181,15 +181,12 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"AimConstraint処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
 				processedCount += result.ProcessedComponentCount;
 			}
-
-			// 処理結果を通知
-			NotifyStatusSuccess($"処理完了! 処理コンポーネント数: {processedCount}");
 
 			return true;
 		}

@@ -39,7 +39,7 @@ namespace colloid.PBReplacer
 		public bool DetectNonAnimatorArmature = true;
 		
 		// Prefabの継承を破棄するかどうか
-		public bool UnpackPrefab = true;
+		public bool UnpackPrefab = false;
 
 		// 未使用のフォルダを削除するかどうか
 		public bool DestroyUnusedObject = true;

@@ -92,7 +92,7 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"ContactSender処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
@@ -108,15 +108,12 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					NotifyStatusError(result.ErrorMessage);
+					Debug.LogError($"ContactReceiver処理エラー: {result.ErrorMessage}");
 					return false;
 				}
 
 				processedCount += result.ProcessedComponentCount;
 			}
-
-			// 処理結果を通知
-			NotifyStatusSuccess($"処理完了! 処理コンポーネント数: {processedCount}");
 
 			return true;
 		}

@@ -544,17 +544,21 @@ namespace colloid.PBReplacer
         
         /// <summary>
         /// フィールドとプロパティをコピー
+        /// リスト型はSerializedPropertiesでコピーされるためスキップ
         /// </summary>
         private void CopyFieldsAndProperties(Component source, Component destination)
         {
             Type type = source.GetType();
-            
-            // パブリックフィールドをコピー
+
+            // パブリックフィールドをコピー（リスト型はスキップ - 参照共有を防ぐ）
             FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
             foreach (FieldInfo field in fields)
             {
                 try
                 {
+                    // リスト型はSerializedPropertiesでコピーされるためスキップ
+                    if (IsListOrArrayType(field.FieldType)) continue;
+
                     object value = field.GetValue(source);
                     field.SetValue(destination, value);
                 }
@@ -564,7 +568,7 @@ namespace colloid.PBReplacer
                 }
             }
 
-            // パブリックプロパティで書き込み可能なものをコピー
+            // パブリックプロパティで書き込み可能なものをコピー（リスト型はスキップ）
             PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
             foreach (PropertyInfo property in properties)
             {
@@ -572,6 +576,9 @@ namespace colloid.PBReplacer
                 {
                     try
                     {
+                        // リスト型はSerializedPropertiesでコピーされるためスキップ
+                        if (IsListOrArrayType(property.PropertyType)) continue;
+
                         object value = property.GetValue(source);
                         property.SetValue(destination, value);
                     }
@@ -581,6 +588,17 @@ namespace colloid.PBReplacer
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// リストまたは配列型かどうかを判定
+        /// </summary>
+        private bool IsListOrArrayType(Type type)
+        {
+            if (type.IsArray) return true;
+            if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>)) return true;
+            if (typeof(System.Collections.IList).IsAssignableFrom(type)) return true;
+            return false;
         }
         
         /// <summary>
