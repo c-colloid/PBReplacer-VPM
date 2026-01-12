@@ -9,6 +9,7 @@ using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
 using VRC.Dynamics;
+using colloid.PBReplacer.StateMachine;
 
 namespace colloid.PBReplacer
 {
@@ -450,12 +451,39 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
+		/// 現在のタブにコンポーネントが存在するかを確認
+		/// </summary>
+		private bool HasAnyComponents()
+		{
+			switch (_tabContainer.value)
+			{
+			case 0: // PhysBone (PB + PBC両方をチェック)
+				return _pbDataManager.Components.Count > 0 || _pbcDataManager.Components.Count > 0;
+			case 1: // Constraint
+				return _constraintDataManager.Components.Count > 0;
+			case 2: // Contact
+				return _contactDataManager.Components.Count > 0;
+			default:
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Idle状態の種類を判定
+		/// </summary>
+		private IdleStateKind GetIdleStateKind()
+		{
+			if (HasUnprocessedComponents()) return IdleStateKind.HasUnprocessed;
+			return HasAnyComponents() ? IdleStateKind.AllProcessed : IdleStateKind.NoComponents;
+		}
+
+		/// <summary>
 		/// コンポーネント状態に基づいてステートマシンのIdle状態を更新
 		/// </summary>
 		private void UpdateIdleStateFromComponents()
 		{
 			// ステートマシンのIdle状態を更新
-			_stateMachine?.UpdateIdleState(HasUnprocessedComponents());
+			_stateMachine?.UpdateIdleState(GetIdleStateKind());
 		}
 
 		/// <summary>
@@ -464,7 +492,7 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void SetComponentCountStatus()
 		{
-			_stateMachine?.OnTabChanged(HasUnprocessedComponents());
+			_stateMachine?.OnTabChanged(GetIdleStateKind());
 		}
 
 		private void GetProcessedComponents()

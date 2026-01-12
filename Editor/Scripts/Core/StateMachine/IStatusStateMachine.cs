@@ -75,8 +75,8 @@ namespace colloid.PBReplacer.StateMachine
 		/// <summary>
 		/// Idle状態のメッセージを更新
 		/// </summary>
-		/// <param name="hasUnprocessed">未処理コンポーネントがあるかどうか</param>
-		void UpdateIdleState(bool hasUnprocessed);
+		/// <param name="kind">Idle状態の種類</param>
+		void UpdateIdleState(IdleStateKind kind);
 
 		/// <summary>
 		/// タイムアウト時に呼び出される
@@ -88,8 +88,8 @@ namespace colloid.PBReplacer.StateMachine
 		/// タブ変更時に呼び出される
 		/// Complete/Warning/Error状態からはタイムアウトを待たずに即座にIdleに遷移
 		/// </summary>
-		/// <param name="hasUnprocessed">未処理コンポーネントがあるかどうか</param>
-		void OnTabChanged(bool hasUnprocessed);
+		/// <param name="kind">Idle状態の種類</param>
+		void OnTabChanged(IdleStateKind kind);
 
 		#endregion
 
