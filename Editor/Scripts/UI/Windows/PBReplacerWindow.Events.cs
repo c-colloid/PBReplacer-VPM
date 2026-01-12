@@ -459,11 +459,12 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// タブ変更時などにステータスを更新（後方互換用）
+		/// タブ変更時にステータスを更新
+		/// Complete/Warning/Error状態からはタイムアウトを待たずに即座にIdleに遷移
 		/// </summary>
 		private void SetComponentCountStatus()
 		{
-			UpdateIdleStateFromComponents();
+			_stateMachine?.OnTabChanged(HasUnprocessedComponents());
 		}
 
 		private void GetProcessedComponents()

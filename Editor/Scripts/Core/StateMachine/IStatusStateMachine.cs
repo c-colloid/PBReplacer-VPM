@@ -84,6 +84,13 @@ namespace colloid.PBReplacer.StateMachine
 		/// </summary>
 		void OnTimeout();
 
+		/// <summary>
+		/// タブ変更時に呼び出される
+		/// Complete/Warning/Error状態からはタイムアウトを待たずに即座にIdleに遷移
+		/// </summary>
+		/// <param name="hasUnprocessed">未処理コンポーネントがあるかどうか</param>
+		void OnTabChanged(bool hasUnprocessed);
+
 		#endregion
 
 		#region イベント

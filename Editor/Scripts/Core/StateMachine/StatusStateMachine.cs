@@ -123,7 +123,24 @@ namespace colloid.PBReplacer.StateMachine
 				idleState.SetHasUnprocessed(hasUnprocessed);
 			}
 
-			// Complete/Warning/Error状態からの操作があれば即座にIdleに遷移
+			// 現在Idle状態なら、コンテキストを更新してイベント発火
+			if (CurrentStateType == StatusStateType.Idle)
+			{
+				_context = new StatusStateContext(_currentState);
+				OnStateChanged?.Invoke(_context);
+				EventBus.Publish(new StatusStateChangedEvent(_context));
+			}
+		}
+
+		public void OnTabChanged(bool hasUnprocessed)
+		{
+			var idleState = GetState<IdleState>(StatusStateType.Idle);
+			if (idleState != null)
+			{
+				idleState.SetHasUnprocessed(hasUnprocessed);
+			}
+
+			// Complete/Warning/Error状態からはタイムアウトを待たずに即座にIdleに遷移
 			if (CurrentStateType == StatusStateType.Complete ||
 				CurrentStateType == StatusStateType.Warning ||
 				CurrentStateType == StatusStateType.Error)
