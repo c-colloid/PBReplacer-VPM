@@ -1,0 +1,48 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <ui:Template name="SideBar" src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/UXML/SideBar.uxml?fileID=9197481963319205126&amp;guid=d1667dacf4aa9b14d856b7c8a497f282&amp;type=3#SideBar" />
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
+    <uie:ObjectField label="Avater" name="AvatarFiled" binding-path="avatarfiledbind" tooltip="アバターを指定してください" type="VRC.SDKBase.VRC_AvatarDescriptor, VRCSDKBase" style="flex-direction: column; align-items: flex-start; justify-content: space-between; margin-left: 3px; margin-right: 3px; padding-top: 4px;" />
+    <ui:GroupBox style="flex-direction: row; flex-grow: 1; margin-top: 1px; padding-left: 0; flex-shrink: 1;">
+        <ui:Instance template="SideBar" name="SideBar" />
+        <ui:Box name="PhysBoneBox" style="display: flex; opacity: 1; flex-direction: row; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
+            <ui:ListView focusable="true" name="PBListField" show-foldout-header="true" show-add-remove-footer="false" header-title="PBList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
+            <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+            <ui:ListView focusable="true" name="PBCListField" show-foldout-header="true" header-title="PBCList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
+            <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
+        </ui:Box>
+        <ui:Box name="ConstraintBox" style="display: none; opacity: 1; flex-direction: column; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
+            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; height: 100%; flex-shrink: 1;">
+                <ui:ListView focusable="true" name="PositionListField" show-foldout-header="true" show-add-remove-footer="false" header-title="PositionList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+                <ui:ListView focusable="true" name="RotationListField" show-foldout-header="true" header-title="RotationList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
+            </ui:GroupBox>
+            <ui:VisualElement name="Separator" style="border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); height: 0;" />
+            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; flex-shrink: 1; height: 100%;">
+                <ui:ListView focusable="true" name="ScaleListField" show-foldout-header="true" show-add-remove-footer="false" header-title="ScaleList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+                <ui:ListView focusable="true" name="ParentListField" show-foldout-header="true" header-title="ParentList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
+            </ui:GroupBox>
+            <ui:VisualElement name="Separator" style="border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; height: 100%; flex-shrink: 1;">
+                <ui:ListView focusable="true" name="LookAtListField" show-foldout-header="true" show-add-remove-footer="false" header-title="LookAtList" reorder-mode="Animated" item-height="20" style="border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+                <ui:ListView focusable="true" name="AimListField" show-foldout-header="true" header-title="AimList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
+                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
+            </ui:GroupBox>
+        </ui:Box>
+        <ui:Box name="ContactBox" style="display: none; opacity: 1; flex-direction: row; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
+            <ui:ListView focusable="true" name="SenderListView" show-foldout-header="true" show-add-remove-footer="false" header-title="SenderList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
+            <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
+            <ui:ListView focusable="true" name="ReciverListView" show-foldout-header="true" header-title="ReciverList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
+            <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
+        </ui:Box>
+    </ui:GroupBox>
+    <uie:Toolbar style="min-height: 15px; overflow: hidden;">
+        <ui:Label text="アバターをセットしてください" name="ToolBarLabel" />
+    </uie:Toolbar>
+    <ui:Button name="ReloadButton" tooltip="リロード" text="↻" style="white-space: normal; position: absolute; bottom: 4px; height: 19px; left: 5px; width: 19px; -unity-font-style: bold; font-size: 20px; -unity-font-definition: resource(&apos;Font/Noto_Emoji/static/NotoEmoji-Regular&apos;);" />
+    <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="width: 74px; margin-left: auto; margin-right: auto; margin-bottom: 5px; margin-top: 5px; align-items: auto;" />
+    <ui:Button name="SettingsButton" tooltip="設定" text="⚙" style="position: absolute; height: 19px; width: 19px; top: 1px; right: 0; -unity-font-definition: resource(&apos;Font/Noto_Emoji/static/NotoEmoji-Light&apos;);" />
+</ui:UXML>
