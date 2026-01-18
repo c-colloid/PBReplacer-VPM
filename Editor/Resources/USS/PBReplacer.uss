@@ -1,0 +1,26 @@
+.unity-text-element {
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.unity-base-field__label {
+    -unity-font-style: bold;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.unity-toggle__text {
+    -unity-font-style: bold;
+    color: rgb(82, 166, 0);
+}
+
+.unity-label:focus {
+    background-color: rgb(77, 106, 212);
+    color: rgb(255, 255, 255);
+}
+
+ObjectFieldDisplay {
+    flex-shrink: 1;
+}
+
+ObjectFieldSelector {
+    flex-shrink: 0;
+}

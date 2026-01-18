@@ -1,0 +1,54 @@
+/* VerticalTabElement.uss */
+.vertical-tab-element {
+    margin: 2px;
+    padding: 0;
+    border-width: 1px;
+    border-color: rgb(70, 70, 70);
+    border-radius: 4px;
+    background-color: rgb(80, 80, 80);
+    transition-property: background-color;
+    transition-duration: 0.15s;
+    transition-timing-function: ease-out;
+}
+
+.vertical-tab-element:hover {
+    background-color: rgb(100, 100, 100);
+}
+
+.vertical-tab-element--selected {
+    background-color: rgb(50, 100, 200);
+    border-color: rgb(100, 150, 255);
+}
+
+.vertical-tab-element__text-container {
+    position: absolute;
+    width: 120px;
+    height: 40px;
+    top: 50%;
+    left: 50%;
+}
+
+.vertical-tab-element__label {
+    -unity-text-align: middle-center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 文字を縦に表示するための方法1: CSSの回転を使用 */
+.rotated-text {
+    transform-origin: center center;
+    --unity-transform-rotation: 90deg;
+    --unity-transform-translation: -40px -40px;
+}
+
+/* 方法が機能しない場合は、方法2: 文字を縦に配置 */
+.vertical-characters {
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.vertical-character {
+    margin: 2px 0;
+}
