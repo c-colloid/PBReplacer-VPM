@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Linq;
@@ -244,7 +244,7 @@ namespace colloid.PBReplacer
             isNewlyCreated = true;
 
             // プレハブを読み込み
-            var prefab = Resources.Load<GameObject>(_settings.RootPrefabName);
+	        var prefab = Resources.Load<GameObject>(_settings.RootPrefabPath);
             if (prefab == null)
             {
                 throw new Exception($"{_settings.RootPrefabName}プレハブが見つかりません");

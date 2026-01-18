@@ -48,8 +48,10 @@ namespace colloid.PBReplacer
 		public FindComponent FindComponent = 0;
 		
 		// 親オブジェクト設定
+		const string rootobjectname = "AvatarDynamics";
 		public string RootObjectName { get; set; } = "AvatarDynamics";
-		public string RootPrefabName { get; set; } = "AvatarDynamics";
+		public string RootPrefabName { get => rootobjectname; }
+		public string RootPrefabPath { get => $"Prefab/{rootobjectname}"; }
     
 		// PhysBone関連設定
 		public string PhysBonesFolder { get; set; } = "PhysBones";
