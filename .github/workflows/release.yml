@@ -66,8 +66,11 @@ jobs:
           else
             COMMIT_SUMMARY="$(git log --oneline --pretty=tformat:"%h %s")"
           fi
-          COMMIT_SUMMARY="${COMMIT_SUMMARY//$'\n'/'%0A'}"
-          echo "COMMIT_SUMMARY=$COMMIT_SUMMARY" >> $GITHUB_OUTPUT
+          {
+            echo "COMMIT_SUMMARY<<EOF"
+            echo "$COMMIT_SUMMARY"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       - name: Set Environment Variables
         run: |
