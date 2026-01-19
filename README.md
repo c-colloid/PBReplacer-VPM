@@ -1,6 +1,9 @@
-# PBReplacer
+![](https://img.shields.io/github/license/c-colloid/PBReplacer-VPM)
+![](https://img.shields.io/github/package-json/v/c-colloid/PBReplacer-VPM?link=https%3A%2F%2Fgithub.com%2Fc-colloid%2FPBReplacer-VPM%2Freleases%2Flatest)
+![](https://img.shields.io/github/release-date/c-colloid/PBReplacer-VPM)
+![](https://img.shields.io/github/downloads/c-colloid/PBReplacer-VPM/total)
 
-Version 2.2.2
+# PBReplacer
 
 ## 概要
 
