@@ -1,4 +1,5 @@
 using System;
+using System.Text.RegularExpressions;
 
 namespace colloid.PBReplacer
 {
@@ -31,5 +32,37 @@ namespace colloid.PBReplacer
 
         /// <summary>このルールが有効かどうか</summary>
         public bool enabled = true;
+
+        /// <summary>
+        /// 入力文字列にこのルールを適用する。
+        /// </summary>
+        /// <param name="input">変換対象の文字列</param>
+        /// <returns>変換後の文字列。ルールが無効の場合は入力をそのまま返す。</returns>
+        public string Apply(string input)
+        {
+            if (!enabled || string.IsNullOrEmpty(input))
+                return input;
+
+            switch (mode)
+            {
+                case RemapMode.PrefixReplace:
+                    if (input.StartsWith(sourcePattern, StringComparison.Ordinal))
+                        return destinationPattern + input.Substring(sourcePattern.Length);
+                    return input;
+
+                case RemapMode.CharacterSubstitution:
+                    if (string.IsNullOrEmpty(sourcePattern))
+                        return input;
+                    return input.Replace(sourcePattern, destinationPattern);
+
+                case RemapMode.RegexReplace:
+                    if (string.IsNullOrEmpty(sourcePattern))
+                        return input;
+                    return Regex.Replace(input, sourcePattern, destinationPattern ?? "");
+
+                default:
+                    return input;
+            }
+        }
     }
 }
