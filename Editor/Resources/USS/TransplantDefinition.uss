@@ -1,0 +1,102 @@
+.transplant-header {
+    font-size: 16px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    margin-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(85, 85, 85);
+}
+
+.transplant-section {
+    margin-left: 3px;
+    margin-right: 3px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.transplant-section > ObjectField {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 2px;
+}
+
+.transplant-add-button {
+    align-self: flex-end;
+    width: 100px;
+    margin-top: 4px;
+}
+
+.transplant-scale-label {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    margin-left: 4px;
+    margin-top: 2px;
+}
+
+.transplant-execute-button {
+    width: 120px;
+    height: 28px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    -unity-font-style: bold;
+    font-size: 13px;
+    background-color: var(--unity-colors-highlight-background);
+    color: var(--unity-colors-highlight-text);
+    border-radius: 4px;
+}
+
+.transplant-execute-button:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.transplant-execute-button:disabled {
+    opacity: 0.5;
+}
+
+.remap-rule-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 2px;
+    margin-bottom: 1px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.3);
+}
+
+.remap-rule-item > Toggle {
+    width: 20px;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.remap-rule-item > EnumField {
+    width: 110px;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.remap-rule-item > TextField {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 2px;
+    min-width: 40px;
+}
+
+.remap-rule-arrow {
+    -unity-text-align: middle-center;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.remap-rule-delete-button {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+}
