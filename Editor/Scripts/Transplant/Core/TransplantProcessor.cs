@@ -7,6 +7,7 @@ using UnityEditor;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
+using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
