@@ -1,8 +1,14 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEditor.UIElements;
+using VRC.SDK3.Dynamics.PhysBone.Components;
+using VRC.SDK3.Dynamics.Constraint.Components;
+using VRC.SDK3.Dynamics.Contact.Components;
+using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
@@ -10,18 +16,27 @@ namespace colloid.PBReplacer
     public class TransplantDefinitionEditor : Editor
     {
         private VisualElement _root;
-        private ObjectField _sourceField;
-        private ObjectField _destField;
+
+        // 検出状態
+        private Label _destAvatarLabel;
+        private Label _sourceAvatarLabel;
+        private Label _modeLabel;
+        private HelpBox _detectionWarningBox;
+        private HelpBox _humanoidInfoBox;
+
+        // コンポーネント一覧
+        private Label _componentsSummary;
+
+        // リマップルール
         private ListView _rulesListView;
+
+        // スケール
         private Toggle _autoScaleToggle;
         private VisualElement _manualScaleContainer;
         private FloatField _scaleFactorField;
         private Label _calculatedScaleLabel;
-        private Button _transplantButton;
-        private HelpBox _statusBox;
-        private HelpBox _humanoidInfoBox;
 
-        // プレビュー関連
+        // プレビュー
         private Button _previewButton;
         private Foldout _previewFoldout;
         private Label _previewSummary;
@@ -31,22 +46,30 @@ namespace colloid.PBReplacer
         private Foldout _previewWarningsFoldout;
         private TransplantPreviewData _currentPreview;
 
-        private SerializedProperty _sourceAvatarProp;
-        private SerializedProperty _destAvatarProp;
+        // アクション
+        private Button _transplantButton;
+        private HelpBox _statusBox;
+
+        // SerializedProperties
         private SerializedProperty _autoCalculateScaleProp;
         private SerializedProperty _scaleFactorProp;
         private SerializedProperty _pathRemapRulesProp;
+        private SerializedProperty _serializedBoneRefsProp;
+        private SerializedProperty _sourceAvatarScaleProp;
+
+        // 検出結果キャッシュ
+        private SourceDetector.DetectionResult _detection;
 
         public override VisualElement CreateInspectorGUI()
         {
             _root = new VisualElement();
 
             // SerializedPropertyを取得
-            _sourceAvatarProp = serializedObject.FindProperty("sourceAvatar");
-            _destAvatarProp = serializedObject.FindProperty("destinationAvatar");
             _autoCalculateScaleProp = serializedObject.FindProperty("autoCalculateScale");
             _scaleFactorProp = serializedObject.FindProperty("scaleFactor");
             _pathRemapRulesProp = serializedObject.FindProperty("pathRemapRules");
+            _serializedBoneRefsProp = serializedObject.FindProperty("serializedBoneReferences");
+            _sourceAvatarScaleProp = serializedObject.FindProperty("sourceAvatarScale");
 
             // UXMLをロード
             var visualTree = Resources.Load<VisualTreeAsset>("UXML/TransplantDefinition");
@@ -64,19 +87,17 @@ namespace colloid.PBReplacer
                 _root.styleSheets.Add(styleSheet);
 
             // 要素を取得
-            _sourceField = _root.Q<ObjectField>("source-avatar");
-            _destField = _root.Q<ObjectField>("destination-avatar");
+            _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
+            _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
+            _modeLabel = _root.Q<Label>("mode-label");
+            _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
+            _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
+            _componentsSummary = _root.Q<Label>("components-summary");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
             _autoScaleToggle = _root.Q<Toggle>("auto-scale-toggle");
             _manualScaleContainer = _root.Q<VisualElement>("manual-scale-container");
             _scaleFactorField = _root.Q<FloatField>("scale-factor-field");
             _calculatedScaleLabel = _root.Q<Label>("calculated-scale-label");
-            _transplantButton = _root.Q<Button>("transplant-button");
-            _statusBox = _root.Q<HelpBox>("status-box");
-            _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
-            var addRuleButton = _root.Q<Button>("add-rule-button");
-
-            // プレビュー要素を取得
             _previewButton = _root.Q<Button>("preview-button");
             _previewFoldout = _root.Q<Foldout>("preview-foldout");
             _previewSummary = _root.Q<Label>("preview-summary");
@@ -84,6 +105,9 @@ namespace colloid.PBReplacer
             _previewBoneFoldout = _root.Q<Foldout>("preview-bone-foldout");
             _previewWarningsList = _root.Q<ListView>("preview-warnings-list");
             _previewWarningsFoldout = _root.Q<Foldout>("preview-warnings-foldout");
+            _transplantButton = _root.Q<Button>("transplant-button");
+            _statusBox = _root.Q<HelpBox>("status-box");
+            var addRuleButton = _root.Q<Button>("add-rule-button");
 
             // バインド
             _root.Bind(serializedObject);
@@ -94,8 +118,6 @@ namespace colloid.PBReplacer
             SetupPreviewWarningsListView();
 
             // イベント登録
-            _sourceField.RegisterValueChangedCallback(_ => OnAvatarFieldChanged());
-            _destField.RegisterValueChangedCallback(_ => OnAvatarFieldChanged());
             _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
             addRuleButton.clicked += OnAddRuleClicked;
             _transplantButton.clicked += OnTransplantClicked;
@@ -103,10 +125,298 @@ namespace colloid.PBReplacer
 
             // 初期状態を設定
             OnAutoScaleChanged(_autoCalculateScaleProp.boolValue);
-            ValidateAndUpdateUI();
+            RefreshDetection();
+            UpdateSerializedBoneReferences();
 
             return _root;
         }
+
+        #region 検出と更新
+
+        /// <summary>
+        /// SourceDetectorを実行し、UIを更新する。
+        /// </summary>
+        private void RefreshDetection()
+        {
+            var definition = (TransplantDefinition)target;
+            var detectResult = SourceDetector.Detect(definition);
+
+            if (detectResult.IsFailure)
+            {
+                _destAvatarLabel.text = "移植先: (検出エラー)";
+                _sourceAvatarLabel.text = "移植元: (検出エラー)";
+                _transplantButton.SetEnabled(false);
+                _previewButton.SetEnabled(false);
+                return;
+            }
+
+            _detection = detectResult.Value;
+
+            // デスティネーション表示
+            if (_detection.DestinationAvatar != null)
+                _destAvatarLabel.text = $"移植先: {_detection.DestinationAvatar.name}";
+            else
+                _destAvatarLabel.text = "移植先: (未検出 - アバターの子階層に配置してください)";
+
+            // ソース表示
+            if (_detection.IsLiveMode && _detection.SourceAvatar != null)
+                _sourceAvatarLabel.text = $"移植元: {_detection.SourceAvatar.name}";
+            else if (!_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
+                _sourceAvatarLabel.text = "移植元: (Prefabデータから復元)";
+            else
+                _sourceAvatarLabel.text = "移植元: (未検出)";
+
+            // モード表示
+            _modeLabel.text = _detection.IsLiveMode ? "同一シーンモード" : "Prefabモード";
+
+            // 警告表示
+            if (_detection.Warnings.Count > 0)
+            {
+                _detectionWarningBox.text = string.Join("\n", _detection.Warnings);
+                _detectionWarningBox.messageType = HelpBoxMessageType.Warning;
+                _detectionWarningBox.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _detectionWarningBox.style.display = DisplayStyle.None;
+            }
+
+            // コンポーネント一覧更新
+            UpdateComponentsSummary(definition);
+
+            // Humanoid情報更新
+            UpdateHumanoidInfoBox();
+
+            // ボタン有効化判定
+            bool canOperate = _detection.DestinationAvatar != null
+                && (_detection.IsLiveMode && _detection.SourceAvatar != null
+                    || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
+            _transplantButton.SetEnabled(canOperate);
+            _previewButton.SetEnabled(canOperate);
+
+            // スケールラベル更新
+            if (_autoCalculateScaleProp.boolValue)
+                UpdateCalculatedScaleLabel();
+
+            // ステータス初期化
+            _statusBox.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>
+        /// 配下のVRCコンポーネント数を集計して表示する。
+        /// </summary>
+        private void UpdateComponentsSummary(TransplantDefinition definition)
+        {
+            var root = definition.transform;
+            int pb = root.GetComponentsInChildren<VRCPhysBone>(true).Length;
+            int pbc = root.GetComponentsInChildren<VRCPhysBoneCollider>(true).Length;
+            int constraint = root.GetComponentsInChildren<VRCConstraintBase>(true).Length;
+            int contact = root.GetComponentsInChildren<ContactBase>(true).Length;
+            int total = pb + pbc + constraint + contact;
+
+            _componentsSummary.text =
+                $"PhysBone: {pb}  PhysBoneCollider: {pbc}  " +
+                $"Constraint: {constraint}  Contact: {contact}  " +
+                $"(合計: {total})";
+        }
+
+        /// <summary>
+        /// 非Humanoidアバターの情報を表示する。
+        /// </summary>
+        private void UpdateHumanoidInfoBox()
+        {
+            if (_humanoidInfoBox == null || _detection == null)
+                return;
+
+            var nonHumanoidNames = new List<string>();
+
+            if (_detection.SourceAvatarData != null)
+            {
+                var srcAnimator = _detection.SourceAvatarData.AvatarAnimator;
+                if (srcAnimator == null || !srcAnimator.isHuman)
+                    nonHumanoidNames.Add($"移植元 ({_detection.SourceAvatar.name})");
+            }
+
+            if (_detection.DestAvatarData != null)
+            {
+                var destAnimator = _detection.DestAvatarData.AvatarAnimator;
+                if (destAnimator == null || !destAnimator.isHuman)
+                    nonHumanoidNames.Add($"移植先 ({_detection.DestinationAvatar.name})");
+            }
+
+            if (nonHumanoidNames.Count > 0)
+            {
+                _humanoidInfoBox.text =
+                    $"{string.Join("、", nonHumanoidNames)} は非Humanoidです。" +
+                    "Humanoidボーンマッピングが使用できないため、パス名/ボーン名での解決になります。" +
+                    "必要に応じてパスリマップルールを追加してください。";
+                _humanoidInfoBox.messageType = HelpBoxMessageType.Info;
+                _humanoidInfoBox.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _humanoidInfoBox.style.display = DisplayStyle.None;
+            }
+        }
+
+        /// <summary>
+        /// Custom Editorが表示されている間、シリアライズ済みボーン参照データを自動更新する。
+        /// Prefab化時にこのデータが保持されるため、Inspector表示時に常に最新化しておく。
+        /// </summary>
+        private void UpdateSerializedBoneReferences()
+        {
+            if (_detection == null || !_detection.IsLiveMode)
+                return;
+            if (_detection.SourceAvatarData == null)
+                return;
+
+            var definition = (TransplantDefinition)target;
+            var definitionRoot = definition.transform;
+            var sourceData = _detection.SourceAvatarData;
+            var sourceArmature = sourceData.Armature.transform;
+            var sourceAnimator = sourceData.AvatarAnimator;
+
+            // Humanoidボーンの逆引きマップ構築
+            var humanoidBoneMap = new Dictionary<Transform, HumanBodyBones>();
+            if (sourceAnimator != null && sourceAnimator.isHuman)
+            {
+                foreach (HumanBodyBones boneId in Enum.GetValues(typeof(HumanBodyBones)))
+                {
+                    if (boneId == HumanBodyBones.LastBone) continue;
+                    var bone = sourceAnimator.GetBoneTransform(boneId);
+                    if (bone != null && !humanoidBoneMap.ContainsKey(bone))
+                        humanoidBoneMap[bone] = boneId;
+                }
+            }
+
+            // 全VRCコンポーネントのTransform参照をスキャンしてシリアライズ
+            var boneRefs = new List<SerializedBoneReference>();
+            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+
+            // SerializedObjectとして書き込み
+            serializedObject.Update();
+            _serializedBoneRefsProp.ClearArray();
+            for (int i = 0; i < boneRefs.Count; i++)
+            {
+                _serializedBoneRefsProp.InsertArrayElementAtIndex(i);
+                var element = _serializedBoneRefsProp.GetArrayElementAtIndex(i);
+                var br = boneRefs[i];
+                element.FindPropertyRelative("componentObjectPath").stringValue = br.componentObjectPath;
+                element.FindPropertyRelative("componentTypeName").stringValue = br.componentTypeName;
+                element.FindPropertyRelative("propertyPath").stringValue = br.propertyPath;
+                element.FindPropertyRelative("boneRelativePath").stringValue = br.boneRelativePath;
+                element.FindPropertyRelative("humanBodyBone").enumValueIndex = (int)br.humanBodyBone;
+                element.FindPropertyRelative("nearestHumanoidAncestor").enumValueIndex = (int)br.nearestHumanoidAncestor;
+                element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
+            }
+
+            // ソースアバタースケールも保存
+            float sourceScale = TransplantRemapper.CalculateAvatarScale(sourceData);
+            _sourceAvatarScaleProp.floatValue = sourceScale;
+
+            serializedObject.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// 指定コンポーネント型の全インスタンスからTransform参照をスキャンする。
+        /// </summary>
+        private void ScanComponentReferences<T>(
+            Transform definitionRoot,
+            Transform sourceArmature,
+            Dictionary<Transform, HumanBodyBones> humanoidBoneMap,
+            List<SerializedBoneReference> results) where T : Component
+        {
+            foreach (var component in definitionRoot.GetComponentsInChildren<T>(true))
+            {
+                var so = new SerializedObject(component);
+                var prop = so.GetIterator();
+
+                while (prop.Next(true))
+                {
+                    if (prop.propertyType != SerializedPropertyType.ObjectReference)
+                        continue;
+
+                    var objRef = prop.objectReferenceValue as Transform;
+                    if (objRef == null)
+                        continue;
+
+                    // 内部参照はスキップ
+                    if (objRef.IsChildOf(definitionRoot))
+                        continue;
+
+                    // ボーンの相対パスを計算
+                    string relativePath = BoneMapper.GetRelativePath(objRef, sourceArmature);
+                    if (relativePath == null)
+                        continue;
+
+                    // コンポーネントオブジェクトの相対パス
+                    string componentPath = GetRelativePath(component.transform, definitionRoot);
+                    if (componentPath == null)
+                        continue;
+
+                    var boneRef = new SerializedBoneReference
+                    {
+                        componentObjectPath = componentPath,
+                        componentTypeName = component.GetType().Name,
+                        propertyPath = prop.propertyPath,
+                        boneRelativePath = relativePath,
+                        humanBodyBone = HumanBodyBones.LastBone,
+                        nearestHumanoidAncestor = HumanBodyBones.LastBone,
+                        pathFromHumanoidAncestor = ""
+                    };
+
+                    // Humanoidボーン情報を付与
+                    if (humanoidBoneMap.TryGetValue(objRef, out var humanBone))
+                    {
+                        boneRef.humanBodyBone = humanBone;
+                    }
+
+                    // 最寄りHumanoid祖先を探索
+                    var ancestor = objRef.parent;
+                    var pathSegments = new List<string> { objRef.name };
+                    while (ancestor != null && ancestor != sourceArmature.parent)
+                    {
+                        if (humanoidBoneMap.TryGetValue(ancestor, out var ancestorBone))
+                        {
+                            boneRef.nearestHumanoidAncestor = ancestorBone;
+                            pathSegments.Reverse();
+                            // 祖先自身は含めず、その子からのパス
+                            boneRef.pathFromHumanoidAncestor = string.Join("/", pathSegments);
+                            break;
+                        }
+                        pathSegments.Add(ancestor.name);
+                        ancestor = ancestor.parent;
+                    }
+
+                    results.Add(boneRef);
+                }
+            }
+        }
+
+        /// <summary>
+        /// rootからtargetまでの相対パスを取得する。
+        /// </summary>
+        private static string GetRelativePath(Transform target, Transform root)
+        {
+            if (target == root) return "";
+
+            var segments = new List<string>();
+            var current = target;
+            while (current != null && current != root)
+            {
+                segments.Add(current.name);
+                current = current.parent;
+            }
+            if (current != root) return null;
+
+            segments.Reverse();
+            return string.Join("/", segments);
+        }
+
+        #endregion
 
         #region ListView設定
 
@@ -172,13 +482,11 @@ namespace colloid.PBReplacer
             var destPatternField = element.Q<TextField>("rule-dest-pattern");
             var deleteButton = element.Q<Button>("rule-delete");
 
-            // バインド
             enabledToggle.BindProperty(enabledProp);
             modeField.BindProperty(modeProp);
             sourcePatternField.BindProperty(sourcePatternProp);
             destPatternField.BindProperty(destPatternProp);
 
-            // 削除ボタン
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
         }
 
@@ -266,14 +574,6 @@ namespace colloid.PBReplacer
 
         #region イベントハンドラ
 
-        private void OnAvatarFieldChanged()
-        {
-            // SerializedObjectを更新して最新値を反映
-            serializedObject.Update();
-            ClearPreview();
-            ValidateAndUpdateUI();
-        }
-
         private void OnAutoScaleChanged(bool autoScale)
         {
             _manualScaleContainer.style.display = autoScale
@@ -321,7 +621,9 @@ namespace colloid.PBReplacer
             serializedObject.Update();
             var definition = (TransplantDefinition)target;
 
-            _currentPreview = TransplantPreview.GeneratePreview(definition);
+            // 再検出してプレビュー生成
+            RefreshDetection();
+            _currentPreview = TransplantPreview.GeneratePreview(definition, _detection);
             DisplayPreview();
         }
 
@@ -334,30 +636,36 @@ namespace colloid.PBReplacer
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
             {
+                string destName = _detection?.DestinationAvatar?.name ?? "(不明)";
+                string sourceName = _detection?.IsLiveMode == true
+                    ? _detection.SourceAvatar?.name ?? "(不明)"
+                    : "(Prefab)";
+
                 bool confirmed = EditorUtility.DisplayDialog(
                     "コンポーネント移植",
-                    $"ソース: {definition.SourceAvatar.name}\n" +
-                    $"デスティネーション: {definition.DestinationAvatar.name}\n\n" +
-                    "移植を実行しますか？",
+                    $"移植元: {sourceName}\n" +
+                    $"移植先: {destName}\n\n" +
+                    "移植を実行しますか？\n" +
+                    "（コンポーネントのボーン参照がリマップされます）",
                     "実行", "キャンセル");
 
                 if (!confirmed)
                     return;
             }
 
-            // 移植実行
-            var result = TransplantProcessor.TransplantComponents(definition);
+            // リマップ実行
+            var result = TransplantRemapper.Remap(definition);
 
             result.Match(
                 onSuccess: success =>
                 {
                     string message =
-                        $"移植が完了しました\n\n" +
-                        $"PhysBone: {success.PhysBoneCount}\n" +
-                        $"PhysBoneCollider: {success.PhysBoneColliderCount}\n" +
-                        $"Constraint: {success.ConstraintCount}\n" +
-                        $"Contact: {success.ContactCount}\n" +
-                        $"合計: {success.TotalCount}";
+                        $"移植（リマップ）が完了しました\n\n" +
+                        $"リマップ済みコンポーネント: {success.RemappedComponentCount}\n" +
+                        $"リマップ済み参照: {success.RemappedReferenceCount}";
+
+                    if (success.UnresolvedReferenceCount > 0)
+                        message += $"\n未解決参照: {success.UnresolvedReferenceCount}";
 
                     if (success.Warnings.Count > 0)
                         message += $"\n\n警告 ({success.Warnings.Count}):\n" +
@@ -365,9 +673,14 @@ namespace colloid.PBReplacer
 
                     EditorUtility.DisplayDialog("移植完了", message, "OK");
 
-                    _statusBox.text = $"移植完了: {success.TotalCount} コンポーネント";
-                    _statusBox.messageType = HelpBoxMessageType.Info;
+                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ";
+                    _statusBox.messageType = success.UnresolvedReferenceCount > 0
+                        ? HelpBoxMessageType.Warning
+                        : HelpBoxMessageType.Info;
                     _statusBox.style.display = DisplayStyle.Flex;
+
+                    // 検出状態を更新（リマップ後は参照先が変わっている）
+                    RefreshDetection();
                 },
                 onFailure: error =>
                 {
@@ -389,11 +702,6 @@ namespace colloid.PBReplacer
                 return;
             }
 
-            // サマリー更新
-            int totalComponents = _currentPreview.TotalPhysBones
-                + _currentPreview.TotalPhysBoneColliders
-                + _currentPreview.TotalConstraints
-                + _currentPreview.TotalContacts;
             int totalBones = _currentPreview.ResolvedBones + _currentPreview.UnresolvedBones;
 
             _previewSummary.text =
@@ -404,13 +712,11 @@ namespace colloid.PBReplacer
                 $" | ボーン解決: {_currentPreview.ResolvedBones}/{totalBones}" +
                 $" | スケール: {_currentPreview.CalculatedScaleFactor:F3}";
 
-            // ボーンマッピングリスト更新
             _previewBoneList.itemsSource = _currentPreview.BoneMappings;
             _previewBoneList.style.height = Mathf.Min(
                 _currentPreview.BoneMappings.Count * 22, 200);
             _previewBoneList.Rebuild();
 
-            // 警告リスト更新
             if (_currentPreview.Warnings.Count > 0)
             {
                 _previewWarningsList.itemsSource = _currentPreview.Warnings;
@@ -425,7 +731,6 @@ namespace colloid.PBReplacer
                 _previewWarningsFoldout.style.display = DisplayStyle.None;
             }
 
-            // Foldoutを表示して開く
             _previewFoldout.style.display = DisplayStyle.Flex;
             _previewFoldout.value = true;
             _previewBoneFoldout.value = true;
@@ -440,80 +745,11 @@ namespace colloid.PBReplacer
 
         #endregion
 
-        #region バリデーション
-
-        private void ValidateAndUpdateUI()
-        {
-            var sourceObj = _sourceAvatarProp.objectReferenceValue as GameObject;
-            var destObj = _destAvatarProp.objectReferenceValue as GameObject;
-
-            if (sourceObj == null || destObj == null)
-            {
-                _transplantButton.SetEnabled(false);
-                _previewButton.SetEnabled(false);
-                _statusBox.text = "ソースアバターとデスティネーションアバターを設定してください";
-                _statusBox.messageType = HelpBoxMessageType.Warning;
-                _statusBox.style.display = DisplayStyle.Flex;
-                return;
-            }
-
-            if (sourceObj == destObj)
-            {
-                _transplantButton.SetEnabled(false);
-                _previewButton.SetEnabled(false);
-                _statusBox.text = "ソースとデスティネーションに同じアバターが設定されています";
-                _statusBox.messageType = HelpBoxMessageType.Warning;
-                _statusBox.style.display = DisplayStyle.Flex;
-                return;
-            }
-
-            _transplantButton.SetEnabled(true);
-            _previewButton.SetEnabled(true);
-            _statusBox.style.display = DisplayStyle.None;
-
-            // 非Humanoidアバターの情報表示
-            UpdateHumanoidInfoBox(sourceObj, destObj);
-
-            if (_autoCalculateScaleProp.boolValue)
-                UpdateCalculatedScaleLabel();
-        }
-
-        private void UpdateHumanoidInfoBox(GameObject sourceObj, GameObject destObj)
-        {
-            if (_humanoidInfoBox == null)
-                return;
-
-            var sourceAnimator = sourceObj != null ? sourceObj.GetComponent<Animator>() : null;
-            var destAnimator = destObj != null ? destObj.GetComponent<Animator>() : null;
-
-            bool sourceIsHumanoid = sourceAnimator != null && sourceAnimator.isHuman;
-            bool destIsHumanoid = destAnimator != null && destAnimator.isHuman;
-
-            if (sourceObj != null && destObj != null && (!sourceIsHumanoid || !destIsHumanoid))
-            {
-                var nonHumanoidNames = new System.Collections.Generic.List<string>();
-                if (!sourceIsHumanoid) nonHumanoidNames.Add($"ソース ({sourceObj.name})");
-                if (!destIsHumanoid) nonHumanoidNames.Add($"デスティネーション ({destObj.name})");
-
-                _humanoidInfoBox.text =
-                    $"{string.Join("、", nonHumanoidNames)} は非Humanoidです。" +
-                    "Humanoidボーンマッピングが使用できないため、パス名/ボーン名での解決になります。" +
-                    "必要に応じてパスリマップルールを追加してください。";
-                _humanoidInfoBox.messageType = HelpBoxMessageType.Info;
-                _humanoidInfoBox.style.display = DisplayStyle.Flex;
-            }
-            else
-            {
-                _humanoidInfoBox.style.display = DisplayStyle.None;
-            }
-        }
+        #region スケール
 
         private void UpdateCalculatedScaleLabel()
         {
-            var sourceObj = _sourceAvatarProp.objectReferenceValue as GameObject;
-            var destObj = _destAvatarProp.objectReferenceValue as GameObject;
-
-            if (sourceObj == null || destObj == null)
+            if (_detection == null)
             {
                 _calculatedScaleLabel.text = "";
                 return;
@@ -521,16 +757,36 @@ namespace colloid.PBReplacer
 
             try
             {
-                var sourceData = new AvatarData(sourceObj);
-                var destData = new AvatarData(destObj);
-
-                float scale = ScaleCalculator.CalculateScaleFactor(
-                    sourceData.Armature.transform,
-                    destData.Armature.transform,
-                    sourceData.AvatarAnimator,
-                    destData.AvatarAnimator);
-
-                _calculatedScaleLabel.text = $"算出値: {scale:F4}";
+                if (_detection.IsLiveMode
+                    && _detection.SourceAvatarData != null
+                    && _detection.DestAvatarData != null)
+                {
+                    float scale = ScaleCalculator.CalculateScaleFactor(
+                        _detection.SourceAvatarData.Armature.transform,
+                        _detection.DestAvatarData.Armature.transform,
+                        _detection.SourceAvatarData.AvatarAnimator,
+                        _detection.DestAvatarData.AvatarAnimator);
+                    _calculatedScaleLabel.text = $"算出値: {scale:F4}";
+                }
+                else if (!_detection.IsLiveMode
+                    && _detection.DestAvatarData != null)
+                {
+                    var definition = (TransplantDefinition)target;
+                    if (definition.SourceAvatarScale > 0)
+                    {
+                        float destScale = TransplantRemapper.CalculateAvatarScale(_detection.DestAvatarData);
+                        float scale = destScale / definition.SourceAvatarScale;
+                        _calculatedScaleLabel.text = $"算出値: {scale:F4} (Prefab)";
+                    }
+                    else
+                    {
+                        _calculatedScaleLabel.text = "算出不可 (ソーススケール未保存)";
+                    }
+                }
+                else
+                {
+                    _calculatedScaleLabel.text = "算出不可";
+                }
             }
             catch
             {

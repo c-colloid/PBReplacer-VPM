@@ -4,18 +4,28 @@
 
     <ui:Label name="header-label" text="コンポーネント移植" class="transplant-header" />
 
-    <ui:VisualElement name="avatar-section" class="transplant-section">
-        <uie:ObjectField name="source-avatar" label="ソースアバター" type="UnityEngine.GameObject, UnityEngine.CoreModule" binding-path="sourceAvatar" />
-        <uie:ObjectField name="destination-avatar" label="デスティネーションアバター" type="UnityEngine.GameObject, UnityEngine.CoreModule" binding-path="destinationAvatar" />
+    <!-- 検出状態セクション -->
+    <ui:VisualElement name="detection-section" class="transplant-section">
+        <ui:Label name="dest-avatar-label" text="移植先: (未検出)" class="transplant-detection-label" />
+        <ui:Label name="source-avatar-label" text="移植元: (未検出)" class="transplant-detection-label" />
+        <ui:Label name="mode-label" text="" class="transplant-mode-label" />
     </ui:VisualElement>
 
+    <ui:HelpBox name="detection-warning-box" style="display: none;" />
     <ui:HelpBox name="humanoid-info-box" style="display: none;" />
 
+    <!-- コンポーネント一覧セクション -->
+    <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="transplant-section">
+        <ui:Label name="components-summary" text="" class="transplant-components-summary" />
+    </ui:Foldout>
+
+    <!-- パスリマップルール -->
     <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" class="transplant-section">
         <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
         <ui:Button name="add-rule-button" text="ルール追加" class="transplant-add-button" />
     </ui:Foldout>
 
+    <!-- スケール設定 -->
     <ui:VisualElement name="scale-section" class="transplant-section">
         <ui:Toggle name="auto-scale-toggle" label="スケール自動算出" binding-path="autoCalculateScale" />
         <ui:VisualElement name="manual-scale-container">
@@ -24,6 +34,7 @@
         <ui:Label name="calculated-scale-label" text="" class="transplant-scale-label" />
     </ui:VisualElement>
 
+    <!-- プレビューセクション -->
     <ui:VisualElement name="preview-section" class="transplant-section">
         <ui:Button name="preview-button" text="プレビュー" class="transplant-preview-button" />
         <ui:Foldout name="preview-foldout" text="プレビュー結果" value="false" style="display: none;">
@@ -37,6 +48,7 @@
         </ui:Foldout>
     </ui:VisualElement>
 
+    <!-- アクションセクション -->
     <ui:VisualElement name="action-section" class="transplant-section">
         <ui:Button name="transplant-button" text="移植実行" class="transplant-execute-button" />
         <ui:HelpBox name="status-box" />

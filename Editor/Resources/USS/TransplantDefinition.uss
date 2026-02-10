@@ -35,6 +35,23 @@
     margin-top: 2px;
 }
 
+.transplant-detection-label {
+    font-size: 12px;
+    padding: 2px 4px;
+}
+
+.transplant-mode-label {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    padding: 0 4px 2px 4px;
+}
+
+.transplant-components-summary {
+    font-size: 12px;
+    padding: 4px;
+    white-space: normal;
+}
+
 .transplant-execute-button {
     width: 120px;
     height: 28px;
