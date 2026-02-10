@@ -23,8 +23,8 @@ namespace colloid.PBReplacer
 
     /// <summary>
     /// 既にHierarchy上に存在するコンポーネントのTransform参照をリマップする。
-    /// TransplantProcessorが「新規作成＋コピー」であるのに対し、
-    /// TransplantRemapperは「既存コンポーネントの参照書き換え」に特化している。
+    /// 既存コンポーネントの参照書き換えに特化しており、
+    /// Live（同一シーン）モードとPrefab（シリアライズデータ）モードの両方に対応する。
     /// </summary>
     public static class TransplantRemapper
     {
@@ -199,7 +199,8 @@ namespace colloid.PBReplacer
                     ApplyScaleFactor(component, scaleFactor);
                 }
 
-                // Constraint Sources のリマップ
+                // Constraint Sources: RemapComponentReferences の汎用走査で基本的にリマップ済みだが、
+                // VRC SDK固有のシリアライズ形式のフォールバックとして明示的にも実行する。
                 foreach (var constraint in definitionRoot.GetComponentsInChildren<VRCConstraintBase>(true))
                 {
                     RemapConstraintSources(constraint, boneMap);
@@ -334,8 +335,9 @@ namespace colloid.PBReplacer
                     ApplyScaleFactor(component, scaleFactor);
                 }
 
-                // Constraint Sources のリマップ（Prefabモードでは個別対応が必要）
-                // TODO: Phase 2でConstraint Sourcesのシリアライズ対応
+                // Constraint Sources (TargetTransform, Sources[i].SourceTransform) は
+                // ScanComponentReferences の汎用プロパティ走査で既にシリアライズされており、
+                // 上記の SerializedBoneReference ループ内で自動的にリマップされる。
             }
             catch (Exception ex)
             {

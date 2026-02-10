@@ -31,8 +31,9 @@ Editor/Scripts/
   Models/         - データモデル（AvatarData、Settings等）
   Processing/     - コンポーネント処理ロジック
   Transplant/     - 移植機能
-    Core/         - 移植コアロジック（BoneMapper、TransplantProcessor、ScaleCalculator）
+    Core/         - 移植コアロジック（BoneMapper、TransplantRemapper、ScaleCalculator、SourceDetector）
     Editor/       - 移植UI（CustomEditor、プレビュー）
+    NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
   UI/Elements/    - カスタムUI要素
   UI/Handlers/    - UIイベントハンドラ
   UI/Windows/     - EditorWindowクラス
@@ -83,6 +84,9 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 ### 条件付きコンパイル
 
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
+
+`#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
+TransplantDefinitionを`BuildPhase.Generating`で自動処理し、ランタイムでは除去する。
 
 ## リリースプロセス
 

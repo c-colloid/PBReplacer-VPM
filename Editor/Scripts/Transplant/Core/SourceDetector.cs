@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEditor;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.SDK3.Dynamics.Constraint.Components;
 using VRC.SDK3.Dynamics.Contact.Components;
@@ -184,6 +185,20 @@ namespace colloid.PBReplacer
             foreach (var constraint in definitionRoot.GetComponentsInChildren<VRCConstraintBase>(true))
             {
                 AddIfExternal(result, constraint.TargetTransform, definitionRoot);
+
+                // Sources 内の SourceTransform も収集
+                var so = new SerializedObject(constraint);
+                var sourcesProp = so.FindProperty("Sources");
+                if (sourcesProp != null && sourcesProp.isArray)
+                {
+                    for (int i = 0; i < sourcesProp.arraySize; i++)
+                    {
+                        var element = sourcesProp.GetArrayElementAtIndex(i);
+                        var srcTransformProp = element.FindPropertyRelative("SourceTransform");
+                        if (srcTransformProp?.objectReferenceValue is Transform srcTransform)
+                            AddIfExternal(result, srcTransform, definitionRoot);
+                    }
+                }
             }
 
             // Contact
