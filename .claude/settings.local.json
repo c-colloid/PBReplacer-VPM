@@ -22,7 +22,9 @@
       "Bash(git rm:*)",
       "Bash(git fetch:*)",
       "Bash(git reset:*)",
-      "SlashCommand(/merge-unity)"
+      "SlashCommand(/merge-unity)",
+      "Skill(commit-commands:commit)",
+      "Skill(commit-commands:commit:*)"
     ]
   }
 }
