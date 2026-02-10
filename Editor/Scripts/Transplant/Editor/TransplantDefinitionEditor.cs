@@ -20,6 +20,16 @@ namespace colloid.PBReplacer
         private Button _transplantButton;
         private HelpBox _statusBox;
 
+        // プレビュー関連
+        private Button _previewButton;
+        private Foldout _previewFoldout;
+        private Label _previewSummary;
+        private ListView _previewBoneList;
+        private Foldout _previewBoneFoldout;
+        private ListView _previewWarningsList;
+        private Foldout _previewWarningsFoldout;
+        private TransplantPreviewData _currentPreview;
+
         private SerializedProperty _sourceAvatarProp;
         private SerializedProperty _destAvatarProp;
         private SerializedProperty _autoCalculateScaleProp;
@@ -64,11 +74,22 @@ namespace colloid.PBReplacer
             _statusBox = _root.Q<HelpBox>("status-box");
             var addRuleButton = _root.Q<Button>("add-rule-button");
 
+            // プレビュー要素を取得
+            _previewButton = _root.Q<Button>("preview-button");
+            _previewFoldout = _root.Q<Foldout>("preview-foldout");
+            _previewSummary = _root.Q<Label>("preview-summary");
+            _previewBoneList = _root.Q<ListView>("preview-bone-list");
+            _previewBoneFoldout = _root.Q<Foldout>("preview-bone-foldout");
+            _previewWarningsList = _root.Q<ListView>("preview-warnings-list");
+            _previewWarningsFoldout = _root.Q<Foldout>("preview-warnings-foldout");
+
             // バインド
             _root.Bind(serializedObject);
 
             // ListView設定
             SetupRemapRulesListView();
+            SetupPreviewBoneListView();
+            SetupPreviewWarningsListView();
 
             // イベント登録
             _sourceField.RegisterValueChangedCallback(_ => OnAvatarFieldChanged());
@@ -76,6 +97,7 @@ namespace colloid.PBReplacer
             _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
             addRuleButton.clicked += OnAddRuleClicked;
             _transplantButton.clicked += OnTransplantClicked;
+            _previewButton.clicked += OnPreviewClicked;
 
             // 初期状態を設定
             OnAutoScaleChanged(_autoCalculateScaleProp.boolValue);
@@ -158,6 +180,86 @@ namespace colloid.PBReplacer
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
         }
 
+        private void SetupPreviewBoneListView()
+        {
+            _previewBoneList.virtualizationMethod = CollectionVirtualizationMethod.FixedHeight;
+            _previewBoneList.fixedItemHeight = 22;
+            _previewBoneList.selectionType = SelectionType.None;
+
+            _previewBoneList.makeItem = () =>
+            {
+                var container = new VisualElement();
+                container.AddToClassList("preview-bone-item");
+
+                var sourceLabel = new Label();
+                sourceLabel.name = "bone-source";
+                container.Add(sourceLabel);
+
+                var arrow = new Label("\u2192");
+                arrow.AddToClassList("preview-bone-arrow");
+                container.Add(arrow);
+
+                var destLabel = new Label();
+                destLabel.name = "bone-dest";
+                container.Add(destLabel);
+
+                return container;
+            };
+
+            _previewBoneList.bindItem = (element, index) =>
+            {
+                if (_currentPreview == null || index >= _currentPreview.BoneMappings.Count)
+                    return;
+
+                var mapping = _currentPreview.BoneMappings[index];
+                var sourceLabel = element.Q<Label>("bone-source");
+                var destLabel = element.Q<Label>("bone-dest");
+
+                sourceLabel.text = mapping.sourceBonePath;
+
+                if (mapping.resolved)
+                {
+                    destLabel.text = mapping.destinationBonePath;
+                    element.RemoveFromClassList("preview-bone-unresolved");
+                    element.AddToClassList("preview-bone-resolved");
+                }
+                else
+                {
+                    destLabel.text = mapping.errorMessage ?? "未解決";
+                    element.RemoveFromClassList("preview-bone-resolved");
+                    element.AddToClassList("preview-bone-unresolved");
+                }
+            };
+        }
+
+        private void SetupPreviewWarningsListView()
+        {
+            _previewWarningsList.virtualizationMethod = CollectionVirtualizationMethod.FixedHeight;
+            _previewWarningsList.fixedItemHeight = 22;
+            _previewWarningsList.selectionType = SelectionType.None;
+
+            _previewWarningsList.makeItem = () =>
+            {
+                var container = new VisualElement();
+                container.AddToClassList("preview-warning-item");
+
+                var label = new Label();
+                label.name = "warning-text";
+                container.Add(label);
+
+                return container;
+            };
+
+            _previewWarningsList.bindItem = (element, index) =>
+            {
+                if (_currentPreview == null || index >= _currentPreview.Warnings.Count)
+                    return;
+
+                var label = element.Q<Label>("warning-text");
+                label.text = _currentPreview.Warnings[index];
+            };
+        }
+
         #endregion
 
         #region イベントハンドラ
@@ -166,6 +268,7 @@ namespace colloid.PBReplacer
         {
             // SerializedObjectを更新して最新値を反映
             serializedObject.Update();
+            ClearPreview();
             ValidateAndUpdateUI();
         }
 
@@ -209,6 +312,15 @@ namespace colloid.PBReplacer
                 serializedObject.ApplyModifiedProperties();
                 _rulesListView.Rebuild();
             }
+        }
+
+        private void OnPreviewClicked()
+        {
+            serializedObject.Update();
+            var definition = (TransplantDefinition)target;
+
+            _currentPreview = TransplantPreview.GeneratePreview(definition);
+            DisplayPreview();
         }
 
         private void OnTransplantClicked()
@@ -265,6 +377,67 @@ namespace colloid.PBReplacer
 
         #endregion
 
+        #region プレビュー
+
+        private void DisplayPreview()
+        {
+            if (_currentPreview == null)
+            {
+                ClearPreview();
+                return;
+            }
+
+            // サマリー更新
+            int totalComponents = _currentPreview.TotalPhysBones
+                + _currentPreview.TotalPhysBoneColliders
+                + _currentPreview.TotalConstraints
+                + _currentPreview.TotalContacts;
+            int totalBones = _currentPreview.ResolvedBones + _currentPreview.UnresolvedBones;
+
+            _previewSummary.text =
+                $"PB:{_currentPreview.TotalPhysBones} " +
+                $"PBC:{_currentPreview.TotalPhysBoneColliders} " +
+                $"Constraint:{_currentPreview.TotalConstraints} " +
+                $"Contact:{_currentPreview.TotalContacts}" +
+                $" | ボーン解決: {_currentPreview.ResolvedBones}/{totalBones}" +
+                $" | スケール: {_currentPreview.CalculatedScaleFactor:F3}";
+
+            // ボーンマッピングリスト更新
+            _previewBoneList.itemsSource = _currentPreview.BoneMappings;
+            _previewBoneList.style.height = Mathf.Min(
+                _currentPreview.BoneMappings.Count * 22, 200);
+            _previewBoneList.Rebuild();
+
+            // 警告リスト更新
+            if (_currentPreview.Warnings.Count > 0)
+            {
+                _previewWarningsList.itemsSource = _currentPreview.Warnings;
+                _previewWarningsList.style.height = Mathf.Min(
+                    _currentPreview.Warnings.Count * 22, 110);
+                _previewWarningsList.Rebuild();
+                _previewWarningsFoldout.style.display = DisplayStyle.Flex;
+                _previewWarningsFoldout.value = true;
+            }
+            else
+            {
+                _previewWarningsFoldout.style.display = DisplayStyle.None;
+            }
+
+            // Foldoutを表示して開く
+            _previewFoldout.style.display = DisplayStyle.Flex;
+            _previewFoldout.value = true;
+            _previewBoneFoldout.value = true;
+        }
+
+        private void ClearPreview()
+        {
+            _currentPreview = null;
+            _previewFoldout.style.display = DisplayStyle.None;
+            _previewFoldout.value = false;
+        }
+
+        #endregion
+
         #region バリデーション
 
         private void ValidateAndUpdateUI()
@@ -275,6 +448,7 @@ namespace colloid.PBReplacer
             if (sourceObj == null || destObj == null)
             {
                 _transplantButton.SetEnabled(false);
+                _previewButton.SetEnabled(false);
                 _statusBox.text = "ソースアバターとデスティネーションアバターを設定してください";
                 _statusBox.messageType = HelpBoxMessageType.Warning;
                 _statusBox.style.display = DisplayStyle.Flex;
@@ -284,6 +458,7 @@ namespace colloid.PBReplacer
             if (sourceObj == destObj)
             {
                 _transplantButton.SetEnabled(false);
+                _previewButton.SetEnabled(false);
                 _statusBox.text = "ソースとデスティネーションに同じアバターが設定されています";
                 _statusBox.messageType = HelpBoxMessageType.Warning;
                 _statusBox.style.display = DisplayStyle.Flex;
@@ -291,6 +466,7 @@ namespace colloid.PBReplacer
             }
 
             _transplantButton.SetEnabled(true);
+            _previewButton.SetEnabled(true);
             _statusBox.style.display = DisplayStyle.None;
 
             if (_autoCalculateScaleProp.boolValue)

@@ -100,3 +100,75 @@
     padding: 0;
     margin: 0;
 }
+
+/* プレビューセクション */
+
+.transplant-preview-button {
+    width: 100px;
+    height: 24px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+}
+
+.transplant-preview-button:disabled {
+    opacity: 0.5;
+}
+
+.preview-summary-label {
+    -unity-font-style: bold;
+    font-size: 12px;
+    padding: 4px;
+    margin-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+.preview-bone-item {
+    flex-direction: row;
+    align-items: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.preview-bone-item > Label {
+    flex-grow: 1;
+    flex-basis: 0;
+    overflow: hidden;
+    -unity-text-overflow-position: end;
+    font-size: 11px;
+}
+
+.preview-bone-arrow {
+    -unity-text-align: middle-center;
+    width: 24px;
+    flex-shrink: 0;
+    font-size: 11px;
+}
+
+.preview-bone-resolved {
+    color: var(--unity-colors-default-text);
+}
+
+.preview-bone-unresolved {
+    color: rgb(220, 80, 80);
+}
+
+.preview-bone-unresolved > Label {
+    color: rgb(220, 80, 80);
+}
+
+.preview-warning-item {
+    flex-direction: row;
+    align-items: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.preview-warning-item > Label {
+    font-size: 11px;
+    color: rgb(220, 180, 50);
+    flex-grow: 1;
+}
