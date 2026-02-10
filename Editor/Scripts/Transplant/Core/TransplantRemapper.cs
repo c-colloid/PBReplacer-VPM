@@ -317,8 +317,8 @@ namespace colloid.PBReplacer
                             prop.objectReferenceValue = resolvedBone;
                             so.ApplyModifiedProperties();
                             result.RemappedReferenceCount++;
+                            result.RemappedComponentCount++;
                         }
-                        result.RemappedComponentCount++;
                     }
                     else
                     {

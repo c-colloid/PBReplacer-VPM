@@ -58,7 +58,14 @@ namespace colloid.PBReplacer
                 case RemapMode.RegexReplace:
                     if (string.IsNullOrEmpty(sourcePattern))
                         return input;
-                    return Regex.Replace(input, sourcePattern, destinationPattern ?? "");
+                    try
+                    {
+                        return Regex.Replace(input, sourcePattern, destinationPattern ?? "");
+                    }
+                    catch (ArgumentException)
+                    {
+                        return input;
+                    }
 
                 default:
                     return input;
