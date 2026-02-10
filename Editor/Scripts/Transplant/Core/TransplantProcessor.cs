@@ -279,7 +279,8 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// ソースコンポーネントの所属フォルダに基づいてターゲットGameObjectを作成する
+        /// ソースコンポーネントの所属フォルダに基づいてターゲットGameObjectを作成する。
+        /// 同名オブジェクトが既に存在する場合はサフィックスを付与して重複を回避する。
         /// </summary>
         private static GameObject CreateTargetObject(
             Component source, Transform destRoot, PBReplacerSettings settings)
@@ -287,7 +288,8 @@ namespace colloid.PBReplacer
             string folderPath = GetFolderPathForComponent(source, settings);
             Transform folder = EnsureFolderPath(destRoot, folderPath);
 
-            string objName = source.gameObject.name;
+            string baseName = source.gameObject.name;
+            string objName = GetUniqueChildName(folder, baseName);
             var targetObj = new GameObject(objName);
             targetObj.transform.SetParent(folder);
             targetObj.transform.localPosition = Vector3.zero;
@@ -297,6 +299,22 @@ namespace colloid.PBReplacer
             Undo.RegisterCreatedObjectUndo(targetObj, $"Create {objName}");
 
             return targetObj;
+        }
+
+        /// <summary>
+        /// 親Transform配下で一意な子オブジェクト名を生成する。
+        /// 同名が存在する場合は "_1", "_2", ... のサフィックスを付与する。
+        /// </summary>
+        private static string GetUniqueChildName(Transform parent, string baseName)
+        {
+            if (parent.Find(baseName) == null)
+                return baseName;
+
+            int suffix = 1;
+            while (parent.Find($"{baseName}_{suffix}") != null)
+                suffix++;
+
+            return $"{baseName}_{suffix}";
         }
 
         /// <summary>

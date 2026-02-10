@@ -9,6 +9,8 @@
         <uie:ObjectField name="destination-avatar" label="デスティネーションアバター" type="UnityEngine.GameObject, UnityEngine.CoreModule" binding-path="destinationAvatar" />
     </ui:VisualElement>
 
+    <ui:HelpBox name="humanoid-info-box" style="display: none;" />
+
     <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" class="transplant-section">
         <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
         <ui:Button name="add-rule-button" text="ルール追加" class="transplant-add-button" />

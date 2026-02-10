@@ -19,6 +19,7 @@ namespace colloid.PBReplacer
         private Label _calculatedScaleLabel;
         private Button _transplantButton;
         private HelpBox _statusBox;
+        private HelpBox _humanoidInfoBox;
 
         // プレビュー関連
         private Button _previewButton;
@@ -72,6 +73,7 @@ namespace colloid.PBReplacer
             _calculatedScaleLabel = _root.Q<Label>("calculated-scale-label");
             _transplantButton = _root.Q<Button>("transplant-button");
             _statusBox = _root.Q<HelpBox>("status-box");
+            _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             var addRuleButton = _root.Q<Button>("add-rule-button");
 
             // プレビュー要素を取得
@@ -469,8 +471,41 @@ namespace colloid.PBReplacer
             _previewButton.SetEnabled(true);
             _statusBox.style.display = DisplayStyle.None;
 
+            // 非Humanoidアバターの情報表示
+            UpdateHumanoidInfoBox(sourceObj, destObj);
+
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
+        }
+
+        private void UpdateHumanoidInfoBox(GameObject sourceObj, GameObject destObj)
+        {
+            if (_humanoidInfoBox == null)
+                return;
+
+            var sourceAnimator = sourceObj != null ? sourceObj.GetComponent<Animator>() : null;
+            var destAnimator = destObj != null ? destObj.GetComponent<Animator>() : null;
+
+            bool sourceIsHumanoid = sourceAnimator != null && sourceAnimator.isHuman;
+            bool destIsHumanoid = destAnimator != null && destAnimator.isHuman;
+
+            if (sourceObj != null && destObj != null && (!sourceIsHumanoid || !destIsHumanoid))
+            {
+                var nonHumanoidNames = new System.Collections.Generic.List<string>();
+                if (!sourceIsHumanoid) nonHumanoidNames.Add($"ソース ({sourceObj.name})");
+                if (!destIsHumanoid) nonHumanoidNames.Add($"デスティネーション ({destObj.name})");
+
+                _humanoidInfoBox.text =
+                    $"{string.Join("、", nonHumanoidNames)} は非Humanoidです。" +
+                    "Humanoidボーンマッピングが使用できないため、パス名/ボーン名での解決になります。" +
+                    "必要に応じてパスリマップルールを追加してください。";
+                _humanoidInfoBox.messageType = HelpBoxMessageType.Info;
+                _humanoidInfoBox.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _humanoidInfoBox.style.display = DisplayStyle.None;
+            }
         }
 
         private void UpdateCalculatedScaleLabel()
