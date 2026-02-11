@@ -62,6 +62,10 @@ namespace colloid.PBReplacer
         // 検出結果キャッシュ
         private SourceDetector.DetectionResult _detection;
 
+        // 階層変更検知用
+        private Transform _cachedParent;
+        private int _cachedChildCount;
+
         public override VisualElement CreateInspectorGUI()
         {
             _root = new VisualElement();
@@ -132,7 +136,42 @@ namespace colloid.PBReplacer
             RefreshDetection();
             UpdateSerializedBoneReferences();
 
+            // 階層変更時の自動更新を登録
+            var definition = (TransplantDefinition)target;
+            _cachedParent = definition.transform.parent;
+            _cachedChildCount = definition.transform.childCount;
+            EditorApplication.hierarchyChanged += OnHierarchyChanged;
+
             return _root;
+        }
+
+        private void OnDisable()
+        {
+            EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+        }
+
+        /// <summary>
+        /// 階層変更を検知してインスペクター表示を更新する。
+        /// D&Dで親が変わった場合や子オブジェクトが追加/削除された場合に再検出を実行する。
+        /// </summary>
+        private void OnHierarchyChanged()
+        {
+            if (target == null)
+                return;
+
+            var definition = (TransplantDefinition)target;
+            var currentParent = definition.transform.parent;
+            var currentChildCount = definition.transform.childCount;
+
+            // 親またはコンポーネント構成が変わった場合のみ更新
+            if (currentParent == _cachedParent && currentChildCount == _cachedChildCount)
+                return;
+
+            _cachedParent = currentParent;
+            _cachedChildCount = currentChildCount;
+
+            RefreshDetection();
+            UpdateSerializedBoneReferences();
         }
 
         #region 検出と更新
