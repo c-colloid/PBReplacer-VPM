@@ -139,20 +139,23 @@
 
 .preview-bone-item {
     flex-direction: row;
-    align-items: center;
+    align-items: flex-start;
     padding-left: 4px;
     padding-right: 4px;
+    padding-top: 1px;
+    padding-bottom: 1px;
 }
 
 .preview-bone-item > Label {
     flex-grow: 1;
-    overflow: hidden;
-    -unity-text-overflow-position: end;
+    flex-basis: 0;
     font-size: 11px;
+    -unity-text-align: upper-left;
+    white-space: normal;
 }
 
 .preview-bone-arrow {
-    -unity-text-align: middle-center;
+    -unity-text-align: upper-center;
     width: 24px;
     flex-shrink: 0;
     font-size: 11px;
