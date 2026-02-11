@@ -146,7 +146,6 @@
 
 .preview-bone-item > Label {
     flex-grow: 1;
-    flex-basis: 0;
     overflow: hidden;
     -unity-text-overflow-position: end;
     font-size: 11px;
