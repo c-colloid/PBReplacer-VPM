@@ -136,6 +136,13 @@ namespace colloid.PBReplacer
             RefreshDetection();
             UpdateSerializedBoneReferences();
 
+            // リマップルール変更時にボーン解決サマリーを再評価
+            _root.TrackSerializedObjectValue(serializedObject, _ =>
+            {
+                if (_detection != null)
+                    UpdateResolutionSummary((TransplantDefinition)target);
+            });
+
             // 階層変更時の自動更新を登録
             var definition = (TransplantDefinition)target;
             _cachedParent = definition.transform.parent;
@@ -573,36 +580,46 @@ namespace colloid.PBReplacer
 
         private VisualElement MakeRuleItem()
         {
-            var container = new VisualElement();
-            container.AddToClassList("remap-rule-item");
+            var root = new VisualElement();
+
+            var row = new VisualElement();
+            row.AddToClassList("remap-rule-item");
 
             var enabledToggle = new Toggle();
             enabledToggle.name = "rule-enabled";
-            container.Add(enabledToggle);
+            row.Add(enabledToggle);
 
             var modeField = new EnumField(PathRemapRule.RemapMode.CharacterSubstitution);
             modeField.name = "rule-mode";
-            container.Add(modeField);
+            row.Add(modeField);
 
             var sourcePatternField = new TextField();
             sourcePatternField.name = "rule-source-pattern";
-            container.Add(sourcePatternField);
+            row.Add(sourcePatternField);
 
-            var arrowLabel = new Label("\u2192");
+            var arrowLabel = new Label("\u2194");
             arrowLabel.AddToClassList("remap-rule-arrow");
-            container.Add(arrowLabel);
+            row.Add(arrowLabel);
 
             var destPatternField = new TextField();
             destPatternField.name = "rule-dest-pattern";
-            container.Add(destPatternField);
+            row.Add(destPatternField);
 
             var deleteButton = new Button();
             deleteButton.name = "rule-delete";
             deleteButton.text = "\u2715";
             deleteButton.AddToClassList("remap-rule-delete-button");
-            container.Add(deleteButton);
+            row.Add(deleteButton);
 
-            return container;
+            root.Add(row);
+
+            // モード別ヒントラベル
+            var hintLabel = new Label();
+            hintLabel.name = "rule-hint";
+            hintLabel.AddToClassList("remap-rule-hint");
+            root.Add(hintLabel);
+
+            return root;
         }
 
         private void BindRuleItem(VisualElement element, int index)
@@ -621,6 +638,7 @@ namespace colloid.PBReplacer
             var sourcePatternField = element.Q<TextField>("rule-source-pattern");
             var destPatternField = element.Q<TextField>("rule-dest-pattern");
             var deleteButton = element.Q<Button>("rule-delete");
+            var hintLabel = element.Q<Label>("rule-hint");
 
             enabledToggle.BindProperty(enabledProp);
             modeField.BindProperty(modeProp);
@@ -628,6 +646,30 @@ namespace colloid.PBReplacer
             destPatternField.BindProperty(destPatternProp);
 
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
+
+            // モード別ヒントを更新
+            UpdateRuleHint(hintLabel, (PathRemapRule.RemapMode)modeProp.enumValueIndex);
+            modeField.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.newValue is PathRemapRule.RemapMode mode)
+                    UpdateRuleHint(hintLabel, mode);
+            });
+        }
+
+        private static void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
+        {
+            switch (mode)
+            {
+                case PathRemapRule.RemapMode.PrefixReplace:
+                    hintLabel.text = "パスの先頭を置換  例: J_Bip_C_ \u2194 Bip_C_";
+                    break;
+                case PathRemapRule.RemapMode.CharacterSubstitution:
+                    hintLabel.text = "パス内の文字列を全て置換  例: _L \u2194 .L";
+                    break;
+                case PathRemapRule.RemapMode.RegexReplace:
+                    hintLabel.text = "正規表現パターンで置換  例: Bone(\\d+) \u2194 B$1";
+                    break;
+            }
         }
 
         private void SetupPreviewBoneListView()

@@ -24,6 +24,9 @@
 
     <!-- パスリマップルール -->
     <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" class="transplant-section">
+        <ui:Label name="remap-rules-description"
+            text="ボーン名やパスが異なるアバター間の移植時に使用します。&#10;ルールは双方向に適用されるため、どちらの方向に移植しても同じルールが使えます。"
+            class="remap-rules-description" />
         <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
         <ui:Button name="add-rule-button" text="ルール追加" class="transplant-add-button" />
     </ui:Foldout>
