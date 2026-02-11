@@ -8,9 +8,9 @@ namespace colloid.PBReplacer
     /// AvatarDynamicsフォルダに配置し、フォルダごとD&amp;Dで別アバターに移植する。
     /// ソース/デスティネーションアバターは階層から自動検出される。
     /// </summary>
-    [AddComponentMenu("PBReplacer/PB Remap Definition")]
+    [AddComponentMenu("PBReplacer/PB Remap")]
     [DisallowMultipleComponent]
-    public class PBRemapDefinition : MonoBehaviour
+    public class PBRemap : MonoBehaviour
     {
         [SerializeField]
         [Tooltip("スケールファクターを自動計算するかどうか")]

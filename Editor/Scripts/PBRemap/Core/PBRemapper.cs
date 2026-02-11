@@ -29,12 +29,12 @@ namespace colloid.PBReplacer
     public static class PBRemapper
     {
         /// <summary>
-        /// PBRemapDefinition配下のコンポーネントの外部Transform参照を
+        /// PBRemap配下のコンポーネントの外部Transform参照を
         /// デスティネーションアバターのボーンにリマップする。
         /// </summary>
-        /// <param name="definition">PBRemapDefinition</param>
+        /// <param name="definition">PBRemap</param>
         /// <returns>リマップ結果またはエラーメッセージ</returns>
-        public static Result<RemapResult, string> Remap(PBRemapDefinition definition)
+        public static Result<RemapResult, string> Remap(PBRemap definition)
         {
             // 検出
             var detectResult = SourceDetector.Detect(definition);
@@ -46,7 +46,7 @@ namespace colloid.PBReplacer
             if (detection.DestinationAvatar == null)
                 return Result<RemapResult, string>.Failure(
                     "デスティネーションアバターが検出できません。" +
-                    "PBRemapDefinitionをアバターの子階層に配置してください。");
+                    "PBRemapをアバターの子階層に配置してください。");
 
             if (detection.DestAvatarData == null)
                 return Result<RemapResult, string>.Failure(
@@ -64,7 +64,7 @@ namespace colloid.PBReplacer
         /// ソースアバターのAnimator/Armatureを直接利用してボーンマップを構築する。
         /// </summary>
         private static Result<RemapResult, string> RemapLiveMode(
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection)
         {
             if (detection.SourceAvatarData == null)
@@ -89,7 +89,7 @@ namespace colloid.PBReplacer
         /// Transform参照がnullのため、シリアライズ済みボーンパスとHumanoid情報から解決する。
         /// </summary>
         private static Result<RemapResult, string> RemapPrefabMode(
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection)
         {
             if (definition.SerializedBoneReferences.Count == 0)
@@ -168,7 +168,7 @@ namespace colloid.PBReplacer
         /// ボーンマップを使って全コンポーネントの外部Transform参照をリマップする。
         /// </summary>
         private static Result<RemapResult, string> ExecuteRemap(
-            PBRemapDefinition definition,
+            PBRemap definition,
             Dictionary<Transform, Transform> boneMap,
             float scaleFactor)
         {
@@ -218,7 +218,7 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 単一コンポーネントの外部Transform参照をリマップする。
-        /// 内部参照（PBRemapDefinitionの子孫への参照）はスキップする。
+        /// 内部参照（PBRemapの子孫への参照）はスキップする。
         /// </summary>
         /// <returns>リマップした参照数</returns>
         private static int RemapComponentReferences(
@@ -266,7 +266,7 @@ namespace colloid.PBReplacer
         /// Humanoid祖先 + 相対パス → フルパス + リマップルール → 名前マッチの4段階で解決する。
         /// </summary>
         private static Result<RemapResult, string> ExecuteRemapFromSerialized(
-            PBRemapDefinition definition,
+            PBRemap definition,
             AvatarData destData,
             float scaleFactor)
         {
@@ -466,7 +466,7 @@ namespace colloid.PBReplacer
         #region 共通ヘルパー
 
         /// <summary>
-        /// PBRemapDefinition配下の全VRCコンポーネントを収集する。
+        /// PBRemap配下の全VRCコンポーネントを収集する。
         /// </summary>
         private static List<Component> CollectVRCComponents(Transform root)
         {
@@ -587,10 +587,10 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// PBRemapDefinitionの設定に基づいてスケールファクターを算出する。
+        /// PBRemapの設定に基づいてスケールファクターを算出する。
         /// </summary>
         private static float CalculateScaleFactor(
-            PBRemapDefinition definition, AvatarData sourceData, AvatarData destData)
+            PBRemap definition, AvatarData sourceData, AvatarData destData)
         {
             if (!definition.AutoCalculateScale)
                 return definition.ScaleFactor;

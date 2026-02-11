@@ -6,9 +6,9 @@ namespace colloid.PBReplacer
 {
     /// <summary>
     /// NDMF ビルドパス。
-    /// アバタークローン上の PBRemapDefinition を検出し、
+    /// アバタークローン上の PBRemap を検出し、
     /// PBRemapper でボーン参照をリマップした後、
-    /// PBRemapDefinition コンポーネントを除去する。
+    /// PBRemap コンポーネントを除去する。
     /// </summary>
     public class PBRemapNDMFPass : Pass<PBRemapNDMFPass>
     {
@@ -17,7 +17,7 @@ namespace colloid.PBReplacer
         protected override void Execute(BuildContext context)
         {
             var definitions = context.AvatarRootTransform
-                .GetComponentsInChildren<PBRemapDefinition>(true);
+                .GetComponentsInChildren<PBRemap>(true);
 
             if (definitions.Length == 0)
                 return;
@@ -52,7 +52,7 @@ namespace colloid.PBReplacer
                     }
                 );
 
-                // PBRemapDefinition はランタイムでは不要なため除去する。
+                // PBRemap はランタイムでは不要なため除去する。
                 // NDMF はクローン上で動作するため、元のシーンには影響しない。
                 Object.DestroyImmediate(definition);
             }

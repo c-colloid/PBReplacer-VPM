@@ -33,21 +33,21 @@ namespace colloid.PBReplacer
     public static class PBRemapPreview
     {
         /// <summary>
-        /// PBRemapDefinitionとDetectionResultに基づき移植プレビューを生成する。
+        /// PBRemapとDetectionResultに基づき移植プレビューを生成する。
         /// 副作用は一切ない。
         /// </summary>
         /// <param name="definition">移植定義</param>
         /// <param name="detection">SourceDetectorの検出結果</param>
         /// <returns>プレビューデータ</returns>
         public static PBRemapPreviewData GeneratePreview(
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection)
         {
             var preview = new PBRemapPreviewData();
 
             if (definition == null)
             {
-                preview.Warnings.Add("PBRemapDefinitionがnullです");
+                preview.Warnings.Add("PBRemapがnullです");
                 return preview;
             }
 
@@ -102,7 +102,7 @@ namespace colloid.PBReplacer
         /// </summary>
         private static void GenerateLiveModePreview(
             PBRemapPreviewData preview,
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection,
             Transform definitionRoot,
             List<PathRemapRule> remapRules)
@@ -189,7 +189,7 @@ namespace colloid.PBReplacer
         /// </summary>
         private static void GeneratePrefabModePreview(
             PBRemapPreviewData preview,
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection)
         {
             if (definition.SerializedBoneReferences.Count == 0)

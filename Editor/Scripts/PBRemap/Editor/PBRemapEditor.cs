@@ -12,8 +12,8 @@ using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
-    [CustomEditor(typeof(PBRemapDefinition))]
-    public class PBRemapDefinitionEditor : Editor
+    [CustomEditor(typeof(PBRemap))]
+    public class PBRemapEditor : Editor
     {
         private VisualElement _root;
 
@@ -70,17 +70,17 @@ namespace colloid.PBReplacer
             _sourceAvatarScaleProp = serializedObject.FindProperty("sourceAvatarScale");
 
             // UXMLをロード
-            var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemapDefinition");
+            var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemap");
             if (visualTree == null)
             {
-                _root.Add(new HelpBox("PBRemapDefinition.uxml が見つかりません", HelpBoxMessageType.Error));
+                _root.Add(new HelpBox("PBRemap.uxml が見つかりません", HelpBoxMessageType.Error));
                 return _root;
             }
 
             visualTree.CloneTree(_root);
 
             // USSをロード
-            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemapDefinition");
+            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null)
                 _root.styleSheets.Add(styleSheet);
 
@@ -136,7 +136,7 @@ namespace colloid.PBReplacer
             {
                 if (_detection == null)
                     return;
-                var def = (PBRemapDefinition)target;
+                var def = (PBRemap)target;
                 UpdateResolutionSummary(def);
 
                 if (EditorWindow.HasOpenInstances<PBRemapPreviewWindow>())
@@ -144,7 +144,7 @@ namespace colloid.PBReplacer
             });
 
             // 階層変更時の自動更新を登録
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
             _cachedParent = definition.transform.parent;
             _cachedChildCount = definition.transform.childCount;
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -165,7 +165,7 @@ namespace colloid.PBReplacer
             if (target == null)
                 return;
 
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
             var currentParent = definition.transform.parent;
             var currentChildCount = definition.transform.childCount;
 
@@ -183,7 +183,7 @@ namespace colloid.PBReplacer
 
         private void RefreshDetection()
         {
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
             var detectResult = SourceDetector.Detect(definition);
 
             if (detectResult.IsFailure)
@@ -260,7 +260,7 @@ namespace colloid.PBReplacer
             _statusBox.style.display = DisplayStyle.None;
         }
 
-        private void UpdateStateBox(PBRemapDefinition definition)
+        private void UpdateStateBox(PBRemap definition)
         {
             if (_detection.DestinationAvatar == null)
             {
@@ -289,7 +289,7 @@ namespace colloid.PBReplacer
             }
         }
 
-        private void UpdateResolutionSummary(PBRemapDefinition definition)
+        private void UpdateResolutionSummary(PBRemap definition)
         {
             bool canCheck = _detection.DestinationAvatar != null
                 && _detection.DestAvatarData != null
@@ -329,7 +329,7 @@ namespace colloid.PBReplacer
             }
         }
 
-        private void UpdateComponentsSummary(PBRemapDefinition definition)
+        private void UpdateComponentsSummary(PBRemap definition)
         {
             var root = definition.transform;
             int pb = root.GetComponentsInChildren<VRCPhysBone>(true).Length;
@@ -387,7 +387,7 @@ namespace colloid.PBReplacer
             if (_detection.SourceAvatarData == null)
                 return;
 
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
             var definitionRoot = definition.transform;
             var sourceData = _detection.SourceAvatarData;
             var sourceArmature = sourceData.Armature.transform;
@@ -675,7 +675,7 @@ namespace colloid.PBReplacer
 
         private void OnPreviewClicked()
         {
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
             if (_detection != null)
                 PBRemapPreviewWindow.Open(definition, _detection);
         }
@@ -683,7 +683,7 @@ namespace colloid.PBReplacer
         private void OnRemapClicked()
         {
             serializedObject.Update();
-            var definition = (PBRemapDefinition)target;
+            var definition = (PBRemap)target;
 
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
@@ -768,7 +768,7 @@ namespace colloid.PBReplacer
                 else if (!_detection.IsLiveMode
                     && _detection.DestAvatarData != null)
                 {
-                    var definition = (PBRemapDefinition)target;
+                    var definition = (PBRemap)target;
                     if (definition.SourceAvatarScale > 0)
                     {
                         float destScale = PBRemapper.CalculateAvatarScale(_detection.DestAvatarData);

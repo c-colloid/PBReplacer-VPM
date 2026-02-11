@@ -11,7 +11,7 @@ using VRC.SDKBase;
 namespace colloid.PBReplacer
 {
     /// <summary>
-    /// PBRemapDefinitionの配置状態からソースアバター・デスティネーションアバターを自動検出する。
+    /// PBRemapの配置状態からソースアバター・デスティネーションアバターを自動検出する。
     /// </summary>
     public static class SourceDetector
     {
@@ -43,14 +43,14 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// PBRemapDefinitionの配置と子コンポーネントのTransform参照からアバターを検出する。
+        /// PBRemapの配置と子コンポーネントのTransform参照からアバターを検出する。
         /// </summary>
-        /// <param name="definition">PBRemapDefinition</param>
+        /// <param name="definition">PBRemap</param>
         /// <returns>検出結果</returns>
-        public static Result<DetectionResult, string> Detect(PBRemapDefinition definition)
+        public static Result<DetectionResult, string> Detect(PBRemap definition)
         {
             if (definition == null)
-                return Result<DetectionResult, string>.Failure("PBRemapDefinitionがnullです");
+                return Result<DetectionResult, string>.Failure("PBRemapがnullです");
 
             var result = new DetectionResult();
 
@@ -113,7 +113,7 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 親階層を辿ってVRC_AvatarDescriptorを持つGameObjectを探す。
-        /// PBRemapDefinition自身のGameObjectは除外する。
+        /// PBRemap自身のGameObjectは除外する。
         /// </summary>
         private static VRC_AvatarDescriptor FindAvatarDescriptorInParent(Transform current)
         {
@@ -132,7 +132,7 @@ namespace colloid.PBReplacer
         /// 子コンポーネントの外部Transform参照からソースアバターを検出する。
         /// 最も多くの参照が指しているVRC_AvatarDescriptor配下のアバターを返す。
         /// </summary>
-        private static GameObject DetectSourceFromChildComponents(PBRemapDefinition definition)
+        private static GameObject DetectSourceFromChildComponents(PBRemap definition)
         {
             var externalTransforms = CollectExternalTransformReferences(definition);
             if (externalTransforms.Count == 0)
@@ -158,10 +158,10 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// PBRemapDefinition配下の全VRCコンポーネントから外部Transform参照を収集する。
-        /// 内部参照（PBRemapDefinitionの子孫オブジェクトへの参照）は除外する。
+        /// PBRemap配下の全VRCコンポーネントから外部Transform参照を収集する。
+        /// 内部参照（PBRemapの子孫オブジェクトへの参照）は除外する。
         /// </summary>
-        public static List<Transform> CollectExternalTransformReferences(PBRemapDefinition definition)
+        public static List<Transform> CollectExternalTransformReferences(PBRemap definition)
         {
             var result = new List<Transform>();
             var definitionRoot = definition.transform;

@@ -21,7 +21,7 @@ PBReplacerはVRChatアバター開発用のUnityエディタ拡張です。ア�
 
 ```
 Runtime/Scripts/           - Runtimeコード（MonoBehaviour、Serializableデータクラス）
-  PBRemapDefinition.cs     - 移植設定MonoBehaviour（PB Remap Definition）
+  PBRemap.cs               - 移植設定MonoBehaviour（PB Remap）
   PathRemapRule.cs         - パスリマップルール
   BoneMapping.cs           - ボーンマッピングプレビュー用データ
 
@@ -32,7 +32,7 @@ Editor/Scripts/
   Processing/     - コンポーネント処理ロジック
   PBRemap/        - 移植機能（PBRemap）
     Core/         - 移植コアロジック（BoneMapper、PBRemapper、ScaleCalculator、SourceDetector）
-    Editor/       - 移植UI（PBRemapDefinitionEditor、PBRemapPreviewWindow）
+    Editor/       - 移植UI（PBRemapEditor、PBRemapPreviewWindow）
     NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
   UI/Elements/    - カスタムUI要素
   UI/Handlers/    - UIイベントハンドラ
@@ -86,7 +86,7 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
 
 `#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
-PBRemapDefinitionを`BuildPhase.Generating`で自動処理し、ランタイムでは除去する。
+PBRemapコンポーネントを`BuildPhase.Generating`で自動処理し、ランタイムでは除去する。
 
 ## リリースプロセス
 

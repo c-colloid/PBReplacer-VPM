@@ -7,7 +7,7 @@ namespace colloid.PBReplacer
 {
     /// <summary>
     /// NDMF プラグイン定義。
-    /// PBRemapDefinition コンポーネントをビルド時に処理する。
+    /// PBRemap コンポーネントをビルド時に処理する。
     /// </summary>
     public class PBRemapNDMFPlugin : Plugin<PBRemapNDMFPlugin>
     {

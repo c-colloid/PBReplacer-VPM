@@ -6,7 +6,7 @@ namespace colloid.PBReplacer
 {
     public class PBRemapPreviewWindow : EditorWindow
     {
-        private PBRemapDefinition _definition;
+        private PBRemap _definition;
         private SourceDetector.DetectionResult _detection;
         private PBRemapPreviewData _preview;
 
@@ -15,7 +15,7 @@ namespace colloid.PBReplacer
         private VisualElement _warningsContainer;
 
         public static PBRemapPreviewWindow Open(
-            PBRemapDefinition definition,
+            PBRemap definition,
             SourceDetector.DetectionResult detection)
         {
             var window = GetWindow<PBRemapPreviewWindow>(true, "移植プレビュー");
@@ -54,7 +54,7 @@ namespace colloid.PBReplacer
             }
 
             // USSをロード（UXMLから読めない場合のフォールバック）
-            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemapDefinition");
+            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null)
                 root.styleSheets.Add(styleSheet);
 

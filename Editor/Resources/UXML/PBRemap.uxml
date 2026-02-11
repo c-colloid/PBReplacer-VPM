@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemapDefinition.uss" />
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss" />
 
     <!-- 検出状態セクション -->
