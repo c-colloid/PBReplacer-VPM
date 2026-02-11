@@ -136,11 +136,20 @@ namespace colloid.PBReplacer
             RefreshDetection();
             UpdateSerializedBoneReferences();
 
-            // リマップルール変更時にボーン解決サマリーを再評価
+            // リマップルール変更時にボーン解決を再評価
             _root.TrackSerializedObjectValue(serializedObject, _ =>
             {
-                if (_detection != null)
-                    UpdateResolutionSummary((TransplantDefinition)target);
+                if (_detection == null)
+                    return;
+                var def = (TransplantDefinition)target;
+                UpdateResolutionSummary(def);
+
+                // プレビュー表示中ならボーンマッピングも再生成
+                if (_currentPreview != null)
+                {
+                    _currentPreview = TransplantPreview.GeneratePreview(def, _detection);
+                    DisplayPreview();
+                }
             });
 
             // 階層変更時の自動更新を登録
