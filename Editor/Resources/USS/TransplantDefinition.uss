@@ -1,25 +1,8 @@
-.transplant-header {
-    font-size: 16px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    margin-bottom: 4px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(85, 85, 85);
-}
-
 .transplant-section {
     margin-left: 3px;
     margin-right: 3px;
     margin-top: 4px;
     margin-bottom: 4px;
-}
-
-.transplant-section > ObjectField {
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 2px;
 }
 
 .transplant-add-button {
@@ -68,12 +51,9 @@
 }
 
 .transplant-execute-button {
-    width: 120px;
     height: 28px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 8px;
-    margin-bottom: 4px;
+    padding-left: 16px;
+    padding-right: 16px;
     -unity-font-style: bold;
     font-size: 13px;
     background-color: var(--unity-colors-highlight-background);
@@ -146,21 +126,7 @@
     white-space: normal;
 }
 
-/* プレビューセクション */
-
-.transplant-preview-button {
-    width: 100px;
-    height: 24px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 4px;
-    margin-bottom: 4px;
-    border-radius: 4px;
-}
-
-.transplant-preview-button:disabled {
-    opacity: 0.5;
-}
+/* プレビューウィンドウ */
 
 .preview-summary-label {
     -unity-font-style: bold;
@@ -216,4 +182,5 @@
     font-size: 11px;
     color: rgb(220, 180, 50);
     flex-grow: 1;
+    white-space: normal;
 }

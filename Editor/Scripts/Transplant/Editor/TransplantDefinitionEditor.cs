@@ -31,6 +31,7 @@ namespace colloid.PBReplacer
 
         // リマップルール
         private ListView _rulesListView;
+        private bool _showRuleHints;
 
         // スケール
         private Toggle _autoScaleToggle;
@@ -38,17 +39,8 @@ namespace colloid.PBReplacer
         private FloatField _scaleFactorField;
         private Label _calculatedScaleLabel;
 
-        // プレビュー
-        private Button _previewButton;
-        private Foldout _previewFoldout;
-        private Label _previewSummary;
-        private ListView _previewBoneList;
-        private Foldout _previewBoneFoldout;
-        private ListView _previewWarningsList;
-        private Foldout _previewWarningsFoldout;
-        private TransplantPreviewData _currentPreview;
-
         // アクション
+        private Button _previewButton;
         private Button _transplantButton;
         private HelpBox _statusBox;
 
@@ -107,12 +99,6 @@ namespace colloid.PBReplacer
             _scaleFactorField = _root.Q<FloatField>("scale-factor-field");
             _calculatedScaleLabel = _root.Q<Label>("calculated-scale-label");
             _previewButton = _root.Q<Button>("preview-button");
-            _previewFoldout = _root.Q<Foldout>("preview-foldout");
-            _previewSummary = _root.Q<Label>("preview-summary");
-            _previewBoneList = _root.Q<ListView>("preview-bone-list");
-            _previewBoneFoldout = _root.Q<Foldout>("preview-bone-foldout");
-            _previewWarningsList = _root.Q<ListView>("preview-warnings-list");
-            _previewWarningsFoldout = _root.Q<Foldout>("preview-warnings-foldout");
             _transplantButton = _root.Q<Button>("transplant-button");
             _statusBox = _root.Q<HelpBox>("status-box");
             var addRuleButton = _root.Q<Button>("add-rule-button");
@@ -122,14 +108,23 @@ namespace colloid.PBReplacer
 
             // ListView設定
             SetupRemapRulesListView();
-            SetupPreviewBoneListView();
-            SetupPreviewWarningsListView();
 
             // イベント登録
             _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
             addRuleButton.clicked += OnAddRuleClicked;
             _transplantButton.clicked += OnTransplantClicked;
             _previewButton.clicked += OnPreviewClicked;
+
+            // ルールヘルプ表示切替
+            var helpFoldout = _root.Q<Foldout>("remap-rules-help");
+            if (helpFoldout != null)
+            {
+                helpFoldout.RegisterValueChangedCallback(evt =>
+                {
+                    _showRuleHints = evt.newValue;
+                    _rulesListView.Rebuild();
+                });
+            }
 
             // 初期状態を設定
             OnAutoScaleChanged(_autoCalculateScaleProp.boolValue);
@@ -144,12 +139,8 @@ namespace colloid.PBReplacer
                 var def = (TransplantDefinition)target;
                 UpdateResolutionSummary(def);
 
-                // プレビュー表示中ならボーンマッピングも再生成
-                if (_currentPreview != null)
-                {
-                    _currentPreview = TransplantPreview.GeneratePreview(def, _detection);
-                    DisplayPreview();
-                }
+                if (HasOpenInstances<TransplantPreviewWindow>())
+                    GetWindow<TransplantPreviewWindow>().RefreshPreview();
             });
 
             // 階層変更時の自動更新を登録
@@ -168,7 +159,6 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 階層変更を検知してインスペクター表示を更新する。
-        /// D&Dで親が変わった場合や子オブジェクトが追加/削除された場合に再検出を実行する。
         /// </summary>
         private void OnHierarchyChanged()
         {
@@ -179,7 +169,6 @@ namespace colloid.PBReplacer
             var currentParent = definition.transform.parent;
             var currentChildCount = definition.transform.childCount;
 
-            // 親またはコンポーネント構成が変わった場合のみ更新
             if (currentParent == _cachedParent && currentChildCount == _cachedChildCount)
                 return;
 
@@ -192,9 +181,6 @@ namespace colloid.PBReplacer
 
         #region 検出と更新
 
-        /// <summary>
-        /// SourceDetectorを実行し、UIを更新する。
-        /// </summary>
         private void RefreshDetection()
         {
             var definition = (TransplantDefinition)target;
@@ -239,10 +225,8 @@ namespace colloid.PBReplacer
                 _modeLabel.text = "";
             }
 
-            // 状態に応じたステータスボックス表示
             UpdateTransplantStateBox(definition);
 
-            // 検出エラー警告（解析失敗等）
             if (_detection.Warnings.Count > 0)
             {
                 _detectionWarningBox.text = string.Join("\n", _detection.Warnings);
@@ -254,13 +238,9 @@ namespace colloid.PBReplacer
                 _detectionWarningBox.style.display = DisplayStyle.None;
             }
 
-            // コンポーネント一覧更新
             UpdateComponentsSummary(definition);
-
-            // Humanoid情報更新
             UpdateHumanoidInfoBox();
 
-            // ボタン有効化判定
             bool canOperate = !_detection.IsReferencingDestination
                 && _detection.DestinationAvatar != null
                 && (_detection.IsLiveMode && _detection.SourceAvatar != null
@@ -268,20 +248,18 @@ namespace colloid.PBReplacer
             _transplantButton.SetEnabled(canOperate);
             _previewButton.SetEnabled(canOperate || _detection.IsReferencingDestination);
 
-            // ボーン解決サマリーを自動更新
             UpdateResolutionSummary(definition);
 
-            // スケールラベル更新
+            // プレビューウィンドウが開いていれば検出結果を更新
+            if (HasOpenInstances<TransplantPreviewWindow>())
+                GetWindow<TransplantPreviewWindow>().UpdateDetection(_detection);
+
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
 
-            // ステータス初期化
             _statusBox.style.display = DisplayStyle.None;
         }
 
-        /// <summary>
-        /// 移植の状態に応じたHelpBoxメッセージを表示する。
-        /// </summary>
         private void UpdateTransplantStateBox(TransplantDefinition definition)
         {
             if (_detection.DestinationAvatar == null)
@@ -300,7 +278,6 @@ namespace colloid.PBReplacer
             else if (_detection.IsLiveMode && _detection.SourceAvatar != null
                 || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
             {
-                // 移植準備完了 — ステートボックスは非表示（検出ラベルで十分）
                 _transplantStateBox.style.display = DisplayStyle.None;
             }
             else
@@ -312,13 +289,8 @@ namespace colloid.PBReplacer
             }
         }
 
-        /// <summary>
-        /// ボーン解決状態を自動チェックし、コンポーネント一覧の下にサマリーを表示する。
-        /// プレビューを開かなくても未解決ボーンが一目で分かるようにする。
-        /// </summary>
         private void UpdateResolutionSummary(TransplantDefinition definition)
         {
-            // 移植可能な状態でのみチェックを実行
             bool canCheck = _detection.DestinationAvatar != null
                 && _detection.DestAvatarData != null
                 && !_detection.IsReferencingDestination
@@ -331,7 +303,6 @@ namespace colloid.PBReplacer
                 return;
             }
 
-            // 軽量プレビューを実行（副作用なし）
             var preview = TransplantPreview.GeneratePreview(definition, _detection);
             int total = preview.ResolvedBones + preview.UnresolvedBones;
 
@@ -358,9 +329,6 @@ namespace colloid.PBReplacer
             }
         }
 
-        /// <summary>
-        /// 配下のVRCコンポーネント数を集計して表示する。
-        /// </summary>
         private void UpdateComponentsSummary(TransplantDefinition definition)
         {
             var root = definition.transform;
@@ -376,9 +344,6 @@ namespace colloid.PBReplacer
                 $"(合計: {total})";
         }
 
-        /// <summary>
-        /// 非Humanoidアバターの情報を表示する。
-        /// </summary>
         private void UpdateHumanoidInfoBox()
         {
             if (_humanoidInfoBox == null || _detection == null)
@@ -415,10 +380,6 @@ namespace colloid.PBReplacer
             }
         }
 
-        /// <summary>
-        /// Custom Editorが表示されている間、シリアライズ済みボーン参照データを自動更新する。
-        /// Prefab化時にこのデータが保持されるため、Inspector表示時に常に最新化しておく。
-        /// </summary>
         private void UpdateSerializedBoneReferences()
         {
             if (_detection == null || !_detection.IsLiveMode)
@@ -432,7 +393,6 @@ namespace colloid.PBReplacer
             var sourceArmature = sourceData.Armature.transform;
             var sourceAnimator = sourceData.AvatarAnimator;
 
-            // Humanoidボーンの逆引きマップ構築
             var humanoidBoneMap = new Dictionary<Transform, HumanBodyBones>();
             if (sourceAnimator != null && sourceAnimator.isHuman)
             {
@@ -445,14 +405,12 @@ namespace colloid.PBReplacer
                 }
             }
 
-            // 全VRCコンポーネントのTransform参照をスキャンしてシリアライズ
             var boneRefs = new List<SerializedBoneReference>();
             ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
             ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
             ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
             ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
 
-            // SerializedObjectとして書き込み
             serializedObject.Update();
             _serializedBoneRefsProp.ClearArray();
             for (int i = 0; i < boneRefs.Count; i++)
@@ -469,16 +427,12 @@ namespace colloid.PBReplacer
                 element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
             }
 
-            // ソースアバタースケールも保存
             float sourceScale = TransplantRemapper.CalculateAvatarScale(sourceData);
             _sourceAvatarScaleProp.floatValue = sourceScale;
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        /// <summary>
-        /// 指定コンポーネント型の全インスタンスからTransform参照をスキャンする。
-        /// </summary>
         private void ScanComponentReferences<T>(
             Transform definitionRoot,
             Transform sourceArmature,
@@ -499,16 +453,13 @@ namespace colloid.PBReplacer
                     if (objRef == null)
                         continue;
 
-                    // 内部参照はスキップ
                     if (objRef.IsChildOf(definitionRoot))
                         continue;
 
-                    // ボーンの相対パスを計算
                     string relativePath = BoneMapper.GetRelativePath(objRef, sourceArmature);
                     if (relativePath == null)
                         continue;
 
-                    // コンポーネントオブジェクトの相対パス
                     string componentPath = GetRelativePath(component.transform, definitionRoot);
                     if (componentPath == null)
                         continue;
@@ -524,13 +475,11 @@ namespace colloid.PBReplacer
                         pathFromHumanoidAncestor = ""
                     };
 
-                    // Humanoidボーン情報を付与
                     if (humanoidBoneMap.TryGetValue(objRef, out var humanBone))
                     {
                         boneRef.humanBodyBone = humanBone;
                     }
 
-                    // 最寄りHumanoid祖先を探索
                     var ancestor = objRef.parent;
                     var pathSegments = new List<string> { objRef.name };
                     while (ancestor != null && ancestor != sourceArmature.parent)
@@ -539,7 +488,6 @@ namespace colloid.PBReplacer
                         {
                             boneRef.nearestHumanoidAncestor = ancestorBone;
                             pathSegments.Reverse();
-                            // 祖先自身は含めず、その子からのパス
                             boneRef.pathFromHumanoidAncestor = string.Join("/", pathSegments);
                             break;
                         }
@@ -552,9 +500,6 @@ namespace colloid.PBReplacer
             }
         }
 
-        /// <summary>
-        /// rootからtargetまでの相対パスを取得する。
-        /// </summary>
         private static string GetRelativePath(Transform target, Transform root)
         {
             if (target == root) return "";
@@ -622,11 +567,17 @@ namespace colloid.PBReplacer
 
             root.Add(row);
 
-            // モード別ヒントラベル
             var hintLabel = new Label();
             hintLabel.name = "rule-hint";
             hintLabel.AddToClassList("remap-rule-hint");
             root.Add(hintLabel);
+
+            // モード変更時にヒントを更新（makeItemで1回だけ登録）
+            modeField.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.newValue is PathRemapRule.RemapMode mode)
+                    UpdateRuleHint(hintLabel, mode);
+            });
 
             return root;
         }
@@ -656,13 +607,8 @@ namespace colloid.PBReplacer
 
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
 
-            // モード別ヒントを更新
             UpdateRuleHint(hintLabel, (PathRemapRule.RemapMode)modeProp.enumValueIndex);
-            modeField.RegisterValueChangedCallback(evt =>
-            {
-                if (evt.newValue is PathRemapRule.RemapMode mode)
-                    UpdateRuleHint(hintLabel, mode);
-            });
+            hintLabel.style.display = _showRuleHints ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private static void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
@@ -679,86 +625,6 @@ namespace colloid.PBReplacer
                     hintLabel.text = "正規表現パターンで置換  例: Bone(\\d+) \u2194 B$1";
                     break;
             }
-        }
-
-        private void SetupPreviewBoneListView()
-        {
-            _previewBoneList.virtualizationMethod = CollectionVirtualizationMethod.FixedHeight;
-            _previewBoneList.fixedItemHeight = 22;
-            _previewBoneList.selectionType = SelectionType.None;
-
-            _previewBoneList.makeItem = () =>
-            {
-                var container = new VisualElement();
-                container.AddToClassList("preview-bone-item");
-
-                var sourceLabel = new Label();
-                sourceLabel.name = "bone-source";
-                container.Add(sourceLabel);
-
-                var arrow = new Label("\u2192");
-                arrow.AddToClassList("preview-bone-arrow");
-                container.Add(arrow);
-
-                var destLabel = new Label();
-                destLabel.name = "bone-dest";
-                container.Add(destLabel);
-
-                return container;
-            };
-
-            _previewBoneList.bindItem = (element, index) =>
-            {
-                if (_currentPreview == null || index >= _currentPreview.BoneMappings.Count)
-                    return;
-
-                var mapping = _currentPreview.BoneMappings[index];
-                var sourceLabel = element.Q<Label>("bone-source");
-                var destLabel = element.Q<Label>("bone-dest");
-
-                sourceLabel.text = mapping.sourceBonePath;
-
-                if (mapping.resolved)
-                {
-                    destLabel.text = mapping.destinationBonePath;
-                    element.RemoveFromClassList("preview-bone-unresolved");
-                    element.AddToClassList("preview-bone-resolved");
-                }
-                else
-                {
-                    destLabel.text = mapping.errorMessage ?? "未解決";
-                    element.RemoveFromClassList("preview-bone-resolved");
-                    element.AddToClassList("preview-bone-unresolved");
-                }
-            };
-        }
-
-        private void SetupPreviewWarningsListView()
-        {
-            _previewWarningsList.virtualizationMethod = CollectionVirtualizationMethod.FixedHeight;
-            _previewWarningsList.fixedItemHeight = 22;
-            _previewWarningsList.selectionType = SelectionType.None;
-
-            _previewWarningsList.makeItem = () =>
-            {
-                var container = new VisualElement();
-                container.AddToClassList("preview-warning-item");
-
-                var label = new Label();
-                label.name = "warning-text";
-                container.Add(label);
-
-                return container;
-            };
-
-            _previewWarningsList.bindItem = (element, index) =>
-            {
-                if (_currentPreview == null || index >= _currentPreview.Warnings.Count)
-                    return;
-
-                var label = element.Q<Label>("warning-text");
-                label.text = _currentPreview.Warnings[index];
-            };
         }
 
         #endregion
@@ -809,13 +675,9 @@ namespace colloid.PBReplacer
 
         private void OnPreviewClicked()
         {
-            serializedObject.Update();
             var definition = (TransplantDefinition)target;
-
-            // 再検出してプレビュー生成
-            RefreshDetection();
-            _currentPreview = TransplantPreview.GeneratePreview(definition, _detection);
-            DisplayPreview();
+            if (_detection != null)
+                TransplantPreviewWindow.Open(definition, _detection);
         }
 
         private void OnTransplantClicked()
@@ -823,7 +685,6 @@ namespace colloid.PBReplacer
             serializedObject.Update();
             var definition = (TransplantDefinition)target;
 
-            // 確認ダイアログ
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
             {
@@ -844,7 +705,6 @@ namespace colloid.PBReplacer
                     return;
             }
 
-            // リマップ実行
             var result = TransplantRemapper.Remap(definition);
 
             result.Match(
@@ -870,7 +730,6 @@ namespace colloid.PBReplacer
                         : HelpBoxMessageType.Info;
                     _statusBox.style.display = DisplayStyle.Flex;
 
-                    // 検出状態を更新（リマップ後は参照先が変わっている）
                     RefreshDetection();
                 },
                 onFailure: error =>
@@ -879,59 +738,6 @@ namespace colloid.PBReplacer
                     _statusBox.messageType = HelpBoxMessageType.Error;
                     _statusBox.style.display = DisplayStyle.Flex;
                 });
-        }
-
-        #endregion
-
-        #region プレビュー
-
-        private void DisplayPreview()
-        {
-            if (_currentPreview == null)
-            {
-                ClearPreview();
-                return;
-            }
-
-            int totalBones = _currentPreview.ResolvedBones + _currentPreview.UnresolvedBones;
-
-            _previewSummary.text =
-                $"PB:{_currentPreview.TotalPhysBones} " +
-                $"PBC:{_currentPreview.TotalPhysBoneColliders} " +
-                $"Constraint:{_currentPreview.TotalConstraints} " +
-                $"Contact:{_currentPreview.TotalContacts}" +
-                $" | ボーン解決: {_currentPreview.ResolvedBones}/{totalBones}" +
-                $" | スケール: {_currentPreview.CalculatedScaleFactor:F3}";
-
-            _previewBoneList.itemsSource = _currentPreview.BoneMappings;
-            _previewBoneList.style.height = Mathf.Min(
-                _currentPreview.BoneMappings.Count * 22, 200);
-            _previewBoneList.Rebuild();
-
-            if (_currentPreview.Warnings.Count > 0)
-            {
-                _previewWarningsList.itemsSource = _currentPreview.Warnings;
-                _previewWarningsList.style.height = Mathf.Min(
-                    _currentPreview.Warnings.Count * 22, 110);
-                _previewWarningsList.Rebuild();
-                _previewWarningsFoldout.style.display = DisplayStyle.Flex;
-                _previewWarningsFoldout.value = true;
-            }
-            else
-            {
-                _previewWarningsFoldout.style.display = DisplayStyle.None;
-            }
-
-            _previewFoldout.style.display = DisplayStyle.Flex;
-            _previewFoldout.value = true;
-            _previewBoneFoldout.value = true;
-        }
-
-        private void ClearPreview()
-        {
-            _currentPreview = null;
-            _previewFoldout.style.display = DisplayStyle.None;
-            _previewFoldout.value = false;
         }
 
         #endregion
