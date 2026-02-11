@@ -26,15 +26,15 @@ namespace colloid.PBReplacer
     /// 既存コンポーネントの参照書き換えに特化しており、
     /// Live（同一シーン）モードとPrefab（シリアライズデータ）モードの両方に対応する。
     /// </summary>
-    public static class TransplantRemapper
+    public static class PBRemapper
     {
         /// <summary>
-        /// TransplantDefinition配下のコンポーネントの外部Transform参照を
+        /// PBRemapDefinition配下のコンポーネントの外部Transform参照を
         /// デスティネーションアバターのボーンにリマップする。
         /// </summary>
-        /// <param name="definition">TransplantDefinition</param>
+        /// <param name="definition">PBRemapDefinition</param>
         /// <returns>リマップ結果またはエラーメッセージ</returns>
-        public static Result<RemapResult, string> Remap(TransplantDefinition definition)
+        public static Result<RemapResult, string> Remap(PBRemapDefinition definition)
         {
             // 検出
             var detectResult = SourceDetector.Detect(definition);
@@ -46,7 +46,7 @@ namespace colloid.PBReplacer
             if (detection.DestinationAvatar == null)
                 return Result<RemapResult, string>.Failure(
                     "デスティネーションアバターが検出できません。" +
-                    "TransplantDefinitionをアバターの子階層に配置してください。");
+                    "PBRemapDefinitionをアバターの子階層に配置してください。");
 
             if (detection.DestAvatarData == null)
                 return Result<RemapResult, string>.Failure(
@@ -64,7 +64,7 @@ namespace colloid.PBReplacer
         /// ソースアバターのAnimator/Armatureを直接利用してボーンマップを構築する。
         /// </summary>
         private static Result<RemapResult, string> RemapLiveMode(
-            TransplantDefinition definition,
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection)
         {
             if (detection.SourceAvatarData == null)
@@ -89,7 +89,7 @@ namespace colloid.PBReplacer
         /// Transform参照がnullのため、シリアライズ済みボーンパスとHumanoid情報から解決する。
         /// </summary>
         private static Result<RemapResult, string> RemapPrefabMode(
-            TransplantDefinition definition,
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection)
         {
             if (definition.SerializedBoneReferences.Count == 0)
@@ -168,7 +168,7 @@ namespace colloid.PBReplacer
         /// ボーンマップを使って全コンポーネントの外部Transform参照をリマップする。
         /// </summary>
         private static Result<RemapResult, string> ExecuteRemap(
-            TransplantDefinition definition,
+            PBRemapDefinition definition,
             Dictionary<Transform, Transform> boneMap,
             float scaleFactor)
         {
@@ -177,7 +177,7 @@ namespace colloid.PBReplacer
 
             Undo.IncrementCurrentGroup();
             int undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName("Transplant Remap");
+            Undo.SetCurrentGroupName("PBRemap");
 
             try
             {
@@ -218,7 +218,7 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 単一コンポーネントの外部Transform参照をリマップする。
-        /// 内部参照（TransplantDefinitionの子孫への参照）はスキップする。
+        /// 内部参照（PBRemapDefinitionの子孫への参照）はスキップする。
         /// </summary>
         /// <returns>リマップした参照数</returns>
         private static int RemapComponentReferences(
@@ -266,7 +266,7 @@ namespace colloid.PBReplacer
         /// Humanoid祖先 + 相対パス → フルパス + リマップルール → 名前マッチの4段階で解決する。
         /// </summary>
         private static Result<RemapResult, string> ExecuteRemapFromSerialized(
-            TransplantDefinition definition,
+            PBRemapDefinition definition,
             AvatarData destData,
             float scaleFactor)
         {
@@ -278,7 +278,7 @@ namespace colloid.PBReplacer
 
             Undo.IncrementCurrentGroup();
             int undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName("Transplant Remap (Prefab)");
+            Undo.SetCurrentGroupName("PBRemap (Prefab)");
 
             try
             {
@@ -466,7 +466,7 @@ namespace colloid.PBReplacer
         #region 共通ヘルパー
 
         /// <summary>
-        /// TransplantDefinition配下の全VRCコンポーネントを収集する。
+        /// PBRemapDefinition配下の全VRCコンポーネントを収集する。
         /// </summary>
         private static List<Component> CollectVRCComponents(Transform root)
         {
@@ -587,10 +587,10 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// TransplantDefinitionの設定に基づいてスケールファクターを算出する。
+        /// PBRemapDefinitionの設定に基づいてスケールファクターを算出する。
         /// </summary>
         private static float CalculateScaleFactor(
-            TransplantDefinition definition, AvatarData sourceData, AvatarData destData)
+            PBRemapDefinition definition, AvatarData sourceData, AvatarData destData)
         {
             if (!definition.AutoCalculateScale)
                 return definition.ScaleFactor;

@@ -10,7 +10,7 @@ namespace colloid.PBReplacer
     [Serializable]
     public class SerializedBoneReference
     {
-        /// <summary>TransplantDefinitionからコンポーネントのGameObjectへの相対パス（例: "PhysBones/Hair_PB"）</summary>
+        /// <summary>PBRemapDefinitionからコンポーネントのGameObjectへの相対パス（例: "PhysBones/Hair_PB"）</summary>
         public string componentObjectPath;
 
         /// <summary>コンポーネントの型名（例: "VRCPhysBone"）</summary>

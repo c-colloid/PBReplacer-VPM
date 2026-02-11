@@ -12,8 +12,8 @@ using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
-    [CustomEditor(typeof(TransplantDefinition))]
-    public class TransplantDefinitionEditor : Editor
+    [CustomEditor(typeof(PBRemapDefinition))]
+    public class PBRemapDefinitionEditor : Editor
     {
         private VisualElement _root;
 
@@ -21,7 +21,7 @@ namespace colloid.PBReplacer
         private Label _destAvatarLabel;
         private Label _sourceAvatarLabel;
         private Label _modeLabel;
-        private HelpBox _transplantStateBox;
+        private HelpBox _stateBox;
         private HelpBox _detectionWarningBox;
         private HelpBox _humanoidInfoBox;
 
@@ -41,7 +41,7 @@ namespace colloid.PBReplacer
 
         // アクション
         private Button _previewButton;
-        private Button _transplantButton;
+        private Button _remapButton;
         private HelpBox _statusBox;
 
         // SerializedProperties
@@ -70,17 +70,17 @@ namespace colloid.PBReplacer
             _sourceAvatarScaleProp = serializedObject.FindProperty("sourceAvatarScale");
 
             // UXMLをロード
-            var visualTree = Resources.Load<VisualTreeAsset>("UXML/TransplantDefinition");
+            var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemapDefinition");
             if (visualTree == null)
             {
-                _root.Add(new HelpBox("TransplantDefinition.uxml が見つかりません", HelpBoxMessageType.Error));
+                _root.Add(new HelpBox("PBRemapDefinition.uxml が見つかりません", HelpBoxMessageType.Error));
                 return _root;
             }
 
             visualTree.CloneTree(_root);
 
             // USSをロード
-            var styleSheet = Resources.Load<StyleSheet>("USS/TransplantDefinition");
+            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemapDefinition");
             if (styleSheet != null)
                 _root.styleSheets.Add(styleSheet);
 
@@ -88,7 +88,7 @@ namespace colloid.PBReplacer
             _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
-            _transplantStateBox = _root.Q<HelpBox>("transplant-state-box");
+            _stateBox = _root.Q<HelpBox>("pbremap-state-box");
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             _componentsSummary = _root.Q<Label>("components-summary");
@@ -99,7 +99,7 @@ namespace colloid.PBReplacer
             _scaleFactorField = _root.Q<FloatField>("scale-factor-field");
             _calculatedScaleLabel = _root.Q<Label>("calculated-scale-label");
             _previewButton = _root.Q<Button>("preview-button");
-            _transplantButton = _root.Q<Button>("transplant-button");
+            _remapButton = _root.Q<Button>("pbremap-button");
             _statusBox = _root.Q<HelpBox>("status-box");
             var addRuleButton = _root.Q<Button>("add-rule-button");
 
@@ -112,7 +112,7 @@ namespace colloid.PBReplacer
             // イベント登録
             _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
             addRuleButton.clicked += OnAddRuleClicked;
-            _transplantButton.clicked += OnTransplantClicked;
+            _remapButton.clicked += OnRemapClicked;
             _previewButton.clicked += OnPreviewClicked;
 
             // ルールヘルプ表示切替
@@ -136,15 +136,15 @@ namespace colloid.PBReplacer
             {
                 if (_detection == null)
                     return;
-                var def = (TransplantDefinition)target;
+                var def = (PBRemapDefinition)target;
                 UpdateResolutionSummary(def);
 
-                if (EditorWindow.HasOpenInstances<TransplantPreviewWindow>())
-                    EditorWindow.GetWindow<TransplantPreviewWindow>().RefreshPreview();
+                if (EditorWindow.HasOpenInstances<PBRemapPreviewWindow>())
+                    EditorWindow.GetWindow<PBRemapPreviewWindow>().RefreshPreview();
             });
 
             // 階層変更時の自動更新を登録
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
             _cachedParent = definition.transform.parent;
             _cachedChildCount = definition.transform.childCount;
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
@@ -165,7 +165,7 @@ namespace colloid.PBReplacer
             if (target == null)
                 return;
 
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
             var currentParent = definition.transform.parent;
             var currentChildCount = definition.transform.childCount;
 
@@ -183,14 +183,14 @@ namespace colloid.PBReplacer
 
         private void RefreshDetection()
         {
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
             var detectResult = SourceDetector.Detect(definition);
 
             if (detectResult.IsFailure)
             {
                 _destAvatarLabel.text = "移植先: (検出エラー)";
                 _sourceAvatarLabel.text = "移植元: (検出エラー)";
-                _transplantButton.SetEnabled(false);
+                _remapButton.SetEnabled(false);
                 _previewButton.SetEnabled(false);
                 return;
             }
@@ -225,7 +225,7 @@ namespace colloid.PBReplacer
                 _modeLabel.text = "";
             }
 
-            UpdateTransplantStateBox(definition);
+            UpdateStateBox(definition);
 
             if (_detection.Warnings.Count > 0)
             {
@@ -245,14 +245,14 @@ namespace colloid.PBReplacer
                 && _detection.DestinationAvatar != null
                 && (_detection.IsLiveMode && _detection.SourceAvatar != null
                     || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
-            _transplantButton.SetEnabled(canOperate);
+            _remapButton.SetEnabled(canOperate);
             _previewButton.SetEnabled(canOperate || _detection.IsReferencingDestination);
 
             UpdateResolutionSummary(definition);
 
             // プレビューウィンドウが開いていれば検出結果を更新
-            if (EditorWindow.HasOpenInstances<TransplantPreviewWindow>())
-                EditorWindow.GetWindow<TransplantPreviewWindow>().UpdateDetection(_detection);
+            if (EditorWindow.HasOpenInstances<PBRemapPreviewWindow>())
+                EditorWindow.GetWindow<PBRemapPreviewWindow>().UpdateDetection(_detection);
 
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
@@ -260,36 +260,36 @@ namespace colloid.PBReplacer
             _statusBox.style.display = DisplayStyle.None;
         }
 
-        private void UpdateTransplantStateBox(TransplantDefinition definition)
+        private void UpdateStateBox(PBRemapDefinition definition)
         {
             if (_detection.DestinationAvatar == null)
             {
-                _transplantStateBox.text = "このコンポーネントをアバターの子階層に配置してください。";
-                _transplantStateBox.messageType = HelpBoxMessageType.Info;
-                _transplantStateBox.style.display = DisplayStyle.Flex;
+                _stateBox.text = "このコンポーネントをアバターの子階層に配置してください。";
+                _stateBox.messageType = HelpBoxMessageType.Info;
+                _stateBox.style.display = DisplayStyle.Flex;
             }
             else if (_detection.IsReferencingDestination)
             {
-                _transplantStateBox.text =
+                _stateBox.text =
                     "移植済み — ボーン参照は移植先アバターに接続されています。";
-                _transplantStateBox.messageType = HelpBoxMessageType.Info;
-                _transplantStateBox.style.display = DisplayStyle.Flex;
+                _stateBox.messageType = HelpBoxMessageType.Info;
+                _stateBox.style.display = DisplayStyle.Flex;
             }
             else if (_detection.IsLiveMode && _detection.SourceAvatar != null
                 || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
             {
-                _transplantStateBox.style.display = DisplayStyle.None;
+                _stateBox.style.display = DisplayStyle.None;
             }
             else
             {
-                _transplantStateBox.text =
+                _stateBox.text =
                     "移植対象のコンポーネントをこの階層の子に配置してください。";
-                _transplantStateBox.messageType = HelpBoxMessageType.Info;
-                _transplantStateBox.style.display = DisplayStyle.Flex;
+                _stateBox.messageType = HelpBoxMessageType.Info;
+                _stateBox.style.display = DisplayStyle.Flex;
             }
         }
 
-        private void UpdateResolutionSummary(TransplantDefinition definition)
+        private void UpdateResolutionSummary(PBRemapDefinition definition)
         {
             bool canCheck = _detection.DestinationAvatar != null
                 && _detection.DestAvatarData != null
@@ -303,7 +303,7 @@ namespace colloid.PBReplacer
                 return;
             }
 
-            var preview = TransplantPreview.GeneratePreview(definition, _detection);
+            var preview = PBRemapPreview.GeneratePreview(definition, _detection);
             int total = preview.ResolvedBones + preview.UnresolvedBones;
 
             if (total == 0)
@@ -317,19 +317,19 @@ namespace colloid.PBReplacer
             if (preview.UnresolvedBones == 0)
             {
                 _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
-                _resolutionSummary.RemoveFromClassList("transplant-resolution-unresolved");
-                _resolutionSummary.AddToClassList("transplant-resolution-resolved");
+                _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
+                _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
             }
             else
             {
                 _resolutionSummary.text =
                     $"ボーン解決: {preview.ResolvedBones}/{total} ({preview.UnresolvedBones} 未解決)";
-                _resolutionSummary.RemoveFromClassList("transplant-resolution-resolved");
-                _resolutionSummary.AddToClassList("transplant-resolution-unresolved");
+                _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
+                _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
             }
         }
 
-        private void UpdateComponentsSummary(TransplantDefinition definition)
+        private void UpdateComponentsSummary(PBRemapDefinition definition)
         {
             var root = definition.transform;
             int pb = root.GetComponentsInChildren<VRCPhysBone>(true).Length;
@@ -387,7 +387,7 @@ namespace colloid.PBReplacer
             if (_detection.SourceAvatarData == null)
                 return;
 
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
             var definitionRoot = definition.transform;
             var sourceData = _detection.SourceAvatarData;
             var sourceArmature = sourceData.Armature.transform;
@@ -427,7 +427,7 @@ namespace colloid.PBReplacer
                 element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
             }
 
-            float sourceScale = TransplantRemapper.CalculateAvatarScale(sourceData);
+            float sourceScale = PBRemapper.CalculateAvatarScale(sourceData);
             _sourceAvatarScaleProp.floatValue = sourceScale;
 
             serializedObject.ApplyModifiedPropertiesWithoutUndo();
@@ -675,15 +675,15 @@ namespace colloid.PBReplacer
 
         private void OnPreviewClicked()
         {
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
             if (_detection != null)
-                TransplantPreviewWindow.Open(definition, _detection);
+                PBRemapPreviewWindow.Open(definition, _detection);
         }
 
-        private void OnTransplantClicked()
+        private void OnRemapClicked()
         {
             serializedObject.Update();
-            var definition = (TransplantDefinition)target;
+            var definition = (PBRemapDefinition)target;
 
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
@@ -705,7 +705,7 @@ namespace colloid.PBReplacer
                     return;
             }
 
-            var result = TransplantRemapper.Remap(definition);
+            var result = PBRemapper.Remap(definition);
 
             result.Match(
                 onSuccess: success =>
@@ -768,10 +768,10 @@ namespace colloid.PBReplacer
                 else if (!_detection.IsLiveMode
                     && _detection.DestAvatarData != null)
                 {
-                    var definition = (TransplantDefinition)target;
+                    var definition = (PBRemapDefinition)target;
                     if (definition.SourceAvatarScale > 0)
                     {
-                        float destScale = TransplantRemapper.CalculateAvatarScale(_detection.DestAvatarData);
+                        float destScale = PBRemapper.CalculateAvatarScale(_detection.DestAvatarData);
                         float scale = destScale / definition.SourceAvatarScale;
                         _calculatedScaleLabel.text = $"算出値: {scale:F4} (Prefab)";
                     }

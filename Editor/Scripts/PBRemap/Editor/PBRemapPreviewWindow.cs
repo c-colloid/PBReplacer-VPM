@@ -4,21 +4,21 @@ using UnityEditor;
 
 namespace colloid.PBReplacer
 {
-    public class TransplantPreviewWindow : EditorWindow
+    public class PBRemapPreviewWindow : EditorWindow
     {
-        private TransplantDefinition _definition;
+        private PBRemapDefinition _definition;
         private SourceDetector.DetectionResult _detection;
-        private TransplantPreviewData _preview;
+        private PBRemapPreviewData _preview;
 
         private Label _summaryLabel;
         private ScrollView _boneScrollView;
         private VisualElement _warningsContainer;
 
-        public static TransplantPreviewWindow Open(
-            TransplantDefinition definition,
+        public static PBRemapPreviewWindow Open(
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection)
         {
-            var window = GetWindow<TransplantPreviewWindow>(true, "移植プレビュー");
+            var window = GetWindow<PBRemapPreviewWindow>(true, "移植プレビュー");
             window.minSize = new Vector2(520, 300);
             window._definition = definition;
             window._detection = detection;
@@ -30,7 +30,7 @@ namespace colloid.PBReplacer
         {
             if (_definition == null || _detection == null)
                 return;
-            _preview = TransplantPreview.GeneratePreview(_definition, _detection);
+            _preview = PBRemapPreview.GeneratePreview(_definition, _detection);
             Rebuild();
         }
 
@@ -46,20 +46,22 @@ namespace colloid.PBReplacer
             root.style.paddingTop = 4;
             root.style.paddingBottom = 4;
 
-            var styleSheet = Resources.Load<StyleSheet>("USS/TransplantDefinition");
+            // UXMLをロード
+            var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemapPreview");
+            if (visualTree != null)
+            {
+                visualTree.CloneTree(root);
+            }
+
+            // USSをロード（UXMLから読めない場合のフォールバック）
+            var styleSheet = Resources.Load<StyleSheet>("USS/PBRemapDefinition");
             if (styleSheet != null)
                 root.styleSheets.Add(styleSheet);
 
-            _summaryLabel = new Label();
-            _summaryLabel.AddToClassList("preview-summary-label");
-            root.Add(_summaryLabel);
-
-            _boneScrollView = new ScrollView(ScrollViewMode.Vertical);
-            _boneScrollView.style.flexGrow = 1;
-            root.Add(_boneScrollView);
-
-            _warningsContainer = new VisualElement();
-            root.Add(_warningsContainer);
+            // 要素を取得
+            _summaryLabel = root.Q<Label>("preview-summary");
+            _boneScrollView = root.Q<ScrollView>("preview-bone-scroll");
+            _warningsContainer = root.Q<VisualElement>("preview-warnings");
 
             if (_preview != null)
                 Rebuild();

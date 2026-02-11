@@ -1,56 +1,56 @@
-.transplant-section {
+.pbremap-section {
     margin-left: 3px;
     margin-right: 3px;
     margin-top: 4px;
     margin-bottom: 4px;
 }
 
-.transplant-add-button {
+.pbremap-add-button {
     align-self: flex-end;
     width: 100px;
     margin-top: 4px;
 }
 
-.transplant-scale-label {
+.pbremap-scale-label {
     font-size: 11px;
     color: rgb(160, 160, 160);
     margin-left: 4px;
     margin-top: 2px;
 }
 
-.transplant-detection-label {
+.pbremap-detection-label {
     font-size: 12px;
     padding: 2px 4px;
 }
 
-.transplant-mode-label {
+.pbremap-mode-label {
     font-size: 11px;
     color: rgb(160, 160, 160);
     padding: 0 4px 2px 4px;
 }
 
-.transplant-components-summary {
+.pbremap-components-summary {
     font-size: 12px;
     padding: 4px;
     white-space: normal;
 }
 
-.transplant-resolution-summary {
+.pbremap-resolution-summary {
     font-size: 11px;
     padding: 2px 4px;
     margin-top: 2px;
 }
 
-.transplant-resolution-resolved {
+.pbremap-resolution-resolved {
     color: rgb(100, 200, 100);
 }
 
-.transplant-resolution-unresolved {
+.pbremap-resolution-unresolved {
     color: rgb(220, 180, 50);
     -unity-font-style: bold;
 }
 
-.transplant-execute-button {
+.pbremap-execute-button {
     height: 28px;
     padding-left: 16px;
     padding-right: 16px;
@@ -61,11 +61,11 @@
     border-radius: 4px;
 }
 
-.transplant-execute-button:hover {
+.pbremap-execute-button:hover {
     background-color: var(--unity-colors-highlight-background-hover);
 }
 
-.transplant-execute-button:disabled {
+.pbremap-execute-button:disabled {
     opacity: 0.5;
 }
 

@@ -12,7 +12,7 @@ namespace colloid.PBReplacer
     /// <summary>
     /// 移植プレビューの結果データ
     /// </summary>
-    public class TransplantPreviewData
+    public class PBRemapPreviewData
     {
         public List<BoneMapping> BoneMappings { get; set; } = new List<BoneMapping>();
         public int TotalPhysBones { get; set; }
@@ -30,24 +30,24 @@ namespace colloid.PBReplacer
     /// コンポーネントを一切作成せず、読み取りのみでボーンマッピング結果と
     /// コンポーネント数を算出する。
     /// </summary>
-    public static class TransplantPreview
+    public static class PBRemapPreview
     {
         /// <summary>
-        /// TransplantDefinitionとDetectionResultに基づき移植プレビューを生成する。
+        /// PBRemapDefinitionとDetectionResultに基づき移植プレビューを生成する。
         /// 副作用は一切ない。
         /// </summary>
         /// <param name="definition">移植定義</param>
         /// <param name="detection">SourceDetectorの検出結果</param>
         /// <returns>プレビューデータ</returns>
-        public static TransplantPreviewData GeneratePreview(
-            TransplantDefinition definition,
+        public static PBRemapPreviewData GeneratePreview(
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection)
         {
-            var preview = new TransplantPreviewData();
+            var preview = new PBRemapPreviewData();
 
             if (definition == null)
             {
-                preview.Warnings.Add("TransplantDefinitionがnullです");
+                preview.Warnings.Add("PBRemapDefinitionがnullです");
                 return preview;
             }
 
@@ -101,8 +101,8 @@ namespace colloid.PBReplacer
         /// 同一シーンモードのプレビュー。Transform参照が生きている状態で解決を試みる。
         /// </summary>
         private static void GenerateLiveModePreview(
-            TransplantPreviewData preview,
-            TransplantDefinition definition,
+            PBRemapPreviewData preview,
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection,
             Transform definitionRoot,
             List<PathRemapRule> remapRules)
@@ -188,8 +188,8 @@ namespace colloid.PBReplacer
         /// Prefabモードのプレビュー。シリアライズ済みボーンデータから解決を試みる。
         /// </summary>
         private static void GeneratePrefabModePreview(
-            TransplantPreviewData preview,
-            TransplantDefinition definition,
+            PBRemapPreviewData preview,
+            PBRemapDefinition definition,
             SourceDetector.DetectionResult detection)
         {
             if (definition.SerializedBoneReferences.Count == 0)
@@ -206,7 +206,7 @@ namespace colloid.PBReplacer
             // スケールファクター算出
             if (definition.AutoCalculateScale && definition.SourceAvatarScale > 0)
             {
-                float destScale = TransplantRemapper.CalculateAvatarScale(destData);
+                float destScale = PBRemapper.CalculateAvatarScale(destData);
                 preview.CalculatedScaleFactor = destScale / definition.SourceAvatarScale;
             }
             else
@@ -251,7 +251,7 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// シリアライズデータからボーンを解決する（TransplantRemapperと同一ロジック）。
+        /// シリアライズデータからボーンを解決する（PBRemapperと同一ロジック）。
         /// </summary>
         private static Transform ResolveBoneFromSerialized(
             SerializedBoneReference boneRef,
