@@ -139,8 +139,8 @@ namespace colloid.PBReplacer
                 var def = (TransplantDefinition)target;
                 UpdateResolutionSummary(def);
 
-                if (HasOpenInstances<TransplantPreviewWindow>())
-                    GetWindow<TransplantPreviewWindow>().RefreshPreview();
+                if (EditorWindow.HasOpenInstances<TransplantPreviewWindow>())
+                    EditorWindow.GetWindow<TransplantPreviewWindow>().RefreshPreview();
             });
 
             // 階層変更時の自動更新を登録
@@ -251,8 +251,8 @@ namespace colloid.PBReplacer
             UpdateResolutionSummary(definition);
 
             // プレビューウィンドウが開いていれば検出結果を更新
-            if (HasOpenInstances<TransplantPreviewWindow>())
-                GetWindow<TransplantPreviewWindow>().UpdateDetection(_detection);
+            if (EditorWindow.HasOpenInstances<TransplantPreviewWindow>())
+                EditorWindow.GetWindow<TransplantPreviewWindow>().UpdateDetection(_detection);
 
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
