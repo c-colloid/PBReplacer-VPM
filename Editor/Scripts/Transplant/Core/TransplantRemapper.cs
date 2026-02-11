@@ -382,7 +382,7 @@ namespace colloid.PBReplacer
                 }
             }
 
-            // 戦略3: フルパスマッチ + PathRemapRules
+            // 戦略3: フルパスマッチ + PathRemapRules（順方向）
             if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
             {
                 // まず直接パスマッチ
@@ -390,33 +390,59 @@ namespace colloid.PBReplacer
                 if (directMatch != null)
                     return directMatch;
 
-                // リマップルール適用
                 if (remapRules != null && remapRules.Count > 0)
                 {
+                    // 順方向リマップ
                     string remappedPath = BoneMapper.ApplyRemapRules(boneRef.boneRelativePath, remapRules);
                     var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
                     if (remappedMatch != null)
                         return remappedMatch;
+
+                    // 逆方向リマップ（双方向対応）
+                    string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(boneRef.boneRelativePath, remapRules);
+                    if (reverseRemappedPath != remappedPath)
+                    {
+                        var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
+                        if (reverseMatch != null)
+                            return reverseMatch;
+                    }
                 }
             }
 
-            // 戦略4: 名前マッチ（フォールバック）
+            // 戦略4: 名前マッチ（フォールバック、双方向リマップ対応）
             if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
             {
                 string[] segments = boneRef.boneRelativePath.Split('/');
                 string boneName = segments[segments.Length - 1];
+                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
 
-                // リマップルール適用後の名前でもマッチ
                 if (remapRules != null && remapRules.Count > 0)
                 {
+                    // 順方向リマップ後の名前でマッチ
+                    string forwardName = boneName;
                     foreach (var rule in remapRules)
-                        boneName = rule.Apply(boneName);
-                }
+                        forwardName = rule.Apply(forwardName);
+                    var forwardMatch = allDestBones.FirstOrDefault(t => t.name == forwardName);
+                    if (forwardMatch != null)
+                        return forwardMatch;
 
-                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-                var nameMatch = allDestBones.FirstOrDefault(t => t.name == boneName);
-                if (nameMatch != null)
-                    return nameMatch;
+                    // 逆方向リマップ後の名前でマッチ
+                    string reverseName = boneName;
+                    foreach (var rule in remapRules)
+                        reverseName = rule.ApplyReverse(reverseName);
+                    if (reverseName != forwardName)
+                    {
+                        var reverseMatch = allDestBones.FirstOrDefault(t => t.name == reverseName);
+                        if (reverseMatch != null)
+                            return reverseMatch;
+                    }
+                }
+                else
+                {
+                    var nameMatch = allDestBones.FirstOrDefault(t => t.name == boneName);
+                    if (nameMatch != null)
+                        return nameMatch;
+                }
             }
 
             return null;
