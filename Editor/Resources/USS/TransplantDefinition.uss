@@ -52,6 +52,21 @@
     white-space: normal;
 }
 
+.transplant-resolution-summary {
+    font-size: 11px;
+    padding: 2px 4px;
+    margin-top: 2px;
+}
+
+.transplant-resolution-resolved {
+    color: rgb(100, 200, 100);
+}
+
+.transplant-resolution-unresolved {
+    color: rgb(220, 180, 50);
+    -unity-font-style: bold;
+}
+
 .transplant-execute-button {
     width: 120px;
     height: 28px;

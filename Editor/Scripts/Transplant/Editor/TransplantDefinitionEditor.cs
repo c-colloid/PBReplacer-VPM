@@ -21,11 +21,13 @@ namespace colloid.PBReplacer
         private Label _destAvatarLabel;
         private Label _sourceAvatarLabel;
         private Label _modeLabel;
+        private HelpBox _transplantStateBox;
         private HelpBox _detectionWarningBox;
         private HelpBox _humanoidInfoBox;
 
         // コンポーネント一覧
         private Label _componentsSummary;
+        private Label _resolutionSummary;
 
         // リマップルール
         private ListView _rulesListView;
@@ -90,9 +92,11 @@ namespace colloid.PBReplacer
             _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
+            _transplantStateBox = _root.Q<HelpBox>("transplant-state-box");
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             _componentsSummary = _root.Q<Label>("components-summary");
+            _resolutionSummary = _root.Q<Label>("resolution-summary");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
             _autoScaleToggle = _root.Q<Toggle>("auto-scale-toggle");
             _manualScaleContainer = _root.Q<VisualElement>("manual-scale-container");
@@ -156,20 +160,34 @@ namespace colloid.PBReplacer
             if (_detection.DestinationAvatar != null)
                 _destAvatarLabel.text = $"移植先: {_detection.DestinationAvatar.name}";
             else
-                _destAvatarLabel.text = "移植先: (未検出 - アバターの子階層に配置してください)";
+                _destAvatarLabel.text = "移植先: (未検出)";
 
-            // ソース表示
-            if (_detection.IsLiveMode && _detection.SourceAvatar != null)
+            // ソース・モード表示
+            if (_detection.IsReferencingDestination)
+            {
+                _sourceAvatarLabel.text = "移植元: (移植済み)";
+                _modeLabel.text = "";
+            }
+            else if (_detection.IsLiveMode && _detection.SourceAvatar != null)
+            {
                 _sourceAvatarLabel.text = $"移植元: {_detection.SourceAvatar.name}";
+                _modeLabel.text = "同一シーンモード";
+            }
             else if (!_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
+            {
                 _sourceAvatarLabel.text = "移植元: (Prefabデータから復元)";
+                _modeLabel.text = "Prefabモード";
+            }
             else
+            {
                 _sourceAvatarLabel.text = "移植元: (未検出)";
+                _modeLabel.text = "";
+            }
 
-            // モード表示
-            _modeLabel.text = _detection.IsLiveMode ? "同一シーンモード" : "Prefabモード";
+            // 状態に応じたステータスボックス表示
+            UpdateTransplantStateBox(definition);
 
-            // 警告表示
+            // 検出エラー警告（解析失敗等）
             if (_detection.Warnings.Count > 0)
             {
                 _detectionWarningBox.text = string.Join("\n", _detection.Warnings);
@@ -188,11 +206,15 @@ namespace colloid.PBReplacer
             UpdateHumanoidInfoBox();
 
             // ボタン有効化判定
-            bool canOperate = _detection.DestinationAvatar != null
+            bool canOperate = !_detection.IsReferencingDestination
+                && _detection.DestinationAvatar != null
                 && (_detection.IsLiveMode && _detection.SourceAvatar != null
                     || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
             _transplantButton.SetEnabled(canOperate);
-            _previewButton.SetEnabled(canOperate);
+            _previewButton.SetEnabled(canOperate || _detection.IsReferencingDestination);
+
+            // ボーン解決サマリーを自動更新
+            UpdateResolutionSummary(definition);
 
             // スケールラベル更新
             if (_autoCalculateScaleProp.boolValue)
@@ -200,6 +222,85 @@ namespace colloid.PBReplacer
 
             // ステータス初期化
             _statusBox.style.display = DisplayStyle.None;
+        }
+
+        /// <summary>
+        /// 移植の状態に応じたHelpBoxメッセージを表示する。
+        /// </summary>
+        private void UpdateTransplantStateBox(TransplantDefinition definition)
+        {
+            if (_detection.DestinationAvatar == null)
+            {
+                _transplantStateBox.text = "このコンポーネントをアバターの子階層に配置してください。";
+                _transplantStateBox.messageType = HelpBoxMessageType.Info;
+                _transplantStateBox.style.display = DisplayStyle.Flex;
+            }
+            else if (_detection.IsReferencingDestination)
+            {
+                _transplantStateBox.text =
+                    "移植済み — ボーン参照は移植先アバターに接続されています。";
+                _transplantStateBox.messageType = HelpBoxMessageType.Info;
+                _transplantStateBox.style.display = DisplayStyle.Flex;
+            }
+            else if (_detection.IsLiveMode && _detection.SourceAvatar != null
+                || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
+            {
+                // 移植準備完了 — ステートボックスは非表示（検出ラベルで十分）
+                _transplantStateBox.style.display = DisplayStyle.None;
+            }
+            else
+            {
+                _transplantStateBox.text =
+                    "移植対象のコンポーネントをこの階層の子に配置してください。";
+                _transplantStateBox.messageType = HelpBoxMessageType.Info;
+                _transplantStateBox.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        /// <summary>
+        /// ボーン解決状態を自動チェックし、コンポーネント一覧の下にサマリーを表示する。
+        /// プレビューを開かなくても未解決ボーンが一目で分かるようにする。
+        /// </summary>
+        private void UpdateResolutionSummary(TransplantDefinition definition)
+        {
+            // 移植可能な状態でのみチェックを実行
+            bool canCheck = _detection.DestinationAvatar != null
+                && _detection.DestAvatarData != null
+                && !_detection.IsReferencingDestination
+                && (_detection.IsLiveMode && _detection.SourceAvatar != null
+                    || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
+
+            if (!canCheck)
+            {
+                _resolutionSummary.style.display = DisplayStyle.None;
+                return;
+            }
+
+            // 軽量プレビューを実行（副作用なし）
+            var preview = TransplantPreview.GeneratePreview(definition, _detection);
+            int total = preview.ResolvedBones + preview.UnresolvedBones;
+
+            if (total == 0)
+            {
+                _resolutionSummary.style.display = DisplayStyle.None;
+                return;
+            }
+
+            _resolutionSummary.style.display = DisplayStyle.Flex;
+
+            if (preview.UnresolvedBones == 0)
+            {
+                _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
+                _resolutionSummary.RemoveFromClassList("transplant-resolution-unresolved");
+                _resolutionSummary.AddToClassList("transplant-resolution-resolved");
+            }
+            else
+            {
+                _resolutionSummary.text =
+                    $"ボーン解決: {preview.ResolvedBones}/{total} ({preview.UnresolvedBones} 未解決)";
+                _resolutionSummary.RemoveFromClassList("transplant-resolution-resolved");
+                _resolutionSummary.AddToClassList("transplant-resolution-unresolved");
+            }
         }
 
         /// <summary>

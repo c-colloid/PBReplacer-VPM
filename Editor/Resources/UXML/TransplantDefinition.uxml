@@ -11,12 +11,15 @@
         <ui:Label name="mode-label" text="" class="transplant-mode-label" />
     </ui:VisualElement>
 
+    <!-- ステータス表示 -->
+    <ui:HelpBox name="transplant-state-box" style="display: none;" />
     <ui:HelpBox name="detection-warning-box" style="display: none;" />
     <ui:HelpBox name="humanoid-info-box" style="display: none;" />
 
     <!-- コンポーネント一覧セクション -->
     <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="transplant-section">
         <ui:Label name="components-summary" text="" class="transplant-components-summary" />
+        <ui:Label name="resolution-summary" text="" class="transplant-resolution-summary" style="display: none;" />
     </ui:Foldout>
 
     <!-- パスリマップルール -->

@@ -37,6 +37,9 @@ namespace colloid.PBReplacer
 
             /// <summary>検出に関する警告メッセージ</summary>
             public List<string> Warnings { get; set; } = new();
+
+            /// <summary>子コンポーネントの参照がデスティネーションアバター自身を指している（移植済み状態）</summary>
+            public bool IsReferencingDestination { get; set; }
         }
 
         /// <summary>
@@ -70,11 +73,10 @@ namespace colloid.PBReplacer
             var sourceAvatar = DetectSourceFromChildComponents(definition);
             if (sourceAvatar != null)
             {
-                // ソースとデスティネーションが同じアバターの場合はソースを無効にする
+                // ソースとデスティネーションが同じアバターの場合は移植済み状態
                 if (result.DestinationAvatar != null && sourceAvatar == result.DestinationAvatar)
                 {
-                    result.Warnings.Add("子コンポーネントのTransform参照がデスティネーションアバター自身を指しています。" +
-                        "移植済みか、まだソースアバターからD&Dされていない可能性があります。");
+                    result.IsReferencingDestination = true;
                 }
                 else
                 {
