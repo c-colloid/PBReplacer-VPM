@@ -50,6 +50,17 @@
     -unity-font-style: bold;
 }
 
+.pbremap-preview-highlight {
+    background-color: rgb(220, 180, 50);
+    color: rgb(30, 30, 30);
+    -unity-font-style: bold;
+    border-radius: 3px;
+}
+
+.pbremap-preview-highlight:hover {
+    background-color: rgb(240, 200, 70);
+}
+
 .pbremap-execute-button {
     height: 28px;
     padding-left: 16px;
@@ -161,6 +172,22 @@
 
 .preview-bone-destlabel {
     flex-grow: 1;
+}
+
+.preview-bone-actions {
+    flex-direction: row;
+    flex-shrink: 0;
+    margin-left: 2px;
+}
+
+.preview-bone-action-button {
+    width: 22px;
+    height: 18px;
+    font-size: 12px;
+    padding: 0;
+    margin: 0 1px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
 }
 
 .preview-bone-resolved {
