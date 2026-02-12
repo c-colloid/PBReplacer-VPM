@@ -139,34 +139,45 @@
 
 .preview-bone-item {
     flex-direction: row;
-    align-items: flex-start;
-    padding-left: 4px;
     padding-right: 4px;
     padding-top: 1px;
     padding-bottom: 1px;
+    padding-left: 4px;
 }
 
 .preview-bone-item > Label {
-    flex-grow: 1;
-    flex-basis: 0;
-    font-size: 11px;
-    -unity-text-align: upper-left;
     white-space: normal;
+    flex-basis: 0;
+}
+
+.preview-bone-sourcelabel {
+    flex-grow: 1;
 }
 
 .preview-bone-arrow {
-    -unity-text-align: upper-center;
-    width: 24px;
-    flex-shrink: 0;
-    font-size: 11px;
+    font-size: 13px;
+    flex-grow: 0.2;
+}
+
+.preview-bone-destlabel {
+    flex-grow: 1;
 }
 
 .preview-bone-resolved {
+    color: var(--unity-colors-default-text);
+    font-size: 11px;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.preview-bone-resolved > Label {
     color: var(--unity-colors-default-text);
 }
 
 .preview-bone-unresolved {
     color: rgb(220, 80, 80);
+    font-size: 11px;
+    -unity-font-style: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
 }
 
 .preview-bone-unresolved > Label {
@@ -185,4 +196,6 @@
     color: rgb(220, 180, 50);
     flex-grow: 1;
     white-space: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+    -unity-font-style: italic;
 }

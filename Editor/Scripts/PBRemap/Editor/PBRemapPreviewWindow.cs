@@ -93,7 +93,8 @@ namespace colloid.PBReplacer
                 var row = new VisualElement();
                 row.AddToClassList("preview-bone-item");
 
-                var sourceLabel = new Label(mapping.sourceBonePath);
+	            var sourceLabel = new Label(mapping.sourceBonePath);
+	            sourceLabel.AddToClassList("preview-bone-sourcelabel");
                 sourceLabel.tooltip = mapping.sourceBonePath;
                 row.Add(sourceLabel);
 
@@ -101,7 +102,8 @@ namespace colloid.PBReplacer
                 arrow.AddToClassList("preview-bone-arrow");
                 row.Add(arrow);
 
-                var destLabel = new Label();
+	            var destLabel = new Label();
+	            destLabel.AddToClassList("preview-bone-destlabel");
                 row.Add(destLabel);
 
                 if (mapping.resolved)
