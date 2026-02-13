@@ -121,7 +121,8 @@ namespace colloid.PBReplacer
 				{
 					string partialDest = ComputePartialDestPath(mapping.sourceBonePath);
 					destLabel.text = partialDest;
-					destLabel.tooltip = $"(元パス: {mapping.sourceBonePath}, リマップ後: {partialDest})";
+					destLabel.tooltip = (mapping.errorMessage ?? "未解決")
+						+ $"\n(元パス: {mapping.sourceBonePath}, リマップ後: {partialDest})";
 					row.AddToClassList("preview-bone-unresolved");
 
 					// destラベルクリック → 最寄り解決済み祖先ボーンをPing
