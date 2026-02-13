@@ -5,20 +5,13 @@ namespace colloid.PBReplacer
 {
     /// <summary>
     /// AvatarDynamicsコンポーネントの移植設定を定義するMonoBehaviour。
-    /// 独立したGameObjectに配置し、Inspector上でソース/デスティネーションアバターを指定する。
+    /// AvatarDynamicsフォルダに配置し、フォルダごとD&amp;Dで別アバターに移植する。
+    /// ソース/デスティネーションアバターは階層から自動検出される。
     /// </summary>
-    [AddComponentMenu("PBReplacer/Transplant Definition")]
+    [AddComponentMenu("PBReplacer/PB Remap")]
     [DisallowMultipleComponent]
-    public class TransplantDefinition : MonoBehaviour
+    public class PBRemap : MonoBehaviour
     {
-        [SerializeField]
-        [Tooltip("移植元のアバター")]
-        private GameObject sourceAvatar;
-
-        [SerializeField]
-        [Tooltip("移植先のアバター")]
-        private GameObject destinationAvatar;
-
         [SerializeField]
         [Tooltip("スケールファクターを自動計算するかどうか")]
         private bool autoCalculateScale = true;
@@ -31,11 +24,13 @@ namespace colloid.PBReplacer
         [Tooltip("ボーンパスのリマップルール")]
         private List<PathRemapRule> pathRemapRules = new();
 
-        /// <summary>移植元のアバター</summary>
-        public GameObject SourceAvatar => sourceAvatar;
+        [SerializeField]
+        [Tooltip("Prefab用: シリアライズされたボーン参照データ")]
+        private List<SerializedBoneReference> serializedBoneReferences = new();
 
-        /// <summary>移植先のアバター</summary>
-        public GameObject DestinationAvatar => destinationAvatar;
+        [SerializeField]
+        [Tooltip("Prefab用: ソースアバターのスケール基準値（Hips→Head距離）")]
+        private float sourceAvatarScale;
 
         /// <summary>スケールファクターを自動計算するかどうか</summary>
         public bool AutoCalculateScale => autoCalculateScale;
@@ -45,5 +40,11 @@ namespace colloid.PBReplacer
 
         /// <summary>ボーンパスのリマップルール</summary>
         public IReadOnlyList<PathRemapRule> PathRemapRules => pathRemapRules;
+
+        /// <summary>Prefab用: シリアライズされたボーン参照データ</summary>
+        public IReadOnlyList<SerializedBoneReference> SerializedBoneReferences => serializedBoneReferences;
+
+        /// <summary>Prefab用: ソースアバターのスケール基準値</summary>
+        public float SourceAvatarScale => sourceAvatarScale;
     }
 }

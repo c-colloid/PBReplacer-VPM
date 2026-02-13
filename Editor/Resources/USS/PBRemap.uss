@@ -1,47 +1,59 @@
-.transplant-header {
-    font-size: 16px;
-    -unity-font-style: bold;
-    -unity-text-align: middle-center;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    margin-bottom: 4px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgb(85, 85, 85);
-}
-
-.transplant-section {
+.pbremap-section {
     margin-left: 3px;
     margin-right: 3px;
     margin-top: 4px;
     margin-bottom: 4px;
 }
 
-.transplant-section > ObjectField {
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 2px;
-}
-
-.transplant-add-button {
+.pbremap-add-button {
     align-self: flex-end;
     width: 100px;
     margin-top: 4px;
 }
 
-.transplant-scale-label {
+.pbremap-scale-label {
     font-size: 11px;
     color: rgb(160, 160, 160);
     margin-left: 4px;
     margin-top: 2px;
 }
 
-.transplant-execute-button {
-    width: 120px;
+.pbremap-detection-label {
+    font-size: 12px;
+    padding: 2px 4px;
+}
+
+.pbremap-mode-label {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    padding: 0 4px 2px 4px;
+}
+
+.pbremap-components-summary {
+    font-size: 12px;
+    padding: 4px;
+    white-space: normal;
+}
+
+.pbremap-resolution-summary {
+    font-size: 11px;
+    padding: 2px 4px;
+    margin-top: 2px;
+}
+
+.pbremap-resolution-resolved {
+    color: rgb(100, 200, 100);
+}
+
+.pbremap-resolution-unresolved {
+    color: rgb(220, 180, 50);
+    -unity-font-style: bold;
+}
+
+.pbremap-execute-button {
     height: 28px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 8px;
-    margin-bottom: 4px;
+    padding-left: 16px;
+    padding-right: 16px;
     -unity-font-style: bold;
     font-size: 13px;
     background-color: var(--unity-colors-highlight-background);
@@ -49,11 +61,11 @@
     border-radius: 4px;
 }
 
-.transplant-execute-button:hover {
+.pbremap-execute-button:hover {
     background-color: var(--unity-colors-highlight-background-hover);
 }
 
-.transplant-execute-button:disabled {
+.pbremap-execute-button:disabled {
     opacity: 0.5;
 }
 
@@ -101,21 +113,20 @@
     margin: 0;
 }
 
-/* プレビューセクション */
-
-.transplant-preview-button {
-    width: 100px;
-    height: 24px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 4px;
-    margin-bottom: 4px;
-    border-radius: 4px;
+.remap-rule-hint {
+    font-size: 10px;
+    color: rgb(140, 140, 140);
+    padding: 0 4px 2px 24px;
 }
 
-.transplant-preview-button:disabled {
-    opacity: 0.5;
+.remap-rules-description {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    padding: 2px 4px 4px 4px;
+    white-space: normal;
 }
+
+/* プレビューウィンドウ */
 
 .preview-summary-label {
     -unity-font-style: bold;
@@ -128,32 +139,67 @@
 
 .preview-bone-item {
     flex-direction: row;
-    align-items: center;
-    padding-left: 4px;
     padding-right: 4px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    padding-left: 4px;
 }
 
 .preview-bone-item > Label {
-    flex-grow: 1;
+    white-space: normal;
     flex-basis: 0;
-    overflow: hidden;
-    -unity-text-overflow-position: end;
-    font-size: 11px;
+}
+
+.preview-bone-sourcelabel {
+    flex-grow: 1;
 }
 
 .preview-bone-arrow {
-    -unity-text-align: middle-center;
+    font-size: 13px;
+    flex-grow: 0.2;
+}
+
+.preview-bone-destlabel {
+    flex-grow: 1;
+}
+
+.preview-bone-actions {
     width: 24px;
     flex-shrink: 0;
-    font-size: 11px;
+    justify-content: center;
+    align-items: center;
+}
+
+.preview-bone-action-button {
+    width: 22px;
+    height: 18px;
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+}
+
+.preview-bone-destlabel:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
 }
 
 .preview-bone-resolved {
+    color: var(--unity-colors-default-text);
+    font-size: 11px;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.preview-bone-resolved > Label {
     color: var(--unity-colors-default-text);
 }
 
 .preview-bone-unresolved {
     color: rgb(220, 80, 80);
+    font-size: 11px;
+    -unity-font-style: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
 }
 
 .preview-bone-unresolved > Label {
@@ -171,4 +217,7 @@
     font-size: 11px;
     color: rgb(220, 180, 50);
     flex-grow: 1;
+    white-space: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+    -unity-font-style: italic;
 }

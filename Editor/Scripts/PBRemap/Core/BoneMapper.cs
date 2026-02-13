@@ -139,12 +139,11 @@ namespace colloid.PBReplacer
                 return Result<Transform, string>.Success(nameMatch);
 
             return Result<Transform, string>.Failure(
-                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" +
-                (relativePath != null ? $" (パス: {relativePath})" : ""));
+                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません");
         }
 
         /// <summary>
-        /// パスの各セグメントにリマップルールを適用する。
+        /// パスの各セグメントにリマップルールを順方向で適用する。
         /// </summary>
         /// <param name="relativePath">変換対象の相対パス</param>
         /// <param name="rules">適用するリマップルール</param>
@@ -161,6 +160,31 @@ namespace colloid.PBReplacer
                 foreach (var rule in rules)
                 {
                     segments[i] = rule.Apply(segments[i]);
+                }
+            }
+
+            return string.Join("/", segments);
+        }
+
+        /// <summary>
+        /// パスの各セグメントにリマップルールを逆方向で適用する。
+        /// 双方向リマップにより、ルール1つで両方向の移植に対応する。
+        /// </summary>
+        /// <param name="relativePath">変換対象の相対パス</param>
+        /// <param name="rules">適用するリマップルール</param>
+        /// <returns>変換後の相対パス</returns>
+        public static string ApplyRemapRulesReverse(string relativePath, List<PathRemapRule> rules)
+        {
+            if (string.IsNullOrEmpty(relativePath) || rules == null || rules.Count == 0)
+                return relativePath;
+
+            string[] segments = relativePath.Split('/');
+
+            for (int i = 0; i < segments.Length; i++)
+            {
+                foreach (var rule in rules)
+                {
+                    segments[i] = rule.ApplyReverse(segments[i]);
                 }
             }
 
@@ -203,13 +227,13 @@ namespace colloid.PBReplacer
                 return Result<Transform, string>.Failure(
                     $"ボーン '{sourceBone.name}' はソースアーマチュアの子孫ではありません");
 
-            // 戦略2: リマップルール適用後のパスで検索
+            // 戦略2: 順方向リマップルール適用後のパスで検索
             string remappedPath = ApplyRemapRules(relativePath, rules);
             Transform remappedMatch = FindBoneByRelativePath(remappedPath, destArmature);
             if (remappedMatch != null)
                 return Result<Transform, string>.Success(remappedMatch);
 
-            // 戦略3: リマップ後の末尾ボーン名で名前マッチ
+            // 戦略3: 順方向リマップ後の末尾ボーン名で名前マッチ
             string[] remappedSegments = remappedPath.Split('/');
             string remappedBoneName = remappedSegments[remappedSegments.Length - 1];
             Transform[] allDestBones = destArmature.GetComponentsInChildren<Transform>();
@@ -217,9 +241,24 @@ namespace colloid.PBReplacer
             if (nameMatch != null)
                 return Result<Transform, string>.Success(nameMatch);
 
+            // 戦略4: 逆方向リマップルール適用後のパスで検索
+            string reverseRemappedPath = ApplyRemapRulesReverse(relativePath, rules);
+            if (reverseRemappedPath != remappedPath)
+            {
+                Transform reverseMatch = FindBoneByRelativePath(reverseRemappedPath, destArmature);
+                if (reverseMatch != null)
+                    return Result<Transform, string>.Success(reverseMatch);
+
+                // 逆方向リマップ後の末尾ボーン名で名前マッチ
+                string[] reverseSegments = reverseRemappedPath.Split('/');
+                string reverseBoneName = reverseSegments[reverseSegments.Length - 1];
+                Transform reverseNameMatch = allDestBones.FirstOrDefault(t => t.name == reverseBoneName);
+                if (reverseNameMatch != null)
+                    return Result<Transform, string>.Success(reverseNameMatch);
+            }
+
             return Result<Transform, string>.Failure(
-                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" +
-                $" (元パス: {relativePath}, リマップ後: {remappedPath})");
+                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません");
         }
     }
 }
