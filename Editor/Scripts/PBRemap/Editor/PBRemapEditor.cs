@@ -300,7 +300,7 @@ namespace colloid.PBReplacer
             if (!canCheck)
             {
                 _resolutionSummary.style.display = DisplayStyle.None;
-                _previewButton.RemoveFromClassList("pbremap-preview-highlight");
+                Highlighter.Stop();
                 return;
             }
 
@@ -310,7 +310,7 @@ namespace colloid.PBReplacer
             if (total == 0)
             {
                 _resolutionSummary.style.display = DisplayStyle.None;
-                _previewButton.RemoveFromClassList("pbremap-preview-highlight");
+                Highlighter.Stop();
                 return;
             }
 
@@ -321,7 +321,7 @@ namespace colloid.PBReplacer
                 _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
                 _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
                 _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
-                _previewButton.RemoveFromClassList("pbremap-preview-highlight");
+                Highlighter.Stop();
             }
             else
             {
@@ -329,7 +329,7 @@ namespace colloid.PBReplacer
                     $"ボーン解決: {preview.ResolvedBones}/{total} ({preview.UnresolvedBones} 未解決)";
                 _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
                 _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
-                _previewButton.AddToClassList("pbremap-preview-highlight");
+                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
             }
         }
 

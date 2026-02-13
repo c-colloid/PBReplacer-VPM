@@ -103,37 +103,40 @@ namespace colloid.PBReplacer
 				destLabel.AddToClassList("preview-bone-destlabel");
 				row.Add(destLabel);
 
+				// 全行にアクションエリアを追加（レイアウト統一）
+				var actions = new VisualElement();
+				actions.AddToClassList("preview-bone-actions");
+
 				if (mapping.resolved)
 				{
 					destLabel.text = mapping.destinationBonePath;
 					destLabel.tooltip = mapping.destinationBonePath;
 					row.AddToClassList("preview-bone-resolved");
+
+					// destラベルクリック → 該当ボーンをヒエラルキーでPing
+					string destPath = mapping.destinationBonePath;
+					destLabel.RegisterCallback<ClickEvent>(evt => PingBone(destPath));
+
+					// 解決済み行: actionsは空スペーサー
 				}
 				else
 				{
 					destLabel.text = mapping.errorMessage ?? "未解決";
 					row.AddToClassList("preview-bone-unresolved");
 
-					var actions = new VisualElement();
-					actions.AddToClassList("preview-bone-actions");
-
+					// destラベルクリック → 最寄り解決済み祖先ボーンをPing
 					string sourcePath = mapping.sourceBonePath;
+					destLabel.RegisterCallback<ClickEvent>(evt => PingNearestResolvedBone(sourcePath));
 
+					// 未解決行: +ボタン（リマップルール追加）
 					var addRuleBtn = new Button(() => AddRemapRule(sourcePath));
 					addRuleBtn.text = "+";
 					addRuleBtn.tooltip = "ボーン名からリマップルールを追加";
 					addRuleBtn.AddToClassList("preview-bone-action-button");
 					actions.Add(addRuleBtn);
-
-					var pingBtn = new Button(() => PingNearestResolvedBone(sourcePath));
-					pingBtn.text = "\u25B2";
-					pingBtn.tooltip = "移植先の最寄り解決済みボーンをヒエラルキーで選択";
-					pingBtn.AddToClassList("preview-bone-action-button");
-					actions.Add(pingBtn);
-
-					row.Add(actions);
 				}
 
+				row.Add(actions);
 				_boneScrollView.Add(row);
 			}
 
@@ -146,6 +149,21 @@ namespace colloid.PBReplacer
 				label.style.whiteSpace = WhiteSpace.Normal;
 				row.Add(label);
 				_warningsContainer.Add(row);
+			}
+		}
+
+		/// <summary>
+		/// 解決済みボーンをヒエラルキーでPing＆選択する。
+		/// </summary>
+		private void PingBone(string destRelativePath)
+		{
+			var destArmature = _detection?.DestAvatarData?.Armature?.transform;
+			if (destArmature == null) return;
+			var bone = BoneMapper.FindBoneByRelativePath(destRelativePath, destArmature);
+			if (bone != null)
+			{
+				EditorGUIUtility.PingObject(bone.gameObject);
+				Selection.activeGameObject = bone.gameObject;
 			}
 		}
 
@@ -185,13 +203,12 @@ namespace colloid.PBReplacer
 			if (_detection?.DestAvatarData == null) return;
 
 			var destArmature = _detection.DestAvatarData.Armature.transform;
-			var rules = _definition?.PathRemapRules?.ToList();
 			string[] segments = sourceBonePath.Split('/');
 
 			for (int depth = segments.Length - 1; depth >= 1; depth--)
 			{
 				string parentPath = string.Join("/", segments, 0, depth);
-				var found = FindInDestArmature(parentPath, destArmature, rules);
+				var found = ResolveInDest(parentPath);
 				if (found != null)
 				{
 					EditorGUIUtility.PingObject(found.gameObject);
@@ -215,14 +232,12 @@ namespace colloid.PBReplacer
 				return parts[parts.Length - 1];
 			}
 
-			var destArmature = _detection.DestAvatarData.Armature.transform;
-			var rules = _definition?.PathRemapRules?.ToList();
 			string[] segments = sourceBonePath.Split('/');
 
 			for (int depth = 1; depth <= segments.Length; depth++)
 			{
 				string partialPath = string.Join("/", segments, 0, depth);
-				if (FindInDestArmature(partialPath, destArmature, rules) == null)
+				if (ResolveInDest(partialPath) == null)
 					return segments[depth - 1];
 			}
 
@@ -230,25 +245,83 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// 移植先Armature内でパスに対応するボーンを検索する（リマップルール適用込み）。
+		/// 移植先アバターでパスに対応するボーンを解決する。
+		/// BoneMapperの完全な解決戦略（Humanoid→パス→名前マッチ + リマップルール）を使用。
 		/// </summary>
-		private static Transform FindInDestArmature(
-			string relativePath, Transform destArmature, List<PathRemapRule> rules)
+		private Transform ResolveInDest(string relativePath)
 		{
+			var destData = _detection?.DestAvatarData;
+			if (destData == null) return null;
+
+			var destArmature = destData.Armature.transform;
+			var rules = _definition?.PathRemapRules?.ToList();
+
+			// Liveモード: BoneMapperの完全解決を使用
+			if (_detection.IsLiveMode && _detection.SourceAvatarData != null)
+			{
+				var srcArmature = _detection.SourceAvatarData.Armature.transform;
+				var srcBone = BoneMapper.FindBoneByRelativePath(relativePath, srcArmature);
+				if (srcBone != null)
+				{
+					var result = (rules != null && rules.Count > 0)
+						? BoneMapper.ResolveBoneWithRemap(
+							srcBone, srcArmature, destArmature, rules,
+							_detection.SourceAvatarData.AvatarAnimator,
+							destData.AvatarAnimator)
+						: BoneMapper.ResolveBone(
+							srcBone, srcArmature, destArmature,
+							_detection.SourceAvatarData.AvatarAnimator,
+							destData.AvatarAnimator);
+					if (result.IsSuccess) return result.Value;
+				}
+			}
+
+			// パスマッチ（直接）
 			var found = BoneMapper.FindBoneByRelativePath(relativePath, destArmature);
 			if (found != null) return found;
 
-			if (rules == null || rules.Count == 0) return null;
-
-			string remapped = BoneMapper.ApplyRemapRules(relativePath, rules);
-			found = BoneMapper.FindBoneByRelativePath(remapped, destArmature);
-			if (found != null) return found;
-
-			string reversed = BoneMapper.ApplyRemapRulesReverse(relativePath, rules);
-			if (reversed != remapped)
+			// パスマッチ（リマップルール順逆）
+			if (rules != null && rules.Count > 0)
 			{
-				found = BoneMapper.FindBoneByRelativePath(reversed, destArmature);
+				string remapped = BoneMapper.ApplyRemapRules(relativePath, rules);
+				found = BoneMapper.FindBoneByRelativePath(remapped, destArmature);
 				if (found != null) return found;
+
+				string reversed = BoneMapper.ApplyRemapRulesReverse(relativePath, rules);
+				if (reversed != remapped)
+				{
+					found = BoneMapper.FindBoneByRelativePath(reversed, destArmature);
+					if (found != null) return found;
+				}
+
+				// 名前マッチ（リマップルール適用）
+				string[] segments = relativePath.Split('/');
+				string boneName = segments[segments.Length - 1];
+				var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
+
+				string fwdName = boneName;
+				foreach (var rule in rules)
+					fwdName = rule.Apply(fwdName);
+				var match = allDestBones.FirstOrDefault(t => t.name == fwdName);
+				if (match != null) return match;
+
+				string revName = boneName;
+				foreach (var rule in rules)
+					revName = rule.ApplyReverse(revName);
+				if (revName != fwdName)
+				{
+					match = allDestBones.FirstOrDefault(t => t.name == revName);
+					if (match != null) return match;
+				}
+			}
+			else
+			{
+				// 名前マッチ（ルールなし）
+				string[] segments = relativePath.Split('/');
+				string boneName = segments[segments.Length - 1];
+				var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
+				var match = allDestBones.FirstOrDefault(t => t.name == boneName);
+				if (match != null) return match;
 			}
 
 			return null;
