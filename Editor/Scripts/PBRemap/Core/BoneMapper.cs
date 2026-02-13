@@ -90,54 +90,6 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// ソースパスの各セグメントにHumanoidマッピングとリマップルールを適用し、
-        /// デスティネーション側で期待されるパスを構築する（エラーメッセージ表示用）。
-        /// </summary>
-        private static string BuildExpectedDestPath(
-            string relativePath,
-            Transform sourceArmature,
-            Animator sourceAnimator,
-            Animator destAnimator,
-            List<PathRemapRule> rules)
-        {
-            string[] segments = relativePath.Split('/');
-            string[] resultSegments = new string[segments.Length];
-
-            Dictionary<Transform, Transform> humanoidMap = null;
-            if (sourceAnimator != null && destAnimator != null &&
-                sourceAnimator.isHuman && destAnimator.isHuman)
-            {
-                humanoidMap = BuildHumanoidBoneMap(sourceAnimator, destAnimator);
-            }
-
-            Transform current = sourceArmature;
-            for (int i = 0; i < segments.Length; i++)
-            {
-                Transform child = current != null ? current.Find(segments[i]) : null;
-
-                if (child != null && humanoidMap != null &&
-                    humanoidMap.TryGetValue(child, out Transform destBone))
-                {
-                    resultSegments[i] = destBone.name;
-                }
-                else
-                {
-                    string seg = segments[i];
-                    if (rules != null)
-                    {
-                        foreach (var rule in rules)
-                            seg = rule.Apply(seg);
-                    }
-                    resultSegments[i] = seg;
-                }
-
-                current = child;
-            }
-
-            return string.Join("/", resultSegments);
-        }
-
-        /// <summary>
         /// ソースボーンをデスティネーションアバターの対応するボーンに解決する。
         /// 3段階の戦略で解決を試みる: Humanoidマッピング → 相対パスマッチ → 名前マッチ。
         /// </summary>
@@ -186,12 +138,8 @@ namespace colloid.PBReplacer
             if (nameMatch != null)
                 return Result<Transform, string>.Success(nameMatch);
 
-            string expectedPath = relativePath != null
-                ? BuildExpectedDestPath(relativePath, sourceArmature, sourceAnimator, destAnimator, null)
-                : null;
             return Result<Transform, string>.Failure(
-                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" +
-                (expectedPath != null ? $" (パス: {expectedPath})" : ""));
+                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません");
         }
 
         /// <summary>
@@ -309,10 +257,8 @@ namespace colloid.PBReplacer
                     return Result<Transform, string>.Success(reverseNameMatch);
             }
 
-            string expectedPath = BuildExpectedDestPath(
-                relativePath, sourceArmature, sourceAnimator, destAnimator, rules);
             return Result<Transform, string>.Failure(
-                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" );
+                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません");
         }
     }
 }
