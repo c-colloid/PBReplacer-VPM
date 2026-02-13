@@ -139,8 +139,9 @@ namespace colloid.PBReplacer
                 var def = (PBRemap)target;
                 UpdateResolutionSummary(def);
 
-                if (EditorWindow.HasOpenInstances<PBRemapPreviewWindow>())
-                    EditorWindow.GetWindow<PBRemapPreviewWindow>().RefreshPreview();
+                var previewWindow = FindPreviewWindow();
+                if (previewWindow != null)
+                    previewWindow.RefreshPreview();
             });
 
             // 階層変更時の自動更新を登録
@@ -250,9 +251,10 @@ namespace colloid.PBReplacer
 
             UpdateResolutionSummary(definition);
 
-            // プレビューウィンドウが開いていれば検出結果を更新
-            if (EditorWindow.HasOpenInstances<PBRemapPreviewWindow>())
-                EditorWindow.GetWindow<PBRemapPreviewWindow>().UpdateDetection(_detection);
+            // プレビューウィンドウが開いていれば検出結果を更新（フォーカスを奪わない）
+            var previewWindow = FindPreviewWindow();
+            if (previewWindow != null)
+                previewWindow.UpdateDetection(_detection);
 
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
@@ -576,11 +578,14 @@ namespace colloid.PBReplacer
             hintLabel.AddToClassList("remap-rule-hint");
             root.Add(hintLabel);
 
-            // モード変更時にヒントを更新（makeItemで1回だけ登録）
+            // モード変更時にヒントとtooltipを更新（makeItemで1回だけ登録）
             modeField.RegisterValueChangedCallback(evt =>
             {
                 if (evt.newValue is PathRemapRule.RemapMode mode)
+                {
                     UpdateRuleHint(hintLabel, mode);
+                    UpdateFieldTooltips(sourcePatternField, destPatternField, mode);
+                }
             });
 
             return root;
@@ -611,7 +616,9 @@ namespace colloid.PBReplacer
 
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
 
-            UpdateRuleHint(hintLabel, (PathRemapRule.RemapMode)modeProp.enumValueIndex);
+            var mode = (PathRemapRule.RemapMode)modeProp.enumValueIndex;
+            UpdateRuleHint(hintLabel, mode);
+            UpdateFieldTooltips(sourcePatternField, destPatternField, mode);
             hintLabel.style.display = _showRuleHints ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
@@ -620,13 +627,37 @@ namespace colloid.PBReplacer
             switch (mode)
             {
                 case PathRemapRule.RemapMode.PrefixReplace:
-                    hintLabel.text = "パスの先頭を置換  例: J_Bip_C_ \u2194 Bip_C_";
+                    hintLabel.text =
+                        "ボーン名の先頭を双方向で置換。空欄で接頭辞を除去/追加\n" +
+                        "例: [J_Bip_C_] \u2194 [] → J_Bip_C_Hips \u2194 Hips";
                     break;
                 case PathRemapRule.RemapMode.CharacterSubstitution:
-                    hintLabel.text = "パス内の文字列を全て置換  例: _L \u2194 .L";
+                    hintLabel.text = "ボーン名内の文字列を双方向で全置換  例: [_L] \u2194 [.L]";
                     break;
                 case PathRemapRule.RemapMode.RegexReplace:
-                    hintLabel.text = "正規表現パターンで置換  例: Bone(\\d+) \u2194 B$1";
+                    hintLabel.text =
+                        "左欄=正規表現パターン  右欄=置換文字列（双方向）\n" +
+                        "例: [Bone(\\d+)] \u2194 [B$1]";
+                    break;
+            }
+        }
+
+        private static void UpdateFieldTooltips(
+            TextField sourceField, TextField destField, PathRemapRule.RemapMode mode)
+        {
+            switch (mode)
+            {
+                case PathRemapRule.RemapMode.PrefixReplace:
+                    sourceField.tooltip = "移植元の接頭辞（空欄 = 接頭辞なし）";
+                    destField.tooltip = "移植先の接頭辞（空欄 = 接頭辞なし）";
+                    break;
+                case PathRemapRule.RemapMode.CharacterSubstitution:
+                    sourceField.tooltip = "移植元の文字列";
+                    destField.tooltip = "移植先の文字列";
+                    break;
+                case PathRemapRule.RemapMode.RegexReplace:
+                    sourceField.tooltip = "正規表現パターン（例: Bone(\\d+)）";
+                    destField.tooltip = "置換文字列（例: B$1）。$1 でキャプチャグループ参照";
                     break;
             }
         }
@@ -742,6 +773,15 @@ namespace colloid.PBReplacer
                     _statusBox.messageType = HelpBoxMessageType.Error;
                     _statusBox.style.display = DisplayStyle.Flex;
                 });
+        }
+
+        /// <summary>
+        /// プレビューウィンドウをフォーカスせずに取得する。
+        /// </summary>
+        private static PBRemapPreviewWindow FindPreviewWindow()
+        {
+            var windows = Resources.FindObjectsOfTypeAll<PBRemapPreviewWindow>();
+            return windows.Length > 0 ? windows[0] : null;
         }
 
         #endregion

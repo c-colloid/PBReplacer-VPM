@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -273,6 +274,26 @@ namespace colloid.PBReplacer
 							_detection.SourceAvatarData.AvatarAnimator,
 							destData.AvatarAnimator);
 					if (result.IsSuccess) return result.Value;
+				}
+			}
+
+			// Humanoidボーン名マッチ（末尾セグメント名からHumanBodyBones列挙で解決）
+			var destAnimator = destData.AvatarAnimator;
+			if (destAnimator != null && destAnimator.isHuman)
+			{
+				string[] segs = relativePath.Split('/');
+				string lastSegment = segs[segs.Length - 1];
+
+				// ボーン名をHumanBodyBones列挙と照合
+				foreach (HumanBodyBones boneId in Enum.GetValues(typeof(HumanBodyBones)))
+				{
+					if (boneId == HumanBodyBones.LastBone) continue;
+					if (string.Equals(boneId.ToString(), lastSegment, StringComparison.OrdinalIgnoreCase))
+					{
+						var bone = destAnimator.GetBoneTransform(boneId);
+						if (bone != null) return bone;
+						break;
+					}
 				}
 			}
 
