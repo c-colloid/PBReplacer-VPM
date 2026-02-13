@@ -142,6 +142,13 @@ namespace colloid.PBReplacer
                 var previewWindow = FindPreviewWindow();
                 if (previewWindow != null)
                     previewWindow.RefreshPreview();
+
+                // SceneViewプレビューが有効ならキャッシュを再構築
+                if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
+                {
+                    var previewData = PBRemapPreview.GeneratePreview(def, _detection);
+                    PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
+                }
             });
 
             // 階層変更時の自動更新を登録
@@ -156,6 +163,10 @@ namespace colloid.PBReplacer
         private void OnDisable()
         {
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+
+            // プレビューウィンドウが閉じていればSceneViewプレビューを無効化
+            if (FindPreviewWindow() == null)
+                PBRemapScenePreviewState.Instance.Deactivate();
         }
 
         /// <summary>
@@ -255,6 +266,14 @@ namespace colloid.PBReplacer
             var previewWindow = FindPreviewWindow();
             if (previewWindow != null)
                 previewWindow.UpdateDetection(_detection);
+
+            // SceneViewプレビューが有効なら検出結果の変更を反映
+            if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
+            {
+                var def = (PBRemap)target;
+                var previewData = PBRemapPreview.GeneratePreview(def, _detection);
+                PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
+            }
 
             if (_autoCalculateScaleProp.boolValue)
                 UpdateCalculatedScaleLabel();
@@ -712,7 +731,16 @@ namespace colloid.PBReplacer
         {
             var definition = (PBRemap)target;
             if (_detection != null)
+            {
                 PBRemapPreviewWindow.Open(definition, _detection);
+
+                // SceneViewプレビューを有効化（Live Modeのみ）
+                if (_detection.IsLiveMode)
+                {
+                    var previewData = PBRemapPreview.GeneratePreview(definition, _detection);
+                    PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
+                }
+            }
         }
 
         private void OnRemapClicked()
