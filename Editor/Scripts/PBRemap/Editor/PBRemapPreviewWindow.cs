@@ -119,7 +119,8 @@ namespace colloid.PBReplacer
 				}
 				else
 				{
-					destLabel.text = mapping.errorMessage ?? "未解決";
+					destLabel.text = ComputePartialDestPath(mapping.sourceBonePath);
+					destLabel.tooltip = mapping.errorMessage ?? "未解決";
 					row.AddToClassList("preview-bone-unresolved");
 
 					// destラベルクリック → 最寄り解決済み祖先ボーンをPing
@@ -240,6 +241,35 @@ namespace colloid.PBReplacer
 			}
 
 			return segments[segments.Length - 1];
+		}
+
+		/// <summary>
+		/// 未解決ボーンのソースパスから、解決済み祖先を反映した部分解決デストパスを生成する。
+		/// 例: "Hips/Tail" で "Hips"→"J_Hips" が解決済みなら "J_Hips/Tail" を返す。
+		/// </summary>
+		private string ComputePartialDestPath(string sourceBonePath)
+		{
+			if (_preview == null || _detection?.DestAvatarData == null)
+				return sourceBonePath;
+
+			var destArmature = _detection.DestAvatarData.Armature.transform;
+			string[] segments = sourceBonePath.Split('/');
+
+			// 最も深い解決済み祖先プレフィックスを探す
+			for (int depth = segments.Length - 1; depth >= 1; depth--)
+			{
+				string sourcePrefix = string.Join("/", segments, 0, depth);
+				var destBone = FindDestBoneForSourcePrefix(sourcePrefix);
+				if (destBone != null)
+				{
+					string destPrefixPath = BoneMapper.GetRelativePath(destBone, destArmature)
+						?? destBone.name;
+					string remaining = string.Join("/", segments, depth, segments.Length - depth);
+					return destPrefixPath + "/" + remaining;
+				}
+			}
+
+			return sourceBonePath;
 		}
 
 		/// <summary>
