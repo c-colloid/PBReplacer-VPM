@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
@@ -197,7 +194,7 @@ namespace colloid.PBReplacer
 
 		/// <summary>
 		/// 移植先アバターで最も近い解決済み祖先ボーンをヒエラルキーで選択する。
-		/// ユーザーがそのボーンの子を確認してリマップルールを判断するため。
+		/// プレビューデータの解決済みマッピングから祖先を推定する。
 		/// </summary>
 		private void PingNearestResolvedBone(string sourceBonePath)
 		{
@@ -206,14 +203,15 @@ namespace colloid.PBReplacer
 			var destArmature = _detection.DestAvatarData.Armature.transform;
 			string[] segments = sourceBonePath.Split('/');
 
+			// プレビューデータから最寄りの解決済み祖先を探す
 			for (int depth = segments.Length - 1; depth >= 1; depth--)
 			{
-				string parentPath = string.Join("/", segments, 0, depth);
-				var found = ResolveInDest(parentPath);
-				if (found != null)
+				string parentPrefix = string.Join("/", segments, 0, depth);
+				var destBone = FindDestBoneForSourcePrefix(parentPrefix);
+				if (destBone != null)
 				{
-					EditorGUIUtility.PingObject(found.gameObject);
-					Selection.activeGameObject = found.gameObject;
+					EditorGUIUtility.PingObject(destBone.gameObject);
+					Selection.activeGameObject = destBone.gameObject;
 					return;
 				}
 			}
@@ -224,128 +222,79 @@ namespace colloid.PBReplacer
 
 		/// <summary>
 		/// 未解決パス内の最初の解決不能セグメント名を返す。
+		/// プレビューデータの解決済みマッピングからプレフィックスの解決状況を判定する。
 		/// </summary>
 		private string FindFirstUnresolvedSegment(string sourceBonePath)
 		{
-			if (_detection?.DestAvatarData == null)
-			{
-				string[] parts = sourceBonePath.Split('/');
-				return parts[parts.Length - 1];
-			}
-
 			string[] segments = sourceBonePath.Split('/');
 
-			for (int depth = 1; depth <= segments.Length; depth++)
+			if (_preview != null)
 			{
-				string partialPath = string.Join("/", segments, 0, depth);
-				if (ResolveInDest(partialPath) == null)
-					return segments[depth - 1];
+				for (int depth = 1; depth <= segments.Length; depth++)
+				{
+					string partialPath = string.Join("/", segments, 0, depth);
+					if (!IsSourcePrefixResolved(partialPath))
+						return segments[depth - 1];
+				}
+				return segments[segments.Length - 1];
 			}
 
 			return segments[segments.Length - 1];
 		}
 
 		/// <summary>
-		/// 移植先アバターでパスに対応するボーンを解決する。
-		/// BoneMapperの完全な解決戦略（Humanoid→パス→名前マッチ + リマップルール）を使用。
+		/// プレビューデータから、ソースパスの指定プレフィックスが解決済みかを判定する。
+		/// プレフィックスと一致する、またはプレフィックスで始まる解決済みマッピングが
+		/// 存在すれば、そのプレフィックス自体も解決可能と判断する。
 		/// </summary>
-		private Transform ResolveInDest(string relativePath)
+		private bool IsSourcePrefixResolved(string sourcePrefix)
 		{
-			var destData = _detection?.DestAvatarData;
-			if (destData == null) return null;
+			if (_preview == null) return false;
 
-			var destArmature = destData.Armature.transform;
-			var rules = _definition?.PathRemapRules?.ToList();
-
-			// Liveモード: BoneMapperの完全解決を使用
-			if (_detection.IsLiveMode && _detection.SourceAvatarData != null)
+			foreach (var m in _preview.BoneMappings)
 			{
-				var srcArmature = _detection.SourceAvatarData.Armature.transform;
-				var srcBone = BoneMapper.FindBoneByRelativePath(relativePath, srcArmature);
-				if (srcBone != null)
-				{
-					var result = (rules != null && rules.Count > 0)
-						? BoneMapper.ResolveBoneWithRemap(
-							srcBone, srcArmature, destArmature, rules,
-							_detection.SourceAvatarData.AvatarAnimator,
-							destData.AvatarAnimator)
-						: BoneMapper.ResolveBone(
-							srcBone, srcArmature, destArmature,
-							_detection.SourceAvatarData.AvatarAnimator,
-							destData.AvatarAnimator);
-					if (result.IsSuccess) return result.Value;
-				}
+				if (!m.resolved) continue;
+				if (m.sourceBonePath == sourcePrefix) return true;
+				if (m.sourceBonePath.StartsWith(sourcePrefix + "/")) return true;
 			}
+			return false;
+		}
 
-			// Humanoidボーン名マッチ（末尾セグメント名からHumanBodyBones列挙で解決）
-			var destAnimator = destData.AvatarAnimator;
-			if (destAnimator != null && destAnimator.isHuman)
+		/// <summary>
+		/// プレビューデータから、ソースパスのプレフィックスに対応する
+		/// デスティネーション側のTransformを取得する。
+		/// 例: sourcePrefix="Hips" で解決済み "Hips/Spine"→"J_Hips/Spine" がある場合、
+		/// destの深さ1のプレフィックス "J_Hips" を返す。
+		/// </summary>
+		private Transform FindDestBoneForSourcePrefix(string sourcePrefix)
+		{
+			if (_preview == null || _detection?.DestAvatarData == null) return null;
+
+			var destArmature = _detection.DestAvatarData.Armature.transform;
+			int prefixDepth = sourcePrefix.Split('/').Length;
+
+			foreach (var m in _preview.BoneMappings)
 			{
-				string[] segs = relativePath.Split('/');
-				string lastSegment = segs[segs.Length - 1];
+				if (!m.resolved) continue;
 
-				// ボーン名をHumanBodyBones列挙と照合
-				foreach (HumanBodyBones boneId in Enum.GetValues(typeof(HumanBodyBones)))
+				// ソースパスが完全一致 → destパスをそのまま使用
+				if (m.sourceBonePath == sourcePrefix)
+					return BoneMapper.FindBoneByRelativePath(m.destinationBonePath, destArmature);
+
+				// ソースパスがプレフィックスで始まる → destの同深度プレフィックスを抽出
+				if (m.sourceBonePath.StartsWith(sourcePrefix + "/"))
 				{
-					if (boneId == HumanBodyBones.LastBone) continue;
-					if (string.Equals(boneId.ToString(), lastSegment, StringComparison.OrdinalIgnoreCase))
+					string[] destSegments = m.destinationBonePath.Split('/');
+					if (destSegments.Length >= prefixDepth)
 					{
-						var bone = destAnimator.GetBoneTransform(boneId);
-						if (bone != null) return bone;
-						break;
+						string destPrefix = string.Join("/", destSegments, 0, prefixDepth);
+						return BoneMapper.FindBoneByRelativePath(destPrefix, destArmature);
 					}
 				}
 			}
 
-			// パスマッチ（直接）
-			var found = BoneMapper.FindBoneByRelativePath(relativePath, destArmature);
-			if (found != null) return found;
-
-			// パスマッチ（リマップルール順逆）
-			if (rules != null && rules.Count > 0)
-			{
-				string remapped = BoneMapper.ApplyRemapRules(relativePath, rules);
-				found = BoneMapper.FindBoneByRelativePath(remapped, destArmature);
-				if (found != null) return found;
-
-				string reversed = BoneMapper.ApplyRemapRulesReverse(relativePath, rules);
-				if (reversed != remapped)
-				{
-					found = BoneMapper.FindBoneByRelativePath(reversed, destArmature);
-					if (found != null) return found;
-				}
-
-				// 名前マッチ（リマップルール適用）
-				string[] segments = relativePath.Split('/');
-				string boneName = segments[segments.Length - 1];
-				var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-
-				string fwdName = boneName;
-				foreach (var rule in rules)
-					fwdName = rule.Apply(fwdName);
-				var match = allDestBones.FirstOrDefault(t => t.name == fwdName);
-				if (match != null) return match;
-
-				string revName = boneName;
-				foreach (var rule in rules)
-					revName = rule.ApplyReverse(revName);
-				if (revName != fwdName)
-				{
-					match = allDestBones.FirstOrDefault(t => t.name == revName);
-					if (match != null) return match;
-				}
-			}
-			else
-			{
-				// 名前マッチ（ルールなし）
-				string[] segments = relativePath.Split('/');
-				string boneName = segments[segments.Length - 1];
-				var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-				var match = allDestBones.FirstOrDefault(t => t.name == boneName);
-				if (match != null) return match;
-			}
-
 			return null;
 		}
+
 	}
 }
