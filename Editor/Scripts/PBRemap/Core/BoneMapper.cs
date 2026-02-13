@@ -312,8 +312,7 @@ namespace colloid.PBReplacer
             string expectedPath = BuildExpectedDestPath(
                 relativePath, sourceArmature, sourceAnimator, destAnimator, rules);
             return Result<Transform, string>.Failure(
-                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" +
-                $" (元パス: {relativePath}, リマップ後: {expectedPath})");
+                $"ボーン '{sourceBone.name}' に対応するデスティネーションボーンが見つかりません" );
         }
     }
 }
