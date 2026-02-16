@@ -203,6 +203,16 @@
     color: var(--unity-colors-default-text);
 }
 
+.preview-bone-auto-creatable {
+    color: rgb(220, 180, 50);
+    font-size: 11px;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.preview-bone-auto-creatable > Label {
+    color: rgb(220, 180, 50);
+}
+
 .preview-bone-unresolved {
     color: rgb(220, 80, 80);
     font-size: 11px;

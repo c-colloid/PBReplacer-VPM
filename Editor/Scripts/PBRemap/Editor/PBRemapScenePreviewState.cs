@@ -30,6 +30,7 @@ namespace colloid.PBReplacer
 
 		// サマリー
 		public int ResolvedCount { get; private set; }
+		public int AutoCreatableCount { get; private set; }
 		public int TotalCount { get; private set; }
 
 		/// <summary>
@@ -54,6 +55,7 @@ namespace colloid.PBReplacer
 			Detection = null;
 			VisualMappings.Clear();
 			ResolvedCount = 0;
+			AutoCreatableCount = 0;
 			TotalCount = 0;
 			SceneView.RepaintAll();
 		}
@@ -66,6 +68,7 @@ namespace colloid.PBReplacer
 		{
 			VisualMappings.Clear();
 			ResolvedCount = 0;
+			AutoCreatableCount = 0;
 			TotalCount = 0;
 
 			if (PreviewData == null || Detection == null)
@@ -100,6 +103,18 @@ namespace colloid.PBReplacer
 						BoneMapper.FindBoneByRelativePath(mapping.destinationBonePath, destArmature);
 					ResolvedCount++;
 				}
+				else if (mapping.autoCreatable && !string.IsNullOrEmpty(mapping.autoCreateDestPath))
+				{
+					// autoCreateDestPathの親パスからTransformを取得
+					int lastSlash = mapping.autoCreateDestPath.LastIndexOf('/');
+					string parentDestPath = lastSlash >= 0
+						? mapping.autoCreateDestPath.Substring(0, lastSlash)
+						: "";
+					visual.AutoCreateParentTransform =
+						BoneMapper.FindBoneByRelativePath(parentDestPath, destArmature);
+					visual.AutoCreatable = true;
+					AutoCreatableCount++;
+				}
 
 				VisualMappings.Add(visual);
 			}
@@ -119,5 +134,7 @@ namespace colloid.PBReplacer
 		public string ErrorMessage;
 		public Transform SourceTransform;
 		public Transform DestTransform;
+		public bool AutoCreatable;
+		public Transform AutoCreateParentTransform;
 	}
 }

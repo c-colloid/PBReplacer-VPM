@@ -22,6 +22,10 @@ namespace colloid.PBReplacer
 		private static readonly Color UnresolvedColor = new Color(0.9f, 0.3f, 0.3f, 0.8f);
 		private static readonly Color UnresolvedMarkerColor = new Color(0.95f, 0.75f, 0.2f, 0.9f);
 
+		// 自動作成予定カラー（黄色系）
+		private static readonly Color AutoCreateColor = new Color(0.95f, 0.75f, 0.2f, 0.85f);
+		private static readonly Color AutoCreateMarkerColor = new Color(0.95f, 0.75f, 0.2f, 0.9f);
+
 		private const float BoneMarkerSize = 0.01f;
 		private const float LineWidth = 3f;
 		private const float TangentRatio = 0.33f;
@@ -31,6 +35,7 @@ namespace colloid.PBReplacer
 
 		private static GUIStyle _resolvedLabelStyle;
 		private static GUIStyle _unresolvedLabelStyle;
+		private static GUIStyle _autoCreateLabelStyle;
 
 		/// <summary>
 		/// SceneView.duringSceneGui に登録するコールバック。
@@ -114,6 +119,41 @@ namespace colloid.PBReplacer
 						boneName, _resolvedLabelStyle);
 				}
 			}
+			else if (visual.AutoCreatable && visual.AutoCreateParentTransform != null)
+			{
+				// 自動作成予定: ソースから親ボーン（dest側）への接続
+				Vector3 parentPos = visual.AutoCreateParentTransform.position;
+				float parentDist = Vector3.Distance(
+					parentPos, sceneView.camera.transform.position);
+				float parentMarkerSize = parentDist * BoneMarkerSize;
+
+				// ソースボーンマーカー（黄色の球）
+				Handles.color = AutoCreateMarkerColor;
+				Handles.SphereHandleCap(
+					0, sourcePos, Quaternion.identity,
+					markerSize, EventType.Repaint);
+
+				// 親ボーンマーカー（黄色の小さな球）
+				Handles.color = AutoCreateMarkerColor;
+				Handles.SphereHandleCap(
+					0, parentPos, Quaternion.identity,
+					parentMarkerSize * 0.7f, EventType.Repaint);
+
+				// 接続線: ソース → dest親
+				if (state.ShowConnectionLines)
+				{
+					DrawAutoCreateBezier(sourcePos, parentPos);
+				}
+
+				if (state.ShowBoneLabels)
+				{
+					EnsureLabelStyles();
+					string boneName = GetBoneName(visual.SourcePath);
+					Handles.Label(
+						sourcePos + Vector3.up * markerSize * 2f,
+						boneName + " (\u4f5c\u6210\u4e88\u5b9a)", _autoCreateLabelStyle);
+				}
+			}
 			else
 			{
 				// 未解決: ソースのみに目立つマーカー
@@ -195,6 +235,55 @@ namespace colloid.PBReplacer
 			}
 		}
 
+		/// <summary>
+		/// 自動作成予定ボーン用のベジェ曲線を描画する。
+		/// 単色の黄色でソースから親ボーンへの接続を描画する。
+		/// </summary>
+		private static void DrawAutoCreateBezier(Vector3 sourcePos, Vector3 parentPos)
+		{
+			float distance = Vector3.Distance(sourcePos, parentPos);
+			if (distance < 0.001f)
+				return;
+
+			Vector3 direction = (parentPos - sourcePos).normalized;
+			float tangentMag = distance * TangentRatio;
+
+			Vector3 refUp = Mathf.Abs(Vector3.Dot(direction, Vector3.up)) > 0.95f
+				? Vector3.forward
+				: Vector3.up;
+			Vector3 right = Vector3.Cross(direction, refUp).normalized;
+			Vector3 perpUp = Vector3.Cross(right, direction).normalized;
+
+			float arcHeight = distance * ArcHeightRatio;
+			Vector3 startTangent = sourcePos + direction * tangentMag + perpUp * arcHeight;
+			Vector3 endTangent = parentPos - direction * tangentMag + perpUp * arcHeight;
+
+			Vector3[] points = Handles.MakeBezierPoints(
+				sourcePos, parentPos, startTangent, endTangent, CurveSegments);
+
+			// 黄色の単色ベジェ曲線
+			Handles.color = AutoCreateColor;
+			for (int i = 0; i < points.Length - 1; i++)
+			{
+				Handles.DrawAAPolyLine(LineWidth * 0.8f, points[i], points[i + 1]);
+			}
+
+			// 曲線中腹に矢印
+			int arrowIdx = Mathf.Clamp(
+				(int)(points.Length * ArrowPosition), 1, points.Length - 2);
+			Vector3 arrowPos = points[arrowIdx];
+			Vector3 arrowDir = (points[arrowIdx + 1] - points[arrowIdx - 1]).normalized;
+
+			if (arrowDir.sqrMagnitude > 0.001f)
+			{
+				float arrowSize = HandleUtility.GetHandleSize(arrowPos) * 0.10f;
+				Handles.color = AutoCreateColor;
+				Handles.ConeHandleCap(
+					0, arrowPos, Quaternion.LookRotation(arrowDir),
+					arrowSize, EventType.Repaint);
+			}
+		}
+
 		private static void EnsureLabelStyles()
 		{
 			if (_resolvedLabelStyle == null)
@@ -219,6 +308,18 @@ namespace colloid.PBReplacer
 				};
 				_unresolvedLabelStyle.normal.textColor = UnresolvedColor;
 				_unresolvedLabelStyle.normal.background = Texture2D.linearGrayTexture;
+			}
+
+			if (_autoCreateLabelStyle == null)
+			{
+				_autoCreateLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+				{
+					fontSize = 10,
+					fontStyle = FontStyle.Bold,
+					padding = new RectOffset(2, 2, 1, 1)
+				};
+				_autoCreateLabelStyle.normal.textColor = AutoCreateMarkerColor;
+				_autoCreateLabelStyle.normal.background = Texture2D.linearGrayTexture;
 			}
 		}
 		

@@ -90,11 +90,14 @@ namespace colloid.PBReplacer
 			}
 
 			int totalBones = _preview.ResolvedBones + _preview.UnresolvedBones;
-			_summaryLabel.text =
+			var summaryText =
 				$"PB: {_preview.TotalPhysBones}  PBC: {_preview.TotalPhysBoneColliders}  " +
 				$"Constraint: {_preview.TotalConstraints}  Contact: {_preview.TotalContacts}\n" +
-				$"ボーン解決: {_preview.ResolvedBones}/{totalBones}  |  " +
-				$"スケール: {_preview.CalculatedScaleFactor:F3}";
+				$"ボーン解決: {_preview.ResolvedBones}/{totalBones}";
+			if (_preview.AutoCreatableBones > 0)
+				summaryText += $"  作成予定: {_preview.AutoCreatableBones}";
+			summaryText += $"  |  スケール: {_preview.CalculatedScaleFactor:F3}";
+			_summaryLabel.text = summaryText;
 
 			_boneScrollView.Clear();
 			foreach (var mapping in _preview.BoneMappings)
@@ -130,6 +133,18 @@ namespace colloid.PBReplacer
 					destLabel.RegisterCallback<ClickEvent>(evt => PingBone(destPath));
 
 					// 解決済み行: actionsは空スペーサー
+				}
+				else if (mapping.autoCreatable)
+				{
+					// 自動作成予定: 親ボーンは解決済み、子オブジェクトを作成予定
+					destLabel.text = mapping.autoCreateDestPath + " (作成予定)";
+					destLabel.tooltip = "親ボーンが解決済みのため、子オブジェクトを自動作成できます"
+						+ $"\n作成先: {mapping.autoCreateDestPath}";
+					row.AddToClassList("preview-bone-auto-creatable");
+
+					// destラベルクリック → 親ボーンの解決先をPing
+					string sourcePath = mapping.sourceBonePath;
+					destLabel.RegisterCallback<ClickEvent>(evt => PingNearestResolvedBone(sourcePath));
 				}
 				else
 				{

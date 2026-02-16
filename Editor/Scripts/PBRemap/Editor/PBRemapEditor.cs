@@ -430,11 +430,14 @@ namespace colloid.PBReplacer
                 }
             }
 
+            // スケルトンボーン判定用のセットを構築
+            var skinnedBones = BoneMapper.CollectSkinnedBones(_detection.SourceAvatar);
+
             var boneRefs = new List<SerializedBoneReference>();
-            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
 
             serializedObject.Update();
             _serializedBoneRefsProp.ClearArray();
@@ -450,6 +453,7 @@ namespace colloid.PBReplacer
                 element.FindPropertyRelative("humanBodyBone").enumValueIndex = (int)br.humanBodyBone;
                 element.FindPropertyRelative("nearestHumanoidAncestor").enumValueIndex = (int)br.nearestHumanoidAncestor;
                 element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
+                element.FindPropertyRelative("isSkeletonBone").boolValue = br.isSkeletonBone;
             }
 
             float sourceScale = PBRemapper.CalculateAvatarScale(sourceData);
@@ -462,6 +466,7 @@ namespace colloid.PBReplacer
             Transform definitionRoot,
             Transform sourceArmature,
             Dictionary<Transform, HumanBodyBones> humanoidBoneMap,
+            HashSet<Transform> skinnedBones,
             List<SerializedBoneReference> results) where T : Component
         {
             foreach (var component in definitionRoot.GetComponentsInChildren<T>(true))
@@ -499,6 +504,8 @@ namespace colloid.PBReplacer
                         nearestHumanoidAncestor = HumanBodyBones.LastBone,
                         pathFromHumanoidAncestor = ""
                     };
+
+                    boneRef.isSkeletonBone = BoneMapper.IsSkeletonBone(objRef, skinnedBones);
 
                     if (humanoidBoneMap.TryGetValue(objRef, out var humanBone))
                     {

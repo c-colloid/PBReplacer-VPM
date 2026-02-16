@@ -30,5 +30,8 @@ namespace colloid.PBReplacer
 
         /// <summary>Humanoid祖先からの相対パス（例: "Hair_Root/Hair_01"）</summary>
         public string pathFromHumanoidAncestor;
+
+        /// <summary>このボーンまたは子孫がSkinnedMeshRendererにバインドされているか（スケルトンの一部か）</summary>
+        public bool isSkeletonBone;
     }
 }

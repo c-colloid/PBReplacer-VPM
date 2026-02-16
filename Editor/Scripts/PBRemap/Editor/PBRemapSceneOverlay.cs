@@ -106,10 +106,13 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			int unresolved = state.TotalCount - state.ResolvedCount;
+			int autoCreatable = state.AutoCreatableCount;
+			int unresolved = state.TotalCount - state.ResolvedCount - autoCreatable;
 			_summaryLabel.text =
 				$"\u89e3\u6c7a\u6e08\u307f: {state.ResolvedCount}/{state.TotalCount}";
 
+			if (autoCreatable > 0)
+				_summaryLabel.text += $"  (\u4f5c\u6210\u4e88\u5b9a: {autoCreatable})";
 			if (unresolved > 0)
 				_summaryLabel.text += $"  (\u672a\u89e3\u6c7a: {unresolved})";
 		}

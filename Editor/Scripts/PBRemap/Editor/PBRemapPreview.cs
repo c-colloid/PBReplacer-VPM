@@ -21,6 +21,7 @@ namespace colloid.PBReplacer
         public int TotalContacts { get; set; }
         public int ResolvedBones { get; set; }
         public int UnresolvedBones { get; set; }
+        public int AutoCreatableBones { get; set; }
         public float CalculatedScaleFactor { get; set; } = 1.0f;
         public List<string> Warnings { get; set; } = new List<string>();
     }
@@ -140,6 +141,9 @@ namespace colloid.PBReplacer
                     "移植後のパラメータを確認してください。");
             }
 
+            // スケルトンボーン判定用のセットを構築
+            var skinnedBones = BoneMapper.CollectSkinnedBones(detection.SourceAvatar);
+
             // 外部Transform参照を収集してボーン解決を試みる
             var processedPaths = new HashSet<string>();
             var externalRefs = SourceDetector.CollectExternalTransformReferences(definition);
@@ -177,6 +181,32 @@ namespace colloid.PBReplacer
                     mapping.resolved = false;
                     mapping.errorMessage = resolveResult.Error;
                     mapping.destinationBonePath = "";
+
+                    // autoCreatable判定: スケルトンボーンでなく、親が解決可能な場合
+                    if (!BoneMapper.IsSkeletonBone(bone, skinnedBones)
+                        && bone.parent != null
+                        && bone.parent.IsChildOf(sourceArmature))
+                    {
+                        var parentResult = (remapRules != null && remapRules.Count > 0)
+                            ? BoneMapper.ResolveBoneWithRemap(
+                                bone.parent, sourceArmature, destArmature,
+                                remapRules, sourceAnimator, destAnimator)
+                            : BoneMapper.ResolveBone(
+                                bone.parent, sourceArmature, destArmature,
+                                sourceAnimator, destAnimator);
+
+                        if (parentResult.IsSuccess)
+                        {
+                            string parentDestPath = BoneMapper.GetRelativePath(
+                                parentResult.Value, destArmature) ?? parentResult.Value.name;
+                            mapping.autoCreatable = true;
+                            mapping.autoCreateDestPath = string.IsNullOrEmpty(parentDestPath)
+                                ? bone.name
+                                : parentDestPath + "/" + bone.name;
+                            preview.AutoCreatableBones++;
+                        }
+                    }
+
                     preview.UnresolvedBones++;
                 }
 
@@ -243,6 +273,31 @@ namespace colloid.PBReplacer
                     mapping.resolved = false;
                     mapping.errorMessage = $"ボーン '{boneRef.boneRelativePath}' を解決できません";
                     mapping.destinationBonePath = "";
+
+                    // autoCreatable判定: スケルトンボーンでなく、親パスが解決可能な場合
+                    if (!boneRef.isSkeletonBone
+                        && !string.IsNullOrEmpty(boneRef.boneRelativePath)
+                        && boneRef.boneRelativePath.Contains("/"))
+                    {
+                        int lastSlash = boneRef.boneRelativePath.LastIndexOf('/');
+                        string parentPath = boneRef.boneRelativePath.Substring(0, lastSlash);
+                        string boneName = boneRef.boneRelativePath.Substring(lastSlash + 1);
+
+                        Transform parentDest = ResolveParentFromSerialized(
+                            parentPath, destArmature, destAnimator, remapRules);
+
+                        if (parentDest != null)
+                        {
+                            string parentDestPath = BoneMapper.GetRelativePath(
+                                parentDest, destArmature) ?? parentDest.name;
+                            mapping.autoCreatable = true;
+                            mapping.autoCreateDestPath = string.IsNullOrEmpty(parentDestPath)
+                                ? boneName
+                                : parentDestPath + "/" + boneName;
+                            preview.AutoCreatableBones++;
+                        }
+                    }
+
                     preview.UnresolvedBones++;
                 }
 
@@ -342,6 +397,55 @@ namespace colloid.PBReplacer
                     if (nameMatch != null)
                         return nameMatch;
                 }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Prefabモードで親パスをデスティネーション側で解決する。
+        /// 直接パスマッチ → リマップルール適用後のパスマッチを試みる。
+        /// </summary>
+        private static Transform ResolveParentFromSerialized(
+            string parentPath,
+            Transform destArmature,
+            Animator destAnimator,
+            List<PathRemapRule> remapRules)
+        {
+            if (string.IsNullOrEmpty(parentPath))
+                return destArmature;
+
+            // 直接パスマッチ
+            var directMatch = BoneMapper.FindBoneByRelativePath(parentPath, destArmature);
+            if (directMatch != null)
+                return directMatch;
+
+            // リマップルール適用後のパスマッチ
+            if (remapRules != null && remapRules.Count > 0)
+            {
+                string remappedPath = BoneMapper.ApplyRemapRules(parentPath, remapRules);
+                var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
+                if (remappedMatch != null)
+                    return remappedMatch;
+
+                string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(parentPath, remapRules);
+                if (reverseRemappedPath != remappedPath)
+                {
+                    var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
+                    if (reverseMatch != null)
+                        return reverseMatch;
+                }
+            }
+
+            // Humanoidボーン名マッチ（親パスの末尾セグメント）
+            if (destAnimator != null && destAnimator.isHuman)
+            {
+                string[] segments = parentPath.Split('/');
+                string parentBoneName = segments[segments.Length - 1];
+                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
+                var nameMatch = allDestBones.FirstOrDefault(t => t.name == parentBoneName);
+                if (nameMatch != null)
+                    return nameMatch;
             }
 
             return null;
