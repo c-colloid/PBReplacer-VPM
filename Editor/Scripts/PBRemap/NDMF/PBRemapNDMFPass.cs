@@ -1,4 +1,4 @@
-#if NDMF
+﻿//#if NDMF
 using nadena.dev.ndmf;
 using UnityEngine;
 
@@ -59,4 +59,4 @@ namespace colloid.PBReplacer
         }
     }
 }
-#endif
+//#endif

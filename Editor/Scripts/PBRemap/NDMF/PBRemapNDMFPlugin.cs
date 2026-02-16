@@ -1,4 +1,4 @@
-#if NDMF
+﻿//#if NDMF
 using nadena.dev.ndmf;
 
 [assembly: ExportsPlugin(typeof(colloid.PBReplacer.PBRemapNDMFPlugin))]
@@ -16,9 +16,9 @@ namespace colloid.PBReplacer
 
         protected override void Configure()
         {
-            InPhase(BuildPhase.Generating)
-                .Run<PBRemapNDMFPass>();
+	        InPhase(BuildPhase.Generating)
+		        .Run<PBRemapNDMFPass>(new PBRemapNDMFPass());
         }
     }
 }
-#endif
+//#endif
