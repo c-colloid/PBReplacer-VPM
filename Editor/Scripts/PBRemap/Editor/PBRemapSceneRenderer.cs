@@ -101,9 +101,16 @@ namespace colloid.PBReplacer
 				if (state.ShowBoneLabels)
 				{
 					EnsureLabelStyles();
+					SetTextColor(SourceMarkerColor);
 					string boneName = GetBoneName(visual.SourcePath);
 					Handles.Label(
 						sourcePos + Vector3.up * markerSize * 2f,
+						boneName, _resolvedLabelStyle);
+						
+					SetTextColor(DestMarkerColor);
+					boneName = GetBoneName(visual.DestPath);
+					Handles.Label(
+						destPos + Vector3.up * markerSize * 2f,
 						boneName, _resolvedLabelStyle);
 				}
 			}
@@ -213,6 +220,11 @@ namespace colloid.PBReplacer
 				_unresolvedLabelStyle.normal.textColor = UnresolvedColor;
 				_unresolvedLabelStyle.normal.background = Texture2D.linearGrayTexture;
 			}
+		}
+		
+		private static void SetTextColor(Color textColor)
+		{
+			_resolvedLabelStyle.normal.textColor = textColor;
 		}
 
 		private static string GetBoneName(string path)
