@@ -1,5 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
+using VRC.SDKBase;
 
 namespace colloid.PBReplacer
 {
@@ -10,7 +11,7 @@ namespace colloid.PBReplacer
     /// </summary>
     [AddComponentMenu("PBReplacer/PB Remap")]
     [DisallowMultipleComponent]
-    public class PBRemap : MonoBehaviour
+	public class PBRemap : MonoBehaviour, IEditorOnly
     {
         [SerializeField]
         [Tooltip("スケールファクターを自動計算するかどうか")]
