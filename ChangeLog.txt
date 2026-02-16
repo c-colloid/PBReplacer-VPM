@@ -1,3 +1,9 @@
+[3.0.0]2026.02.16
+AvatarDynamicsを他のアバターに移植する機能を実装
+ - PBRemapコンポーネントの追加
+ - PBRemapPreviewWindowの実装
+ - PBRemapSceneOverlayの実装(シーン上のプレビュー機能)
+
 [2.2.2]2026.01.18
 Prefabアセットが見つからないバグを修正
 
