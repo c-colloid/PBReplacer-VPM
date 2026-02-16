@@ -12,21 +12,32 @@ PBReplacerはVRChatアバター開発用のUnityエディタ拡張です。ア�
 - VPMパッケージ（VRChat Package Manager）
 - 依存関係: `com.vrchat.avatars` (VRChat Avatars SDK)
 - 名前空間: `colloid.PBReplacer`
-- アセンブリ定義: `jp.colloid.pbreplacer.asmdef`
+- アセンブリ定義（Editor）: `jp.colloid.pbreplacer.asmdef`
+- アセンブリ定義（Runtime）: `jp.colloid.pbreplacer.runtime.asmdef`（`autoReferenced: false`）
 
 ## アーキテクチャ
 
-### ディレクトリ構造 (Editor/Scripts/)
+### ディレクトリ構造
 
 ```
-Core/           - 基盤クラス（EventBus、Result型、StateMachine、Commands、Specifications）
-Managers/       - シングルトンデータマネージャー群
-Models/         - データモデル（AvatarData、Settings等）
-Processing/     - コンポーネント処理ロジック
-UI/Elements/    - カスタムUI要素
-UI/Handlers/    - UIイベントハンドラ
-UI/Windows/     - EditorWindowクラス
-Utilities/      - ヘルパークラス
+Runtime/Scripts/           - Runtimeコード（MonoBehaviour、Serializableデータクラス）
+  PBRemap.cs               - 移植設定MonoBehaviour（PB Remap）
+  PathRemapRule.cs         - パスリマップルール
+  BoneMapping.cs           - ボーンマッピングプレビュー用データ
+
+Editor/Scripts/
+  Core/           - 基盤クラス（EventBus、Result型、StateMachine、Commands、Specifications）
+  Managers/       - シングルトンデータマネージャー群
+  Models/         - データモデル（AvatarData、Settings等）
+  Processing/     - コンポーネント処理ロジック
+  PBRemap/        - 移植機能（PBRemap）
+    Core/         - 移植コアロジック（BoneMapper、PBRemapper、ScaleCalculator、SourceDetector）
+    Editor/       - 移植UI（PBRemapEditor、PBRemapPreviewWindow）
+    NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
+  UI/Elements/    - カスタムUI要素
+  UI/Handlers/    - UIイベントハンドラ
+  UI/Windows/     - EditorWindowクラス
+  Utilities/      - ヘルパークラス
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
@@ -73,6 +84,9 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 ### 条件付きコンパイル
 
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
+
+`#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
+PBRemapコンポーネントを`BuildPhase.Generating`で自動処理し、ランタイムでは除去する。
 
 ## リリースプロセス
 

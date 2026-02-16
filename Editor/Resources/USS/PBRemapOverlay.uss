@@ -1,0 +1,17 @@
+.overlay-panel-root {
+    min-width: 200px;
+    padding: 4px;
+}
+
+.overlay-summary-label {
+    -unity-font-style: bold;
+    font-size: 12px;
+    padding: 2px 4px;
+    margin-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+.overlay-toggle-row {
+    padding: 1px 4px;
+}

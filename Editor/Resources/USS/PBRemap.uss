@@ -1,0 +1,231 @@
+.pbremap-section {
+    margin-left: 3px;
+    margin-right: 3px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.pbremap-add-button {
+    align-self: flex-end;
+    width: 100px;
+    margin-top: 4px;
+}
+
+.pbremap-scale-label {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    margin-left: 4px;
+    margin-top: 2px;
+}
+
+.pbremap-detection-label {
+    font-size: 12px;
+    padding: 2px 4px;
+}
+
+.pbremap-mode-label {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    padding: 0 4px 2px 4px;
+}
+
+.pbremap-components-summary {
+    font-size: 12px;
+    padding: 4px;
+    white-space: normal;
+}
+
+.pbremap-resolution-summary {
+    font-size: 11px;
+    padding: 2px 4px;
+    margin-top: 2px;
+}
+
+.pbremap-resolution-resolved {
+    color: rgb(100, 200, 100);
+}
+
+.pbremap-resolution-unresolved {
+    color: rgb(220, 180, 50);
+    -unity-font-style: bold;
+}
+
+.pbremap-execute-button {
+    height: 28px;
+    padding-left: 16px;
+    padding-right: 16px;
+    -unity-font-style: bold;
+    font-size: 13px;
+    background-color: var(--unity-colors-highlight-background);
+    color: var(--unity-colors-highlight-text);
+    border-radius: 4px;
+}
+
+.pbremap-execute-button:hover {
+    background-color: var(--unity-colors-highlight-background-hover);
+}
+
+.pbremap-execute-button:disabled {
+    opacity: 0.5;
+}
+
+.remap-rule-item {
+    flex-direction: row;
+    align-items: center;
+    padding: 2px;
+    margin-bottom: 1px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.3);
+}
+
+.remap-rule-item > Toggle {
+    width: 20px;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.remap-rule-item > EnumField {
+    width: 110px;
+    flex-shrink: 0;
+    margin-right: 2px;
+}
+
+.remap-rule-item > TextField {
+    flex-grow: 1;
+    flex-basis: 0;
+    margin-right: 2px;
+    min-width: 40px;
+}
+
+.remap-rule-arrow {
+    -unity-text-align: middle-center;
+    width: 20px;
+    flex-shrink: 0;
+}
+
+.remap-rule-delete-button {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+    font-size: 14px;
+    padding: 0;
+    margin: 0;
+}
+
+.remap-rule-hint {
+    font-size: 10px;
+    color: rgb(140, 140, 140);
+    padding: 0 4px 2px 24px;
+}
+
+.remap-rules-description {
+    font-size: 11px;
+    color: rgb(160, 160, 160);
+    padding: 2px 4px 4px 4px;
+    white-space: normal;
+}
+
+.preview-summary-label {
+    -unity-font-style: bold;
+    font-size: 12px;
+    padding: 4px;
+    margin-bottom: 4px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+.preview-bone-item {
+    flex-direction: row;
+    padding-right: 4px;
+    padding-top: 0;
+    padding-bottom: 0;
+    padding-left: 4px;
+}
+
+.preview-bone-item > Label {
+    white-space: normal;
+    flex-basis: 0;
+}
+
+.preview-bone-sourcelabel {
+    flex-grow: 1;
+}
+
+.preview-bone-arrow {
+    font-size: 13px;
+    flex-grow: 0.2;
+}
+
+.preview-bone-destlabel {
+    flex-grow: 1;
+}
+
+.preview-bone-actions {
+    width: 24px;
+    flex-shrink: 0;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(48, 48, 48);
+    border-left-color: rgb(195, 195, 195);
+    border-left-width: 1px;
+    border-top-left-radius: 2px;
+    border-top-right-radius: 2px;
+    border-bottom-right-radius: 2px;
+    border-bottom-left-radius: 2px;
+    border-top-width: 1px;
+    border-right-width: 1px;
+    border-bottom-width: 1px;
+}
+
+.preview-bone-action-button {
+    width: 22px;
+    height: 18px;
+    font-size: 12px;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+}
+
+.preview-bone-destlabel:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 2px;
+}
+
+.preview-bone-resolved {
+    color: var(--unity-colors-default-text);
+    font-size: 11px;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.preview-bone-resolved > Label {
+    color: var(--unity-colors-default-text);
+}
+
+.preview-bone-unresolved {
+    color: rgb(220, 80, 80);
+    font-size: 11px;
+    -unity-font-style: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+}
+
+.preview-bone-unresolved > Label {
+    color: rgb(220, 80, 80);
+}
+
+.preview-warning-item {
+    flex-direction: row;
+    align-items: center;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.preview-warning-item > Label {
+    font-size: 11px;
+    color: rgb(220, 180, 50);
+    flex-grow: 1;
+    white-space: normal;
+    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
+    -unity-font-style: italic;
+}
