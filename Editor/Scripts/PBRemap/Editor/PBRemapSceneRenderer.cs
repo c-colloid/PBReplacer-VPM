@@ -15,7 +15,7 @@ namespace colloid.PBReplacer
 		private static readonly Color ResolvedLineColor = new Color(0.4f, 0.85f, 0.4f, 0.4f);
 		private static readonly Color UnresolvedMarkerColor = new Color(0.95f, 0.75f, 0.2f, 0.9f);
 
-		private const float BoneMarkerSize = 0.005f;
+		private const float BoneMarkerSize = 0.01f;
 
 		private static GUIStyle _resolvedLabelStyle;
 		private static GUIStyle _unresolvedLabelStyle;
