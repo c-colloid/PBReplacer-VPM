@@ -12,10 +12,13 @@ namespace colloid.PBReplacer
 	{
 		private static readonly Color ResolvedColor = new Color(0.4f, 0.85f, 0.4f, 0.8f);
 		private static readonly Color UnresolvedColor = new Color(0.9f, 0.3f, 0.3f, 0.8f);
-		private static readonly Color ResolvedLineColor = new Color(0.4f, 0.85f, 0.4f, 0.4f);
+		private static readonly Color ResolvedLineColor = new Color(0.4f, 0.85f, 0.4f, 0.5f);
 		private static readonly Color UnresolvedMarkerColor = new Color(0.95f, 0.75f, 0.2f, 0.9f);
 
 		private const float BoneMarkerSize = 0.01f;
+		private const float BezierWidth = 3f;
+		private const float CurveHeightRatio = 0.25f;
+		private const float ArrowSizeRatio = 2.5f;
 
 		private static GUIStyle _resolvedLabelStyle;
 		private static GUIStyle _unresolvedLabelStyle;
@@ -63,26 +66,20 @@ namespace colloid.PBReplacer
 			if (visual.Resolved && visual.DestTransform != null)
 			{
 				Vector3 destPos = visual.DestTransform.position;
-
-				// ソースボーンマーカー
-				Handles.color = ResolvedColor;
-				Handles.SphereHandleCap(
-					0, sourcePos, Quaternion.identity,
-					markerSize, EventType.Repaint);
-
-				// デスティネーションボーンマーカー
 				float destDist = Vector3.Distance(
 					destPos, sceneView.camera.transform.position);
 				float destMarkerSize = destDist * BoneMarkerSize;
-				Handles.SphereHandleCap(
-					0, destPos, Quaternion.identity,
-					destMarkerSize, EventType.Repaint);
 
-				// 接続ライン
+				// ソースボーンマーカー（小さめの球）
+				Handles.color = ResolvedColor;
+				Handles.SphereHandleCap(
+					0, sourcePos, Quaternion.identity,
+					markerSize * 0.8f, EventType.Repaint);
+
+				// 接続ベジェ曲線 + 矢印
 				if (state.ShowConnectionLines)
 				{
-					Handles.color = ResolvedLineColor;
-					Handles.DrawDottedLine(sourcePos, destPos, 4f);
+					DrawBezierArrow(sourcePos, destPos, destMarkerSize);
 				}
 
 				// ラベル
@@ -117,6 +114,45 @@ namespace colloid.PBReplacer
 						boneName + " (\u672a\u89e3\u6c7a)", _unresolvedLabelStyle);
 				}
 			}
+		}
+
+		/// <summary>
+		/// ソースからデスティネーションへ向かうベジェ曲線と矢印先端を描画する。
+		/// 上方に弧を描くノードエディタ風の曲線で方向性を表現する。
+		/// </summary>
+		private static void DrawBezierArrow(Vector3 sourcePos, Vector3 destPos, float destMarkerSize)
+		{
+			float distance = Vector3.Distance(sourcePos, destPos);
+			if (distance < 0.001f)
+				return;
+
+			// 曲線の上方向オフセットを計算
+			float curveHeight = distance * CurveHeightRatio;
+			Vector3 upOffset = Vector3.up * curveHeight;
+
+			// ベジェ制御点: 上方にアーチを描く
+			Vector3 startTangent = sourcePos + upOffset;
+			Vector3 endTangent = destPos + upOffset;
+
+			// ベジェ曲線を描画
+			Handles.DrawBezier(
+				sourcePos, destPos,
+				startTangent, endTangent,
+				ResolvedLineColor, null, BezierWidth);
+
+			// 矢印先端: ベジェ終端の接線方向にコーンを配置
+			// 3次ベジェの終端接線 = 3 * (endPoint - endTangent)
+			Vector3 arrowDir = (destPos - endTangent).normalized;
+			if (arrowDir.sqrMagnitude < 0.001f)
+				arrowDir = (destPos - sourcePos).normalized;
+
+			Quaternion arrowRot = Quaternion.LookRotation(arrowDir);
+			float arrowSize = destMarkerSize * ArrowSizeRatio;
+
+			Handles.color = ResolvedColor;
+			Handles.ConeHandleCap(
+				0, destPos, arrowRot,
+				arrowSize, EventType.Repaint);
 		}
 
 		private static void EnsureLabelStyles()
