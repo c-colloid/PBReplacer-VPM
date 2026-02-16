@@ -23,6 +23,11 @@ namespace colloid.PBReplacer
 			window._definition = definition;
 			window._detection = detection;
 			window.RefreshPreview();
+
+			// SceneViewプレビューを有効化
+			if (detection.IsLiveMode && window._preview != null)
+				PBRemapScenePreviewState.Instance.Activate(window._preview, detection);
+
 			return window;
 		}
 
@@ -32,12 +37,21 @@ namespace colloid.PBReplacer
 				return;
 			_preview = PBRemapPreview.GeneratePreview(_definition, _detection);
 			Rebuild();
+
+			// SceneViewプレビューが有効ならキャッシュを更新
+			if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
+				PBRemapScenePreviewState.Instance.Activate(_preview, _detection);
 		}
 
 		public void UpdateDetection(SourceDetector.DetectionResult detection)
 		{
 			_detection = detection;
 			RefreshPreview();
+		}
+
+		private void OnDestroy()
+		{
+			PBRemapScenePreviewState.Instance.Deactivate();
 		}
 
 		private void CreateGUI()
