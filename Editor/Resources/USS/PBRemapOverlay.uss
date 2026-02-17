@@ -1,15 +1,86 @@
 .overlay-panel-root {
-    min-width: 200px;
+    min-width: 220px;
     padding: 4px;
 }
 
-.overlay-summary-label {
-    -unity-font-style: bold;
-    font-size: 12px;
+.overlay-summary-container {
     padding: 2px 4px;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+.overlay-summary-header {
+    -unity-font-style: bold;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.overlay-chip-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
+}
+
+.overlay-summary-chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 6px;
+    padding: 1px 5px 1px 3px;
+    border-radius: 7px;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.overlay-chip-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 4px;
+    margin-right: 3px;
+    flex-shrink: 0;
+}
+
+.overlay-chip-text {
+    font-size: 11px;
+    -unity-text-align: middle-left;
+}
+
+.overlay-filter-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.5);
+}
+
+.overlay-filter-label {
+    font-size: 10px;
+    color: rgb(160, 160, 160);
+    margin-right: 4px;
+    -unity-text-align: middle-left;
+}
+
+.overlay-filter-chip {
+    flex-direction: row;
+    align-items: center;
+    margin-right: 3px;
+    padding: 1px 6px 1px 3px;
+    border-radius: 8px;
+    border-width: 1px;
+    cursor: link;
+}
+
+.overlay-filter-chip:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.overlay-filter-chip-active {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.overlay-filter-chip-inactive {
+    opacity: 0.5;
 }
 
 .overlay-toggle-row {

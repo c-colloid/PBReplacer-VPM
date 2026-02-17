@@ -55,8 +55,10 @@ namespace colloid.PBReplacer
 
 			foreach (var visual in state.VisualMappings)
 			{
-				if (state.ShowUnresolvedOnly && visual.Resolved)
-					continue;
+				// 3状態フィルター
+				if (visual.Resolved && !state.ShowResolved) continue;
+				if (!visual.Resolved && visual.AutoCreatable && !state.ShowAutoCreatable) continue;
+				if (!visual.Resolved && !visual.AutoCreatable && !state.ShowUnresolved) continue;
 
 				DrawBoneMapping(visual, state, sceneView);
 			}

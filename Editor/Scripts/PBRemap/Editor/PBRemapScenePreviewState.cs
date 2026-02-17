@@ -26,7 +26,9 @@ namespace colloid.PBReplacer
 		// 表示設定
 		public bool ShowConnectionLines { get; set; } = true;
 		public bool ShowBoneLabels { get; set; } = false;
-		public bool ShowUnresolvedOnly { get; set; } = false;
+		public bool ShowResolved { get; set; } = true;
+		public bool ShowAutoCreatable { get; set; } = true;
+		public bool ShowUnresolved { get; set; } = true;
 
 		// サマリー
 		public int ResolvedCount { get; private set; }
