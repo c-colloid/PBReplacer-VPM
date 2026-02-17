@@ -11,8 +11,14 @@ namespace colloid.PBReplacer
 		private PBRemapPreviewData _preview;
 
 		private Label _summaryLabel;
+		private VisualElement _filterBar;
 		private ScrollView _boneScrollView;
 		private VisualElement _warningsContainer;
+
+		// フィルター状態
+		private bool _showResolved = true;
+		private bool _showAutoCreatable = true;
+		private bool _showUnresolved = true;
 
 		public static PBRemapPreviewWindow Open(
 			PBRemap definition,
@@ -72,6 +78,12 @@ namespace colloid.PBReplacer
 			_boneScrollView = root.Q<ScrollView>("preview-bone-scroll");
 			_warningsContainer = root.Q<VisualElement>("preview-warnings");
 
+			// サマリーとスクロールの間にフィルターバーを挿入
+			_filterBar = new VisualElement();
+			_filterBar.AddToClassList("preview-filter-bar");
+			int scrollIndex = root.IndexOf(_boneScrollView);
+			root.Insert(scrollIndex, _filterBar);
+
 			if (_preview != null)
 				Rebuild();
 		}
@@ -84,24 +96,32 @@ namespace colloid.PBReplacer
 			if (_preview == null)
 			{
 				_summaryLabel.text = "";
+				_filterBar?.Clear();
 				_boneScrollView.Clear();
 				_warningsContainer.Clear();
 				return;
 			}
 
 			int totalBones = _preview.ResolvedBones + _preview.UnresolvedBones;
-			var summaryText =
+			int autoCreatable = _preview.AutoCreatableBones;
+			int trueUnresolved = _preview.UnresolvedBones - autoCreatable;
+
+			_summaryLabel.text =
 				$"PB: {_preview.TotalPhysBones}  PBC: {_preview.TotalPhysBoneColliders}  " +
-				$"Constraint: {_preview.TotalConstraints}  Contact: {_preview.TotalContacts}\n" +
-				$"ボーン解決: {_preview.ResolvedBones}/{totalBones}";
-			if (_preview.AutoCreatableBones > 0)
-				summaryText += $"  作成予定: {_preview.AutoCreatableBones}";
-			summaryText += $"  |  スケール: {_preview.CalculatedScaleFactor:F3}";
-			_summaryLabel.text = summaryText;
+				$"Constraint: {_preview.TotalConstraints}  Contact: {_preview.TotalContacts}" +
+				$"  |  スケール: {_preview.CalculatedScaleFactor:F3}";
+
+			// フィルターバー構築
+			RebuildFilterBar(_preview.ResolvedBones, autoCreatable, trueUnresolved);
 
 			_boneScrollView.Clear();
 			foreach (var mapping in _preview.BoneMappings)
 			{
+				// フィルター適用
+				if (mapping.resolved && !_showResolved) continue;
+				if (!mapping.resolved && mapping.autoCreatable && !_showAutoCreatable) continue;
+				if (!mapping.resolved && !mapping.autoCreatable && !_showUnresolved) continue;
+
 				var row = new VisualElement();
 				row.AddToClassList("preview-bone-item");
 
@@ -180,6 +200,56 @@ namespace colloid.PBReplacer
 				row.Add(label);
 				_warningsContainer.Add(row);
 			}
+		}
+
+		private void RebuildFilterBar(int resolved, int autoCreatable, int unresolved)
+		{
+			if (_filterBar == null) return;
+			_filterBar.Clear();
+
+			_filterBar.Add(CreateFilterToggle(
+				resolved, "解決済み",
+				new Color(0.39f, 0.78f, 0.39f), // green
+				_showResolved,
+				v => { _showResolved = v; Rebuild(); }));
+
+			_filterBar.Add(CreateFilterToggle(
+				autoCreatable, "作成予定",
+				new Color(0.86f, 0.71f, 0.20f), // yellow
+				_showAutoCreatable,
+				v => { _showAutoCreatable = v; Rebuild(); }));
+
+			_filterBar.Add(CreateFilterToggle(
+				unresolved, "未解決",
+				new Color(0.86f, 0.31f, 0.31f), // red
+				_showUnresolved,
+				v => { _showUnresolved = v; Rebuild(); }));
+		}
+
+		private static VisualElement CreateFilterToggle(
+			int count, string label, Color color, bool active, System.Action<bool> onToggle)
+		{
+			var toggle = new VisualElement();
+			toggle.AddToClassList("preview-filter-toggle");
+			toggle.AddToClassList(active ? "preview-filter-toggle-active" : "preview-filter-toggle-inactive");
+			toggle.style.borderTopColor = active ? (StyleColor)color : new StyleColor(new Color(1, 1, 1, 0.06f));
+			toggle.style.borderBottomColor = toggle.style.borderTopColor;
+			toggle.style.borderLeftColor = toggle.style.borderTopColor;
+			toggle.style.borderRightColor = toggle.style.borderTopColor;
+
+			var dot = new VisualElement();
+			dot.AddToClassList("preview-filter-dot");
+			dot.style.backgroundColor = active ? (StyleColor)color : new StyleColor(new Color(color.r, color.g, color.b, 0.3f));
+			toggle.Add(dot);
+
+			var text = new Label($"{count} {label}");
+			text.AddToClassList("preview-filter-label");
+			text.style.color = active ? (StyleColor)color : new StyleColor(new Color(0.6f, 0.6f, 0.6f));
+			toggle.Add(text);
+
+			toggle.RegisterCallback<ClickEvent>(evt => onToggle(!active));
+
+			return toggle;
 		}
 
 		/// <summary>

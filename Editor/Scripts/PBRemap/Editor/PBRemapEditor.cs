@@ -27,7 +27,7 @@ namespace colloid.PBReplacer
 
         // コンポーネント一覧
         private Label _componentsSummary;
-        private Label _resolutionSummary;
+        private VisualElement _resolutionSummary;
 
         // リマップルール
         private ListView _rulesListView;
@@ -92,7 +92,7 @@ namespace colloid.PBReplacer
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             _componentsSummary = _root.Q<Label>("components-summary");
-            _resolutionSummary = _root.Q<Label>("resolution-summary");
+            _resolutionSummary = _root.Q<VisualElement>("resolution-summary");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
             _autoScaleToggle = _root.Q<Toggle>("auto-scale-toggle");
             _manualScaleContainer = _root.Q<VisualElement>("manual-scale-container");
@@ -336,35 +336,53 @@ namespace colloid.PBReplacer
             }
 
             _resolutionSummary.style.display = DisplayStyle.Flex;
+            _resolutionSummary.Clear();
 
             int autoCreatable = preview.AutoCreatableBones;
             int trueUnresolved = preview.UnresolvedBones - autoCreatable;
 
+            // ヘッダーラベル
+            var header = new Label($"ボーン解決: {preview.ResolvedBones}/{total}");
+            header.AddToClassList("pbremap-resolution-header");
+            _resolutionSummary.Add(header);
+
+            // 解決済みチップ
+            if (preview.ResolvedBones > 0)
+                _resolutionSummary.Add(CreateResolutionChip(preview.ResolvedBones, "解決済み", "resolved"));
+
+            // 作成予定チップ
+            if (autoCreatable > 0)
+                _resolutionSummary.Add(CreateResolutionChip(autoCreatable, "作成予定", "auto-creatable"));
+
+            // 未解決チップ
             if (trueUnresolved > 0)
             {
-                string text = $"ボーン解決: {preview.ResolvedBones}/{total} ({trueUnresolved} 未解決)";
-                if (autoCreatable > 0)
-                    text += $" (作成予定: {autoCreatable})";
-                _resolutionSummary.text = text;
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
+                _resolutionSummary.Add(CreateResolutionChip(trueUnresolved, "未解決", "unresolved"));
                 Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
-            }
-            else if (autoCreatable > 0)
-            {
-                _resolutionSummary.text =
-                    $"ボーン解決: {preview.ResolvedBones}/{total} (作成予定: {autoCreatable})";
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
-                Highlighter.Stop();
             }
             else
             {
-                _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
                 Highlighter.Stop();
             }
+        }
+
+        private static VisualElement CreateResolutionChip(int count, string label, string state)
+        {
+            var chip = new VisualElement();
+            chip.AddToClassList("pbremap-resolution-chip");
+            chip.AddToClassList($"pbremap-resolution-chip-{state}");
+
+            var dot = new VisualElement();
+            dot.AddToClassList("pbremap-resolution-dot");
+            dot.AddToClassList($"pbremap-resolution-dot-{state}");
+            chip.Add(dot);
+
+            var text = new Label($"{count} {label}");
+            text.AddToClassList("pbremap-resolution-chip-label");
+            text.AddToClassList($"pbremap-resolution-chip-label-{state}");
+            chip.Add(text);
+
+            return chip;
         }
 
         private void UpdateComponentsSummary(PBRemap definition)
