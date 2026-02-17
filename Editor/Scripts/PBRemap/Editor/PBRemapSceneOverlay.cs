@@ -21,10 +21,13 @@ namespace colloid.PBReplacer
 		private Toggle _showLinesToggle;
 		private Toggle _showLabelsToggle;
 
-		// フィルターチップ（定期更新でカウントを反映するため保持）
+		// キャッシュ（定期更新で変更検知に使用）
 		private int _cachedResolved;
 		private int _cachedAutoCreatable;
 		private int _cachedUnresolved;
+		private bool _cachedShowResolved;
+		private bool _cachedShowAutoCreatable;
+		private bool _cachedShowUnresolved;
 
 		// 色定数
 		private static readonly Color ResolvedColor = new Color(0.39f, 0.78f, 0.39f);
@@ -116,16 +119,22 @@ namespace colloid.PBReplacer
 			int autoCreatable = state.AutoCreatableCount;
 			int unresolved = state.TotalCount - resolved - autoCreatable;
 
-			// カウントが変わっていなければ再構築不要
+			// カウントもフィルター状態も変わっていなければ再構築不要
 			if (resolved == _cachedResolved
 				&& autoCreatable == _cachedAutoCreatable
 				&& unresolved == _cachedUnresolved
+				&& state.ShowResolved == _cachedShowResolved
+				&& state.ShowAutoCreatable == _cachedShowAutoCreatable
+				&& state.ShowUnresolved == _cachedShowUnresolved
 				&& _summaryContainer.childCount > 0)
 				return;
 
 			_cachedResolved = resolved;
 			_cachedAutoCreatable = autoCreatable;
 			_cachedUnresolved = unresolved;
+			_cachedShowResolved = state.ShowResolved;
+			_cachedShowAutoCreatable = state.ShowAutoCreatable;
+			_cachedShowUnresolved = state.ShowUnresolved;
 
 			// サマリー再構築
 			_summaryContainer.Clear();

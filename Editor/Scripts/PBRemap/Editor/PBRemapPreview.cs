@@ -87,11 +87,12 @@ namespace colloid.PBReplacer
                 GeneratePrefabModePreview(preview, definition, detection);
             }
 
-            // 未解決ボーンの警告
-            if (preview.UnresolvedBones > 0)
+            // 未解決ボーンの警告（autoCreatableは除外）
+            int trueUnresolved = preview.UnresolvedBones - preview.AutoCreatableBones;
+            if (trueUnresolved > 0)
             {
                 preview.Warnings.Add(
-                    $"{preview.UnresolvedBones} 個のボーンが解決できませんでした。" +
+                    $"{trueUnresolved} 個のボーンが解決できませんでした。" +
                     "パスリマップルールの追加を検討してください。");
             }
 
