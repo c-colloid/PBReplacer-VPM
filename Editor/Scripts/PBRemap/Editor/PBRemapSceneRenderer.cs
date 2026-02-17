@@ -35,6 +35,7 @@ namespace colloid.PBReplacer
 
 		private static GUIStyle _resolvedLabelStyle;
 		private static GUIStyle _unresolvedLabelStyle;
+		private static GUIStyle _onetimeLabelStyle;
 		private static GUIStyle _autoCreateLabelStyle;
 
 		/// <summary>
@@ -106,7 +107,6 @@ namespace colloid.PBReplacer
 				if (state.ShowBoneLabels)
 				{
 					EnsureLabelStyles();
-					SetTextColor(SourceMarkerColor);
 					string boneName = GetBoneName(visual.SourcePath);
 					Handles.Label(
 						sourcePos + Vector3.up * markerSize * 2f,
@@ -116,7 +116,7 @@ namespace colloid.PBReplacer
 					boneName = GetBoneName(visual.DestPath);
 					Handles.Label(
 						destPos + Vector3.up * markerSize * 2f,
-						boneName, _resolvedLabelStyle);
+						boneName, _onetimeLabelStyle);
 				}
 			}
 			else if (visual.AutoCreatable && visual.AutoCreateParentTransform != null)
@@ -127,8 +127,8 @@ namespace colloid.PBReplacer
 					parentPos, sceneView.camera.transform.position);
 				float parentMarkerSize = parentDist * BoneMarkerSize;
 
-				// ソースボーンマーカー（黄色の球）
-				Handles.color = AutoCreateMarkerColor;
+				// ソースボーンマーカー（球）
+				Handles.color = SourceMarkerColor;
 				Handles.SphereHandleCap(
 					0, sourcePos, Quaternion.identity,
 					markerSize, EventType.Repaint);
@@ -151,6 +151,10 @@ namespace colloid.PBReplacer
 					string boneName = GetBoneName(visual.SourcePath);
 					Handles.Label(
 						sourcePos + Vector3.up * markerSize * 2f,
+						boneName, _resolvedLabelStyle);
+						
+					Handles.Label(
+						parentPos + Vector3.up * markerSize * 2f,
 						boneName + " (\u4f5c\u6210\u4e88\u5b9a)", _autoCreateLabelStyle);
 				}
 			}
@@ -261,10 +265,13 @@ namespace colloid.PBReplacer
 			Vector3[] points = Handles.MakeBezierPoints(
 				sourcePos, parentPos, startTangent, endTangent, CurveSegments);
 
-			// 黄色の単色ベジェ曲線
+			// 黄色のベジェ曲線
+			// グラデーション描画: セグメント毎に色を補間
 			Handles.color = AutoCreateColor;
 			for (int i = 0; i < points.Length - 1; i++)
 			{
+				float t = (float)i / (points.Length - 1);
+				Handles.color = Color.Lerp(SourceColor, AutoCreateColor, t);
 				Handles.DrawAAPolyLine(LineWidth * 0.8f, points[i], points[i + 1]);
 			}
 
@@ -325,7 +332,18 @@ namespace colloid.PBReplacer
 		
 		private static void SetTextColor(Color textColor)
 		{
-			_resolvedLabelStyle.normal.textColor = textColor;
+			if (_onetimeLabelStyle == null)
+			{
+				_onetimeLabelStyle = new GUIStyle(EditorStyles.miniLabel)
+				{
+					fontSize = 10,
+					fontStyle = FontStyle.Bold,
+					padding = new RectOffset(2, 2, 1, 1)
+				};
+				_onetimeLabelStyle.normal.background = Texture2D.linearGrayTexture;
+			}
+			
+			_onetimeLabelStyle.normal.textColor = textColor;
 		}
 
 		private static string GetBoneName(string path)
