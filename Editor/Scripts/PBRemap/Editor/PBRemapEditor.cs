@@ -337,20 +337,33 @@ namespace colloid.PBReplacer
 
             _resolutionSummary.style.display = DisplayStyle.Flex;
 
-            if (preview.UnresolvedBones == 0)
+            int autoCreatable = preview.AutoCreatableBones;
+            int trueUnresolved = preview.UnresolvedBones - autoCreatable;
+
+            if (trueUnresolved > 0)
             {
-                _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
+                string text = $"ボーン解決: {preview.ResolvedBones}/{total} ({trueUnresolved} 未解決)";
+                if (autoCreatable > 0)
+                    text += $" (作成予定: {autoCreatable})";
+                _resolutionSummary.text = text;
+                _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
+                _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
+                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
+            }
+            else if (autoCreatable > 0)
+            {
+                _resolutionSummary.text =
+                    $"ボーン解決: {preview.ResolvedBones}/{total} (作成予定: {autoCreatable})";
                 _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
                 _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
                 Highlighter.Stop();
             }
             else
             {
-                _resolutionSummary.text =
-                    $"ボーン解決: {preview.ResolvedBones}/{total} ({preview.UnresolvedBones} 未解決)";
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
-                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
+                _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
+                _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
+                _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
+                Highlighter.Stop();
             }
         }
 
