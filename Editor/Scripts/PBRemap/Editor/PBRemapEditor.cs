@@ -816,6 +816,9 @@ namespace colloid.PBReplacer
                         $"リマップ済みコンポーネント: {success.RemappedComponentCount}\n" +
                         $"リマップ済み参照: {success.RemappedReferenceCount}";
 
+                    if (success.AutoCreatedObjectCount > 0)
+                        message += $"\n自動作成オブジェクト: {success.AutoCreatedObjectCount}";
+
                     if (success.UnresolvedReferenceCount > 0)
                         message += $"\n未解決参照: {success.UnresolvedReferenceCount}";
 
@@ -825,7 +828,10 @@ namespace colloid.PBReplacer
 
                     EditorUtility.DisplayDialog("移植完了", message, "OK");
 
-                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ";
+                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ" +
+                        (success.AutoCreatedObjectCount > 0
+                            ? $", {success.AutoCreatedObjectCount} オブジェクトを自動作成"
+                            : "");
                     _statusBox.messageType = success.UnresolvedReferenceCount > 0
                         ? HelpBoxMessageType.Warning
                         : HelpBoxMessageType.Info;

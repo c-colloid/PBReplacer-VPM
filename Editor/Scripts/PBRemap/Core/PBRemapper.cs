@@ -18,6 +18,7 @@ namespace colloid.PBReplacer
         public int RemappedComponentCount { get; set; }
         public int RemappedReferenceCount { get; set; }
         public int UnresolvedReferenceCount { get; set; }
+        public int AutoCreatedObjectCount { get; set; }
         public List<string> Warnings { get; set; } = new();
     }
 
@@ -54,7 +55,7 @@ namespace colloid.PBReplacer
 
             // モード分岐
             if (detection.IsLiveMode)
-                return RemapLiveMode(definition, detection);
+                return RemapLiveMode(definition, detection, detection.SourceAvatar);
             else
                 return RemapPrefabMode(definition, detection);
         }
@@ -65,7 +66,8 @@ namespace colloid.PBReplacer
         /// </summary>
         private static Result<RemapResult, string> RemapLiveMode(
             PBRemap definition,
-            SourceDetector.DetectionResult detection)
+            SourceDetector.DetectionResult detection,
+            GameObject sourceAvatar)
         {
             if (detection.SourceAvatarData == null)
                 return Result<RemapResult, string>.Failure("ソースアバターのデータを取得できません。");
@@ -80,8 +82,15 @@ namespace colloid.PBReplacer
             // ボーンマップ構築（既存BoneMapperを利用）
             var boneMap = BuildBoneMap(sourceData, destData, remapRules);
 
+            // ヘルパーオブジェクトの自動作成
+            int autoCreated = AutoCreateHelperObjects(
+                definition, sourceAvatar, sourceData, destData, boneMap, remapRules);
+
             // リマップ実行
-            return ExecuteRemap(definition, boneMap, scaleFactor);
+            var result = ExecuteRemap(definition, boneMap, scaleFactor);
+            if (result.IsSuccess)
+                result.Value.AutoCreatedObjectCount = autoCreated;
+            return result;
         }
 
         /// <summary>
@@ -158,6 +167,99 @@ namespace colloid.PBReplacer
             }
 
             return boneMap;
+        }
+
+        /// <summary>
+        /// 未解決のヘルパーオブジェクト（スケルトンボーンでないもの）を
+        /// デスティネーション側に自動作成し、ボーンマップに追加する。
+        /// </summary>
+        /// <returns>自動作成したオブジェクト数</returns>
+        private static int AutoCreateHelperObjects(
+            PBRemap definition,
+            GameObject sourceAvatar,
+            AvatarData sourceData,
+            AvatarData destData,
+            Dictionary<Transform, Transform> boneMap,
+            List<PathRemapRule> remapRules)
+        {
+            var sourceArmature = sourceData.Armature.transform;
+            var destArmature = destData.Armature.transform;
+            var skinnedBones = BoneMapper.CollectSkinnedBones(sourceAvatar);
+
+            // 外部参照を収集し、深さ順（浅い方から）にソートして親子関係を保持
+            var externalRefs = SourceDetector.CollectExternalTransformReferences(definition);
+            var unresolvedBones = new List<Transform>();
+            var processed = new HashSet<Transform>();
+
+            foreach (var bone in externalRefs)
+            {
+                if (processed.Contains(bone))
+                    continue;
+                processed.Add(bone);
+
+                // 既にboneMapで解決済みならスキップ
+                if (boneMap.ContainsKey(bone))
+                    continue;
+
+                // スケルトンボーンは自動作成対象外
+                if (BoneMapper.IsSkeletonBone(bone, skinnedBones))
+                    continue;
+
+                unresolvedBones.Add(bone);
+            }
+
+            // 深さ順にソート（浅い方から処理し、作成した親を後続で参照可能にする）
+            unresolvedBones.Sort((a, b) => GetDepth(a, sourceArmature) - GetDepth(b, sourceArmature));
+
+            int autoCreated = 0;
+
+            foreach (var bone in unresolvedBones)
+            {
+                // 前のイテレーションで作成された親により、既にboneMapに入っている場合
+                if (boneMap.ContainsKey(bone))
+                    continue;
+
+                // 親がソースArmature配下であること
+                if (bone.parent == null || !bone.parent.IsChildOf(sourceArmature))
+                    continue;
+
+                // 親がboneMapで解決可能か
+                if (!boneMap.TryGetValue(bone.parent, out Transform destParent))
+                    continue;
+
+                // destParent配下に既に同名の子がある場合はそれを使う
+                Transform existing = destParent.Find(bone.name);
+                if (existing != null)
+                {
+                    boneMap[bone] = existing;
+                    continue;
+                }
+
+                // 新規GameObjectを作成
+                var newObj = new GameObject(bone.name);
+                newObj.transform.SetParent(destParent, false);
+                Undo.RegisterCreatedObjectUndo(newObj, "Auto-create helper object");
+
+                boneMap[bone] = newObj.transform;
+                autoCreated++;
+            }
+
+            return autoCreated;
+        }
+
+        /// <summary>
+        /// armatureRootからの深さを返す。
+        /// </summary>
+        private static int GetDepth(Transform bone, Transform armatureRoot)
+        {
+            int depth = 0;
+            Transform current = bone;
+            while (current != null && current != armatureRoot)
+            {
+                depth++;
+                current = current.parent;
+            }
+            return depth;
         }
 
         #endregion
@@ -322,9 +424,30 @@ namespace colloid.PBReplacer
                     }
                     else
                     {
-                        result.Warnings.Add($"ボーン '{boneRef.boneRelativePath}' を解決できません " +
-                            $"({boneRef.componentObjectPath}/{boneRef.componentTypeName}.{boneRef.propertyPath})");
-                        result.UnresolvedReferenceCount++;
+                        // 自動作成を試みる
+                        Transform autoCreated = TryAutoCreateFromSerialized(
+                            boneRef, destArmature, destAnimator, remapRules);
+
+                        if (autoCreated != null)
+                        {
+                            var so = new SerializedObject(component);
+                            var prop = so.FindProperty(boneRef.propertyPath);
+                            if (prop != null && prop.propertyType == SerializedPropertyType.ObjectReference)
+                            {
+                                Undo.RecordObject(component, "Remap Bone Reference (Auto-created)");
+                                prop.objectReferenceValue = autoCreated;
+                                so.ApplyModifiedProperties();
+                                result.RemappedReferenceCount++;
+                                result.RemappedComponentCount++;
+                                result.AutoCreatedObjectCount++;
+                            }
+                        }
+                        else
+                        {
+                            result.Warnings.Add($"ボーン '{boneRef.boneRelativePath}' を解決できません " +
+                                $"({boneRef.componentObjectPath}/{boneRef.componentTypeName}.{boneRef.propertyPath})");
+                            result.UnresolvedReferenceCount++;
+                        }
                     }
                 }
 
@@ -458,6 +581,93 @@ namespace colloid.PBReplacer
                 if (component != null && component.GetType().Name == typeName)
                     return component;
             }
+            return null;
+        }
+
+        /// <summary>
+        /// シリアライズデータからヘルパーオブジェクトの自動作成を試みる。
+        /// スケルトンボーンの場合や親が解決できない場合はnullを返す。
+        /// </summary>
+        private static Transform TryAutoCreateFromSerialized(
+            SerializedBoneReference boneRef,
+            Transform destArmature,
+            Animator destAnimator,
+            List<PathRemapRule> remapRules)
+        {
+            // スケルトンボーンは自動作成対象外
+            if (boneRef.isSkeletonBone)
+                return null;
+
+            // パスが必要
+            if (string.IsNullOrEmpty(boneRef.boneRelativePath) || !boneRef.boneRelativePath.Contains("/"))
+                return null;
+
+            int lastSlash = boneRef.boneRelativePath.LastIndexOf('/');
+            string parentPath = boneRef.boneRelativePath.Substring(0, lastSlash);
+            string boneName = boneRef.boneRelativePath.Substring(lastSlash + 1);
+
+            // 親を解決
+            Transform destParent = ResolveParentForAutoCreate(
+                parentPath, destArmature, destAnimator, remapRules);
+            if (destParent == null)
+                return null;
+
+            // destParent配下に既に同名の子がある場合はそれを使う
+            Transform existing = destParent.Find(boneName);
+            if (existing != null)
+                return existing;
+
+            // 新規GameObjectを作成
+            var newObj = new GameObject(boneName);
+            newObj.transform.SetParent(destParent, false);
+            Undo.RegisterCreatedObjectUndo(newObj, "Auto-create helper object");
+
+            return newObj.transform;
+        }
+
+        /// <summary>
+        /// 親パスをデスティネーション側で解決する。
+        /// 直接パスマッチ → リマップルール → 名前マッチの順で試行する。
+        /// </summary>
+        private static Transform ResolveParentForAutoCreate(
+            string parentPath,
+            Transform destArmature,
+            Animator destAnimator,
+            List<PathRemapRule> remapRules)
+        {
+            if (string.IsNullOrEmpty(parentPath))
+                return destArmature;
+
+            // 直接パスマッチ
+            var directMatch = BoneMapper.FindBoneByRelativePath(parentPath, destArmature);
+            if (directMatch != null)
+                return directMatch;
+
+            // リマップルール適用
+            if (remapRules != null && remapRules.Count > 0)
+            {
+                string remappedPath = BoneMapper.ApplyRemapRules(parentPath, remapRules);
+                var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
+                if (remappedMatch != null)
+                    return remappedMatch;
+
+                string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(parentPath, remapRules);
+                if (reverseRemappedPath != remappedPath)
+                {
+                    var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
+                    if (reverseMatch != null)
+                        return reverseMatch;
+                }
+            }
+
+            // 名前マッチ（親パスの末尾セグメント）
+            string[] segments = parentPath.Split('/');
+            string parentBoneName = segments[segments.Length - 1];
+            var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
+            var nameMatch = allDestBones.FirstOrDefault(t => t.name == parentBoneName);
+            if (nameMatch != null)
+                return nameMatch;
+
             return null;
         }
 
