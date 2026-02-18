@@ -21,7 +21,7 @@ namespace colloid.PBReplacer
 		private Toggle _showLinesToggle;
 		private Toggle _showLabelsToggle;
 
-		// キャッシュ（定期更新で変更検知に使用）
+		// キャッシュ（不要な再構築を防ぐための変更検知用）
 		private int _cachedResolved;
 		private int _cachedAutoCreatable;
 		private int _cachedUnresolved;
@@ -37,11 +37,21 @@ namespace colloid.PBReplacer
 		public override void OnCreated()
 		{
 			SceneView.duringSceneGui += PBRemapSceneRenderer.OnSceneGUI;
+			PBRemapScenePreviewState.Instance.FilterStateChanged += OnStateChanged;
+			PBRemapScenePreviewState.Instance.PreviewDataChanged += OnStateChanged;
 		}
 
 		public override void OnWillBeDestroyed()
 		{
 			SceneView.duringSceneGui -= PBRemapSceneRenderer.OnSceneGUI;
+			PBRemapScenePreviewState.Instance.FilterStateChanged -= OnStateChanged;
+			PBRemapScenePreviewState.Instance.PreviewDataChanged -= OnStateChanged;
+		}
+
+		private void OnStateChanged()
+		{
+			UpdatePanel();
+			SceneView.RepaintAll();
 		}
 
 		public override VisualElement CreatePanelContent()
@@ -85,9 +95,6 @@ namespace colloid.PBReplacer
 			root.Add(_showLabelsToggle);
 
 			UpdatePanel();
-
-			// 定期的にパネルを更新
-			root.schedule.Execute(UpdatePanel).Every(500);
 
 			return root;
 		}
@@ -160,13 +167,13 @@ namespace colloid.PBReplacer
 
 			_filterBar.Add(CreateFilterChip(
 				resolved, "解決済み", ResolvedColor, state.ShowResolved,
-				v => { state.ShowResolved = v; _cachedResolved = -1; UpdatePanel(); SceneView.RepaintAll(); }));
+				v => state.ShowResolved = v));
 			_filterBar.Add(CreateFilterChip(
 				autoCreatable, "作成予定", AutoCreatableColor, state.ShowAutoCreatable,
-				v => { state.ShowAutoCreatable = v; _cachedAutoCreatable = -1; UpdatePanel(); SceneView.RepaintAll(); }));
+				v => state.ShowAutoCreatable = v));
 			_filterBar.Add(CreateFilterChip(
 				unresolved, "未解決", UnresolvedColor, state.ShowUnresolved,
-				v => { state.ShowUnresolved = v; _cachedUnresolved = -1; UpdatePanel(); SceneView.RepaintAll(); }));
+				v => state.ShowUnresolved = v));
 		}
 
 		private static VisualElement CreateSummaryChip(int count, string label, Color color)
