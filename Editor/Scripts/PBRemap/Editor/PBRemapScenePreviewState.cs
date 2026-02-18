@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -14,6 +15,12 @@ namespace colloid.PBReplacer
 		public static PBRemapScenePreviewState Instance =>
 			_instance ??= new PBRemapScenePreviewState();
 
+		/// <summary>フィルター状態が変更された時に発火するイベント</summary>
+		public event Action FilterStateChanged;
+
+		/// <summary>プレビューデータが変更された時に発火するイベント（Activate/Deactivate）</summary>
+		public event Action PreviewDataChanged;
+
 		public bool IsActive { get; private set; }
 
 		public PBRemapPreviewData PreviewData { get; private set; }
@@ -26,9 +33,28 @@ namespace colloid.PBReplacer
 		// 表示設定
 		public bool ShowConnectionLines { get; set; } = true;
 		public bool ShowBoneLabels { get; set; } = false;
-		public bool ShowResolved { get; set; } = true;
-		public bool ShowAutoCreatable { get; set; } = true;
-		public bool ShowUnresolved { get; set; } = true;
+
+		private bool _showResolved = true;
+		private bool _showAutoCreatable = true;
+		private bool _showUnresolved = true;
+
+		public bool ShowResolved
+		{
+			get => _showResolved;
+			set { if (_showResolved != value) { _showResolved = value; FilterStateChanged?.Invoke(); } }
+		}
+
+		public bool ShowAutoCreatable
+		{
+			get => _showAutoCreatable;
+			set { if (_showAutoCreatable != value) { _showAutoCreatable = value; FilterStateChanged?.Invoke(); } }
+		}
+
+		public bool ShowUnresolved
+		{
+			get => _showUnresolved;
+			set { if (_showUnresolved != value) { _showUnresolved = value; FilterStateChanged?.Invoke(); } }
+		}
 
 		// サマリー
 		public int ResolvedCount { get; private set; }
@@ -45,6 +71,7 @@ namespace colloid.PBReplacer
 			Detection = detection;
 			IsActive = true;
 			RebuildVisualCache();
+			PreviewDataChanged?.Invoke();
 		}
 
 		/// <summary>
@@ -60,6 +87,7 @@ namespace colloid.PBReplacer
 			AutoCreatableCount = 0;
 			TotalCount = 0;
 			SceneView.RepaintAll();
+			PreviewDataChanged?.Invoke();
 		}
 
 		/// <summary>

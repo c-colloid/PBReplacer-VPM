@@ -15,11 +15,6 @@ namespace colloid.PBReplacer
 		private ScrollView _boneScrollView;
 		private VisualElement _warningsContainer;
 
-		// フィルター状態のキャッシュ（外部変更検知用）
-		private bool _cachedShowResolved;
-		private bool _cachedShowAutoCreatable;
-		private bool _cachedShowUnresolved;
-
 		/// <summary>共有フィルター状態へのアクセサ</summary>
 		private static PBRemapScenePreviewState FilterState => PBRemapScenePreviewState.Instance;
 
@@ -60,7 +55,13 @@ namespace colloid.PBReplacer
 
 		private void OnDestroy()
 		{
+			PBRemapScenePreviewState.Instance.FilterStateChanged -= OnFilterStateChanged;
 			PBRemapScenePreviewState.Instance.Deactivate();
+		}
+
+		private void OnFilterStateChanged()
+		{
+			Rebuild();
 		}
 
 		private void CreateGUI()
@@ -82,16 +83,11 @@ namespace colloid.PBReplacer
 			_boneScrollView = root.Q<ScrollView>("preview-bone-scroll");
 			_warningsContainer = root.Q<VisualElement>("preview-warnings");
 
-			// フィルターキャッシュを初期化
-			_cachedShowResolved = FilterState.ShowResolved;
-			_cachedShowAutoCreatable = FilterState.ShowAutoCreatable;
-			_cachedShowUnresolved = FilterState.ShowUnresolved;
-
 			if (_preview != null)
 				Rebuild();
 
-			// SceneOverlay側のフィルター変更を検知して連動
-			root.schedule.Execute(CheckFilterSync).Every(200);
+			// SceneOverlay側のフィルター変更をイベントで検知して連動
+			PBRemapScenePreviewState.Instance.FilterStateChanged += OnFilterStateChanged;
 		}
 
 		private void Rebuild()
@@ -217,40 +213,19 @@ namespace colloid.PBReplacer
 				resolved, "解決済み",
 				new Color(0.39f, 0.78f, 0.39f), // green
 				FilterState.ShowResolved,
-				v => { FilterState.ShowResolved = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
+				v => FilterState.ShowResolved = v));
 
 			_filterBar.Add(CreateFilterToggle(
 				autoCreatable, "作成予定",
 				new Color(0.86f, 0.71f, 0.20f), // yellow
 				FilterState.ShowAutoCreatable,
-				v => { FilterState.ShowAutoCreatable = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
+				v => FilterState.ShowAutoCreatable = v));
 
 			_filterBar.Add(CreateFilterToggle(
 				unresolved, "未解決",
 				new Color(0.86f, 0.31f, 0.31f), // red
 				FilterState.ShowUnresolved,
-				v => { FilterState.ShowUnresolved = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
-		}
-
-		private void SyncFilterCache()
-		{
-			_cachedShowResolved = FilterState.ShowResolved;
-			_cachedShowAutoCreatable = FilterState.ShowAutoCreatable;
-			_cachedShowUnresolved = FilterState.ShowUnresolved;
-		}
-
-		/// <summary>
-		/// SceneOverlay側でフィルターが変更された場合にPreviewWindowを再構築する。
-		/// </summary>
-		private void CheckFilterSync()
-		{
-			if (_cachedShowResolved != FilterState.ShowResolved
-				|| _cachedShowAutoCreatable != FilterState.ShowAutoCreatable
-				|| _cachedShowUnresolved != FilterState.ShowUnresolved)
-			{
-				SyncFilterCache();
-				Rebuild();
-			}
+				v => FilterState.ShowUnresolved = v));
 		}
 
 		private static VisualElement CreateFilterToggle(
