@@ -192,6 +192,53 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
+        /// アバター配下の全SkinnedMeshRendererからバインド済みボーンのセットを構築する。
+        /// </summary>
+        /// <param name="avatarRoot">アバターのルートGameObject</param>
+        /// <returns>メッシュにバインドされたTransformのセット</returns>
+        public static HashSet<Transform> CollectSkinnedBones(GameObject avatarRoot)
+        {
+            var skinnedBones = new HashSet<Transform>();
+            if (avatarRoot == null)
+                return skinnedBones;
+
+            foreach (var smr in avatarRoot.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                if (smr.bones == null) continue;
+                foreach (var bone in smr.bones)
+                {
+                    if (bone != null)
+                        skinnedBones.Add(bone);
+                }
+            }
+            return skinnedBones;
+        }
+
+        /// <summary>
+        /// ボーン自身またはその子孫がメッシュにバインドされているか判定する。
+        /// バインドされていればスケルトンの一部であり、ヘルパーオブジェクトではない。
+        /// </summary>
+        /// <param name="bone">判定対象のボーン</param>
+        /// <param name="skinnedBones">CollectSkinnedBonesで構築したセット</param>
+        /// <returns>スケルトンの一部ならtrue</returns>
+        public static bool IsSkeletonBone(Transform bone, HashSet<Transform> skinnedBones)
+        {
+            if (bone == null || skinnedBones == null || skinnedBones.Count == 0)
+                return false;
+
+            if (skinnedBones.Contains(bone))
+                return true;
+
+            // 子孫にバインド済みボーンがあるかチェック
+            foreach (Transform child in bone.GetComponentsInChildren<Transform>(true))
+            {
+                if (child != bone && skinnedBones.Contains(child))
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
         /// リマップルールを考慮してソースボーンをデスティネーションボーンに解決する。
         /// 解決戦略（優先度順）: 完全一致 → リマップ後パスマッチ → リマップ後名前マッチ。
         /// </summary>

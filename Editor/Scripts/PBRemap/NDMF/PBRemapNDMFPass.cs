@@ -41,6 +41,9 @@ namespace colloid.PBReplacer
                         Debug.Log(
                             $"[PBReplacer PBRemap] {definition.gameObject.name}: " +
                             $"{success.RemappedReferenceCount} references remapped" +
+                            (success.AutoCreatedObjectCount > 0
+                                ? $", {success.AutoCreatedObjectCount} objects auto-created"
+                                : "") +
                             (success.UnresolvedReferenceCount > 0
                                 ? $", {success.UnresolvedReferenceCount} unresolved"
                                 : ""));
