@@ -17,7 +17,7 @@
     <!-- コンポーネント一覧セクション -->
     <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="pbremap-section">
         <ui:Label name="components-summary" text="" class="pbremap-components-summary" />
-        <ui:Label name="resolution-summary" text="" class="pbremap-resolution-summary" style="display: none;" />
+        <ui:VisualElement name="resolution-summary" class="pbremap-resolution-summary" style="display: none;" />
     </ui:Foldout>
 
     <!-- パスリマップルール -->

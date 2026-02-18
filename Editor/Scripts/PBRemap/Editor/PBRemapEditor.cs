@@ -27,7 +27,7 @@ namespace colloid.PBReplacer
 
         // コンポーネント一覧
         private Label _componentsSummary;
-        private Label _resolutionSummary;
+        private VisualElement _resolutionSummary;
 
         // リマップルール
         private ListView _rulesListView;
@@ -92,7 +92,7 @@ namespace colloid.PBReplacer
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             _componentsSummary = _root.Q<Label>("components-summary");
-            _resolutionSummary = _root.Q<Label>("resolution-summary");
+            _resolutionSummary = _root.Q<VisualElement>("resolution-summary");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
             _autoScaleToggle = _root.Q<Toggle>("auto-scale-toggle");
             _manualScaleContainer = _root.Q<VisualElement>("manual-scale-container");
@@ -336,22 +336,53 @@ namespace colloid.PBReplacer
             }
 
             _resolutionSummary.style.display = DisplayStyle.Flex;
+            _resolutionSummary.Clear();
 
-            if (preview.UnresolvedBones == 0)
+            int autoCreatable = preview.AutoCreatableBones;
+            int trueUnresolved = preview.UnresolvedBones - autoCreatable;
+
+            // ヘッダーラベル
+            var header = new Label($"ボーン解決: {preview.ResolvedBones}/{total}");
+            header.AddToClassList("pbremap-resolution-header");
+            _resolutionSummary.Add(header);
+
+            // 解決済みチップ
+            if (preview.ResolvedBones > 0)
+                _resolutionSummary.Add(CreateResolutionChip(preview.ResolvedBones, "解決済み", "resolved"));
+
+            // 作成予定チップ
+            if (autoCreatable > 0)
+                _resolutionSummary.Add(CreateResolutionChip(autoCreatable, "作成予定", "auto-creatable"));
+
+            // 未解決チップ
+            if (trueUnresolved > 0)
             {
-                _resolutionSummary.text = $"ボーン解決: {preview.ResolvedBones}/{total} 全て解決済み";
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-unresolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-resolved");
-                Highlighter.Stop();
+                _resolutionSummary.Add(CreateResolutionChip(trueUnresolved, "未解決", "unresolved"));
+                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
             }
             else
             {
-                _resolutionSummary.text =
-                    $"ボーン解決: {preview.ResolvedBones}/{total} ({preview.UnresolvedBones} 未解決)";
-                _resolutionSummary.RemoveFromClassList("pbremap-resolution-resolved");
-                _resolutionSummary.AddToClassList("pbremap-resolution-unresolved");
-                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
+                Highlighter.Stop();
             }
+        }
+
+        private static VisualElement CreateResolutionChip(int count, string label, string state)
+        {
+            var chip = new VisualElement();
+            chip.AddToClassList("pbremap-resolution-chip");
+            chip.AddToClassList($"pbremap-resolution-chip-{state}");
+
+            var dot = new VisualElement();
+            dot.AddToClassList("pbremap-resolution-dot");
+            dot.AddToClassList($"pbremap-resolution-dot-{state}");
+            chip.Add(dot);
+
+            var text = new Label($"{count} {label}");
+            text.AddToClassList("pbremap-resolution-chip-label");
+            text.AddToClassList($"pbremap-resolution-chip-label-{state}");
+            chip.Add(text);
+
+            return chip;
         }
 
         private void UpdateComponentsSummary(PBRemap definition)
@@ -430,11 +461,14 @@ namespace colloid.PBReplacer
                 }
             }
 
+            // スケルトンボーン判定用のセットを構築
+            var skinnedBones = BoneMapper.CollectSkinnedBones(_detection.SourceAvatar);
+
             var boneRefs = new List<SerializedBoneReference>();
-            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
-            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, boneRefs);
+            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
 
             serializedObject.Update();
             _serializedBoneRefsProp.ClearArray();
@@ -450,6 +484,7 @@ namespace colloid.PBReplacer
                 element.FindPropertyRelative("humanBodyBone").enumValueIndex = (int)br.humanBodyBone;
                 element.FindPropertyRelative("nearestHumanoidAncestor").enumValueIndex = (int)br.nearestHumanoidAncestor;
                 element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
+                element.FindPropertyRelative("isSkeletonBone").boolValue = br.isSkeletonBone;
             }
 
             float sourceScale = PBRemapper.CalculateAvatarScale(sourceData);
@@ -462,6 +497,7 @@ namespace colloid.PBReplacer
             Transform definitionRoot,
             Transform sourceArmature,
             Dictionary<Transform, HumanBodyBones> humanoidBoneMap,
+            HashSet<Transform> skinnedBones,
             List<SerializedBoneReference> results) where T : Component
         {
             foreach (var component in definitionRoot.GetComponentsInChildren<T>(true))
@@ -499,6 +535,8 @@ namespace colloid.PBReplacer
                         nearestHumanoidAncestor = HumanBodyBones.LastBone,
                         pathFromHumanoidAncestor = ""
                     };
+
+                    boneRef.isSkeletonBone = BoneMapper.IsSkeletonBone(objRef, skinnedBones);
 
                     if (humanoidBoneMap.TryGetValue(objRef, out var humanBone))
                     {
@@ -778,6 +816,9 @@ namespace colloid.PBReplacer
                         $"リマップ済みコンポーネント: {success.RemappedComponentCount}\n" +
                         $"リマップ済み参照: {success.RemappedReferenceCount}";
 
+                    if (success.AutoCreatedObjectCount > 0)
+                        message += $"\n自動作成オブジェクト: {success.AutoCreatedObjectCount}";
+
                     if (success.UnresolvedReferenceCount > 0)
                         message += $"\n未解決参照: {success.UnresolvedReferenceCount}";
 
@@ -787,7 +828,10 @@ namespace colloid.PBReplacer
 
                     EditorUtility.DisplayDialog("移植完了", message, "OK");
 
-                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ";
+                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ" +
+                        (success.AutoCreatedObjectCount > 0
+                            ? $", {success.AutoCreatedObjectCount} オブジェクトを自動作成"
+                            : "");
                     _statusBox.messageType = success.UnresolvedReferenceCount > 0
                         ? HelpBoxMessageType.Warning
                         : HelpBoxMessageType.Info;

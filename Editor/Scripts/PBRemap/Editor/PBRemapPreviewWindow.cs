@@ -11,8 +11,17 @@ namespace colloid.PBReplacer
 		private PBRemapPreviewData _preview;
 
 		private Label _summaryLabel;
+		private VisualElement _filterBar;
 		private ScrollView _boneScrollView;
 		private VisualElement _warningsContainer;
+
+		// フィルター状態のキャッシュ（外部変更検知用）
+		private bool _cachedShowResolved;
+		private bool _cachedShowAutoCreatable;
+		private bool _cachedShowUnresolved;
+
+		/// <summary>共有フィルター状態へのアクセサ</summary>
+		private static PBRemapScenePreviewState FilterState => PBRemapScenePreviewState.Instance;
 
 		public static PBRemapPreviewWindow Open(
 			PBRemap definition,
@@ -72,8 +81,22 @@ namespace colloid.PBReplacer
 			_boneScrollView = root.Q<ScrollView>("preview-bone-scroll");
 			_warningsContainer = root.Q<VisualElement>("preview-warnings");
 
+			// サマリーとスクロールの間にフィルターバーを挿入
+			_filterBar = new VisualElement();
+			_filterBar.AddToClassList("preview-filter-bar");
+			int scrollIndex = root.IndexOf(_boneScrollView);
+			root.Insert(scrollIndex, _filterBar);
+
+			// フィルターキャッシュを初期化
+			_cachedShowResolved = FilterState.ShowResolved;
+			_cachedShowAutoCreatable = FilterState.ShowAutoCreatable;
+			_cachedShowUnresolved = FilterState.ShowUnresolved;
+
 			if (_preview != null)
 				Rebuild();
+
+			// SceneOverlay側のフィルター変更を検知して連動
+			root.schedule.Execute(CheckFilterSync).Every(200);
 		}
 
 		private void Rebuild()
@@ -84,21 +107,32 @@ namespace colloid.PBReplacer
 			if (_preview == null)
 			{
 				_summaryLabel.text = "";
+				_filterBar?.Clear();
 				_boneScrollView.Clear();
 				_warningsContainer.Clear();
 				return;
 			}
 
 			int totalBones = _preview.ResolvedBones + _preview.UnresolvedBones;
+			int autoCreatable = _preview.AutoCreatableBones;
+			int trueUnresolved = _preview.UnresolvedBones - autoCreatable;
+
 			_summaryLabel.text =
 				$"PB: {_preview.TotalPhysBones}  PBC: {_preview.TotalPhysBoneColliders}  " +
-				$"Constraint: {_preview.TotalConstraints}  Contact: {_preview.TotalContacts}\n" +
-				$"ボーン解決: {_preview.ResolvedBones}/{totalBones}  |  " +
-				$"スケール: {_preview.CalculatedScaleFactor:F3}";
+				$"Constraint: {_preview.TotalConstraints}  Contact: {_preview.TotalContacts}" +
+				$"  |  スケール: {_preview.CalculatedScaleFactor:F3}";
+
+			// フィルターバー構築
+			RebuildFilterBar(_preview.ResolvedBones, autoCreatable, trueUnresolved);
 
 			_boneScrollView.Clear();
 			foreach (var mapping in _preview.BoneMappings)
 			{
+				// フィルター適用（共有状態を参照）
+				if (mapping.resolved && !FilterState.ShowResolved) continue;
+				if (!mapping.resolved && mapping.autoCreatable && !FilterState.ShowAutoCreatable) continue;
+				if (!mapping.resolved && !mapping.autoCreatable && !FilterState.ShowUnresolved) continue;
+
 				var row = new VisualElement();
 				row.AddToClassList("preview-bone-item");
 
@@ -130,6 +164,18 @@ namespace colloid.PBReplacer
 					destLabel.RegisterCallback<ClickEvent>(evt => PingBone(destPath));
 
 					// 解決済み行: actionsは空スペーサー
+				}
+				else if (mapping.autoCreatable)
+				{
+					// 自動作成予定: 親ボーンは解決済み、子オブジェクトを作成予定
+					destLabel.text = mapping.autoCreateDestPath + " (作成予定)";
+					destLabel.tooltip = "親ボーンが解決済みのため、子オブジェクトを自動作成できます"
+						+ $"\n作成先: {mapping.autoCreateDestPath}";
+					row.AddToClassList("preview-bone-auto-creatable");
+
+					// destラベルクリック → 親ボーンの解決先をPing
+					string sourcePath = mapping.sourceBonePath;
+					destLabel.RegisterCallback<ClickEvent>(evt => PingNearestResolvedBone(sourcePath));
 				}
 				else
 				{
@@ -165,6 +211,77 @@ namespace colloid.PBReplacer
 				row.Add(label);
 				_warningsContainer.Add(row);
 			}
+		}
+
+		private void RebuildFilterBar(int resolved, int autoCreatable, int unresolved)
+		{
+			if (_filterBar == null) return;
+			_filterBar.Clear();
+
+			_filterBar.Add(CreateFilterToggle(
+				resolved, "解決済み",
+				new Color(0.39f, 0.78f, 0.39f), // green
+				FilterState.ShowResolved,
+				v => { FilterState.ShowResolved = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
+
+			_filterBar.Add(CreateFilterToggle(
+				autoCreatable, "作成予定",
+				new Color(0.86f, 0.71f, 0.20f), // yellow
+				FilterState.ShowAutoCreatable,
+				v => { FilterState.ShowAutoCreatable = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
+
+			_filterBar.Add(CreateFilterToggle(
+				unresolved, "未解決",
+				new Color(0.86f, 0.31f, 0.31f), // red
+				FilterState.ShowUnresolved,
+				v => { FilterState.ShowUnresolved = v; SyncFilterCache(); Rebuild(); SceneView.RepaintAll(); }));
+		}
+
+		private void SyncFilterCache()
+		{
+			_cachedShowResolved = FilterState.ShowResolved;
+			_cachedShowAutoCreatable = FilterState.ShowAutoCreatable;
+			_cachedShowUnresolved = FilterState.ShowUnresolved;
+		}
+
+		/// <summary>
+		/// SceneOverlay側でフィルターが変更された場合にPreviewWindowを再構築する。
+		/// </summary>
+		private void CheckFilterSync()
+		{
+			if (_cachedShowResolved != FilterState.ShowResolved
+				|| _cachedShowAutoCreatable != FilterState.ShowAutoCreatable
+				|| _cachedShowUnresolved != FilterState.ShowUnresolved)
+			{
+				SyncFilterCache();
+				Rebuild();
+			}
+		}
+
+		private static VisualElement CreateFilterToggle(
+			int count, string label, Color color, bool active, System.Action<bool> onToggle)
+		{
+			var toggle = new VisualElement();
+			toggle.AddToClassList("preview-filter-toggle");
+			toggle.AddToClassList(active ? "preview-filter-toggle-active" : "preview-filter-toggle-inactive");
+			toggle.style.borderTopColor = active ? (StyleColor)color : new StyleColor(new Color(1, 1, 1, 0.06f));
+			toggle.style.borderBottomColor = toggle.style.borderTopColor;
+			toggle.style.borderLeftColor = toggle.style.borderTopColor;
+			toggle.style.borderRightColor = toggle.style.borderTopColor;
+
+			var dot = new VisualElement();
+			dot.AddToClassList("preview-filter-dot");
+			dot.style.backgroundColor = active ? (StyleColor)color : new StyleColor(new Color(color.r, color.g, color.b, 0.3f));
+			toggle.Add(dot);
+
+			var text = new Label($"{count} {label}");
+			text.AddToClassList("preview-filter-label");
+			text.style.color = active ? (StyleColor)color : new StyleColor(new Color(0.6f, 0.6f, 0.6f));
+			toggle.Add(text);
+
+			toggle.RegisterCallback<ClickEvent>(evt => onToggle(!active));
+
+			return toggle;
 		}
 
 		/// <summary>
