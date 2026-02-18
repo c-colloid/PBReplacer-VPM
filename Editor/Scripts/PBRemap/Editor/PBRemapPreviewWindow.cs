@@ -28,7 +28,7 @@ namespace colloid.PBReplacer
 			SourceDetector.DetectionResult detection)
 		{
 			var window = GetWindow<PBRemapPreviewWindow>(true, "移植プレビュー");
-			window.minSize = new Vector2(520, 300);
+			//window.minSize = new Vector2(520, 300);
 			window._definition = definition;
 			window._detection = detection;
 			window.RefreshPreview();
@@ -78,14 +78,9 @@ namespace colloid.PBReplacer
 				root.styleSheets.Add(styleSheet);
 
 			_summaryLabel = root.Q<Label>("preview-summary");
+			_filterBar = root.Q<VisualElement>("preview-filter-bar");
 			_boneScrollView = root.Q<ScrollView>("preview-bone-scroll");
 			_warningsContainer = root.Q<VisualElement>("preview-warnings");
-
-			// サマリーとスクロールの間にフィルターバーを挿入
-			_filterBar = new VisualElement();
-			_filterBar.AddToClassList("preview-filter-bar");
-			int scrollIndex = root.IndexOf(_boneScrollView);
-			root.Insert(scrollIndex, _filterBar);
 
 			// フィルターキャッシュを初期化
 			_cachedShowResolved = FilterState.ShowResolved;
