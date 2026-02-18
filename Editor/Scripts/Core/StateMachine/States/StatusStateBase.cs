@@ -26,7 +26,10 @@ namespace colloid.PBReplacer.StateMachine
 		/// <summary>
 		/// 状態から出る時の処理
 		/// </summary>
-		public virtual void Exit(IStatusStateMachine stateMachine) { }
+		public virtual void Exit(IStatusStateMachine stateMachine)
+		{
+			CancelTimeout();
+		}
 
 		/// <summary>
 		/// 状態中の更新処理
@@ -34,33 +37,49 @@ namespace colloid.PBReplacer.StateMachine
 		public virtual void Update(IStatusStateMachine stateMachine) { }
 
 		/// <summary>
+		/// EditorApplication.update に登録されたタイムアウトコールバックの参照
+		/// </summary>
+		private EditorApplication.CallbackFunction _timeoutCallback;
+
+		/// <summary>
 		/// タイムアウトをスケジュール
+		/// EditorApplication.update に登録し、指定秒数後に自己解除して OnTimeout を呼ぶ
 		/// </summary>
 		/// <param name="stateMachine">ステートマシン</param>
 		/// <param name="seconds">タイムアウト秒数</param>
 		protected void ScheduleTimeout(IStatusStateMachine stateMachine, double seconds)
 		{
-			var startTime = EditorApplication.timeSinceStartup;
-			EditorApplication.delayCall += () => CheckTimeout(stateMachine, startTime, seconds);
+			CancelTimeout();
+
+			var targetTime = EditorApplication.timeSinceStartup + seconds;
+
+			_timeoutCallback = () =>
+			{
+				if (stateMachine.CurrentState != this)
+				{
+					CancelTimeout();
+					return;
+				}
+
+				if (EditorApplication.timeSinceStartup >= targetTime)
+				{
+					CancelTimeout();
+					stateMachine.OnTimeout();
+				}
+			};
+
+			EditorApplication.update += _timeoutCallback;
 		}
 
 		/// <summary>
-		/// タイムアウトチェック
+		/// タイムアウトをキャンセルし、EditorApplication.update から購読解除する
 		/// </summary>
-		private void CheckTimeout(IStatusStateMachine stateMachine, double startTime, double seconds)
+		private void CancelTimeout()
 		{
-			// 状態が変わっていたら何もしない
-			if (stateMachine.CurrentState != this) return;
-
-			// タイムアウト時間が経過したか確認
-			if (EditorApplication.timeSinceStartup - startTime >= seconds)
+			if (_timeoutCallback != null)
 			{
-				stateMachine.OnTimeout();
-			}
-			else
-			{
-				// まだ時間が経過していなければ再スケジュール
-				EditorApplication.delayCall += () => CheckTimeout(stateMachine, startTime, seconds);
+				EditorApplication.update -= _timeoutCallback;
+				_timeoutCallback = null;
 			}
 		}
 	}
