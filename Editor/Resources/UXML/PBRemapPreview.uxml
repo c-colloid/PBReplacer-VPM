@@ -2,6 +2,7 @@
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss" />
 
     <ui:Label name="preview-summary" class="preview-summary-label" />
+    <ui:VisualElement name="preview-filter-bar" class="preview-filter-bar" />
     <ui:ScrollView name="preview-bone-scroll" mode="Vertical" style="flex-grow: 1;" />
     <ui:VisualElement name="preview-warnings" />
 </ui:UXML>

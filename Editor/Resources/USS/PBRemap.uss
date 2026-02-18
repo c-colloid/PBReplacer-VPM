@@ -185,7 +185,6 @@
 
 .preview-summary-label {
     -unity-font-style: bold;
-    font-size: 12px;
     padding: 4px;
     margin-bottom: 4px;
     border-bottom-width: 1px;
@@ -195,9 +194,10 @@
 .preview-filter-bar {
     flex-direction: row;
     padding: 2px 4px;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
     border-bottom-width: 1px;
     border-bottom-color: rgba(85, 85, 85, 0.5);
+    flex-shrink: 0;
 }
 
 .preview-filter-toggle {
@@ -234,6 +234,7 @@
 .preview-filter-label {
     font-size: 11px;
     -unity-text-align: middle-left;
+    overflow: hidden;
 }
 
 .preview-bone-item {
