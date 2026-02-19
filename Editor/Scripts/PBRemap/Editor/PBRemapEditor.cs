@@ -17,12 +17,12 @@ namespace colloid.PBReplacer
     {
         private VisualElement _root;
 
-        // 検出状態
-        private Label _destAvatarLabel;
+        // 検出状態 (移植元 → 移植先の順)
         private Label _sourceAvatarLabel;
+        private Label _destAvatarLabel;
         private Label _modeLabel;
-        private Label _destBadge;
         private Label _sourceBadge;
+        private Label _destBadge;
         private HelpBox _stateBox;
         private HelpBox _detectionWarningBox;
 
@@ -65,6 +65,117 @@ namespace colloid.PBReplacer
         private Transform _cachedParent;
         private int _cachedChildCount;
 
+        // UXML文字列リソース
+        private StringResources _strings;
+
+        /// <summary>
+        /// UXML文字列リソースのキャッシュ構造体。
+        /// 固定テキストをUXMLに外部化し、コンパイル不要で変更可能にする。
+        /// </summary>
+        private struct StringResources
+        {
+            // 検出ラベル
+            public string DetectSourcePrefix;
+            public string DetectDestPrefix;
+            public string DetectSourceUndetected;
+            public string DetectDestUndetected;
+            public string DetectSourceError;
+            public string DetectDestError;
+            public string DetectSourceTransplanted;
+            public string DetectSourcePrefab;
+
+            // モードラベル
+            public string ModeLive;
+            public string ModePrefab;
+
+            // ステートボックス
+            public string StateNoDest;
+            public string StateTransplanted;
+            public string StateNoSource;
+
+            // バッジ
+            public string BadgeFallbackText;
+            public string BadgeFallbackTooltip;
+            public string BadgeNonHumanoidText;
+            public string BadgeNonHumanoidTooltip;
+
+            // スケール
+            public string ScaleUnavailable;
+            public string ScaleNoSourceScale;
+
+            // ルールヒント
+            public string HintPrefixReplace;
+            public string HintCharSubstitution;
+            public string HintRegexReplace;
+
+            // ルールフィールドtooltip
+            public string TooltipPrefixSource;
+            public string TooltipPrefixDest;
+            public string TooltipCharSource;
+            public string TooltipCharDest;
+            public string TooltipRegexSource;
+            public string TooltipRegexDest;
+
+            // ダイアログ
+            public string DialogTitle;
+            public string DialogConfirmTemplate;
+            public string DialogOk;
+            public string DialogCancel;
+            public string DialogCompleteTitle;
+            public string DialogCompleteOk;
+        }
+
+        private void LoadStringResources()
+        {
+            string Text(string name) => _root.Q<Label>(name)?.text ?? "";
+            string Tooltip(string name) => _root.Q<Label>(name)?.tooltip ?? "";
+
+            _strings = new StringResources
+            {
+                DetectSourcePrefix = Text("str-detect-source-prefix"),
+                DetectDestPrefix = Text("str-detect-dest-prefix"),
+                DetectSourceUndetected = Text("str-detect-source-undetected"),
+                DetectDestUndetected = Text("str-detect-dest-undetected"),
+                DetectSourceError = Text("str-detect-source-error"),
+                DetectDestError = Text("str-detect-dest-error"),
+                DetectSourceTransplanted = Text("str-detect-source-transplanted"),
+                DetectSourcePrefab = Text("str-detect-source-prefab"),
+
+                ModeLive = Text("str-mode-live"),
+                ModePrefab = Text("str-mode-prefab"),
+
+                StateNoDest = Text("str-state-no-dest"),
+                StateTransplanted = Text("str-state-transplanted"),
+                StateNoSource = Text("str-state-no-source"),
+
+                BadgeFallbackText = Text("str-badge-fallback"),
+                BadgeFallbackTooltip = Tooltip("str-badge-fallback"),
+                BadgeNonHumanoidText = Text("str-badge-non-humanoid"),
+                BadgeNonHumanoidTooltip = Tooltip("str-badge-non-humanoid"),
+
+                ScaleUnavailable = Text("str-scale-unavailable"),
+                ScaleNoSourceScale = Text("str-scale-no-source-scale"),
+
+                HintPrefixReplace = Text("str-hint-prefix-replace"),
+                HintCharSubstitution = Text("str-hint-char-substitution"),
+                HintRegexReplace = Text("str-hint-regex-replace"),
+
+                TooltipPrefixSource = Text("str-tooltip-prefix-source"),
+                TooltipPrefixDest = Text("str-tooltip-prefix-dest"),
+                TooltipCharSource = Text("str-tooltip-char-source"),
+                TooltipCharDest = Text("str-tooltip-char-dest"),
+                TooltipRegexSource = Text("str-tooltip-regex-source"),
+                TooltipRegexDest = Text("str-tooltip-regex-dest"),
+
+                DialogTitle = Text("str-dialog-title"),
+                DialogConfirmTemplate = Text("str-dialog-confirm-template"),
+                DialogOk = Text("str-dialog-ok"),
+                DialogCancel = Text("str-dialog-cancel"),
+                DialogCompleteTitle = Text("str-dialog-complete-title"),
+                DialogCompleteOk = Text("str-dialog-complete-ok"),
+            };
+        }
+
         public override VisualElement CreateInspectorGUI()
         {
             _root = new VisualElement();
@@ -88,17 +199,20 @@ namespace colloid.PBReplacer
 
             visualTree.CloneTree(_root);
 
+            // 文字列リソースをロード
+            LoadStringResources();
+
             // USSをロード
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null)
                 _root.styleSheets.Add(styleSheet);
 
-            // 要素を取得
-            _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
+            // 要素を取得 (移植元 → 移植先の順)
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
+            _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
-            _destBadge = _root.Q<Label>("dest-badge");
             _sourceBadge = _root.Q<Label>("source-badge");
+            _destBadge = _root.Q<Label>("dest-badge");
             _stateBox = _root.Q<HelpBox>("pbremap-state-box");
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _sourceRootOverrideField = _root.Q<ObjectField>("source-root-override");
@@ -233,8 +347,8 @@ namespace colloid.PBReplacer
 
             if (detectResult.IsFailure)
             {
-                _destAvatarLabel.text = "移植先: (検出エラー)";
-                _sourceAvatarLabel.text = "移植元: (検出エラー)";
+                _sourceAvatarLabel.text = _strings.DetectSourceError;
+                _destAvatarLabel.text = _strings.DetectDestError;
                 _remapButton.SetEnabled(false);
                 _previewButton.SetEnabled(false);
                 return;
@@ -242,33 +356,33 @@ namespace colloid.PBReplacer
 
             _detection = detectResult.Value;
 
-            // デスティネーション表示
-            if (_detection.DestinationAvatar != null)
-                _destAvatarLabel.text = $"移植先: {_detection.DestinationAvatar.name}";
-            else
-                _destAvatarLabel.text = "移植先: (未検出)";
-
-            // ソース・モード表示
+            // ソース表示 (移植元を先に更新)
             if (_detection.IsReferencingDestination)
             {
-                _sourceAvatarLabel.text = "移植元: (移植済み)";
+                _sourceAvatarLabel.text = _strings.DetectSourceTransplanted;
                 _modeLabel.text = "";
             }
             else if (_detection.IsLiveMode && _detection.SourceAvatar != null)
             {
-                _sourceAvatarLabel.text = $"移植元: {_detection.SourceAvatar.name}";
-                _modeLabel.text = "同一シーンモード";
+                _sourceAvatarLabel.text = _strings.DetectSourcePrefix + _detection.SourceAvatar.name;
+                _modeLabel.text = _strings.ModeLive;
             }
             else if (!_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
             {
-                _sourceAvatarLabel.text = "移植元: (Prefabデータから復元)";
-                _modeLabel.text = "Prefabモード";
+                _sourceAvatarLabel.text = _strings.DetectSourcePrefab;
+                _modeLabel.text = _strings.ModePrefab;
             }
             else
             {
-                _sourceAvatarLabel.text = "移植元: (未検出)";
+                _sourceAvatarLabel.text = _strings.DetectSourceUndetected;
                 _modeLabel.text = "";
             }
+
+            // デスティネーション表示
+            if (_detection.DestinationAvatar != null)
+                _destAvatarLabel.text = _strings.DetectDestPrefix + _detection.DestinationAvatar.name;
+            else
+                _destAvatarLabel.text = _strings.DetectDestUndetected;
 
             UpdateStateBox(definition);
             UpdateDetectionBadges();
@@ -318,16 +432,13 @@ namespace colloid.PBReplacer
         {
             if (_detection.DestinationAvatar == null)
             {
-                _stateBox.text =
-                    "このコンポーネントをアバターの子階層に配置するか、" +
-                    "手動指定で移植先を設定してください。";
+                _stateBox.text = _strings.StateNoDest;
                 _stateBox.messageType = HelpBoxMessageType.Info;
                 _stateBox.style.display = DisplayStyle.Flex;
             }
             else if (_detection.IsReferencingDestination)
             {
-                _stateBox.text =
-                    "移植済み — ボーン参照は移植先アバターに接続されています。";
+                _stateBox.text = _strings.StateTransplanted;
                 _stateBox.messageType = HelpBoxMessageType.Info;
                 _stateBox.style.display = DisplayStyle.Flex;
             }
@@ -338,9 +449,7 @@ namespace colloid.PBReplacer
             }
             else
             {
-                _stateBox.text =
-                    "移植対象のコンポーネントをこの階層の子に配置するか、" +
-                    "手動指定で移植元を設定してください。";
+                _stateBox.text = _strings.StateNoSource;
                 _stateBox.messageType = HelpBoxMessageType.Info;
                 _stateBox.style.display = DisplayStyle.Flex;
             }
@@ -350,20 +459,21 @@ namespace colloid.PBReplacer
         {
             if (_detection == null) return;
 
-            UpdateSingleBadge(
-                _destBadge,
-                _detection.DestinationAvatar,
-                _detection.DestinationHasDescriptor,
-                _detection.DestAvatarData);
-
+            // 移植元 → 移植先の順で更新
             UpdateSingleBadge(
                 _sourceBadge,
                 _detection.SourceAvatar,
                 _detection.SourceHasDescriptor,
                 _detection.SourceAvatarData);
+
+            UpdateSingleBadge(
+                _destBadge,
+                _detection.DestinationAvatar,
+                _detection.DestinationHasDescriptor,
+                _detection.DestAvatarData);
         }
 
-        private static void UpdateSingleBadge(
+        private void UpdateSingleBadge(
             Label badge, GameObject avatar, bool hasDescriptor, AvatarData avatarData)
         {
             if (badge == null) return;
@@ -373,11 +483,8 @@ namespace colloid.PBReplacer
 
             if (avatar != null && !hasDescriptor)
             {
-                tags.Add("フォールバック検出");
-                tooltipParts.Add(
-                    "VRC_AvatarDescriptorが無いため、Animator/MA/Prefabによる" +
-                    "フォールバック検出が使用されました。\n" +
-                    "検出結果が正しくない場合は詳細設定 > 手動指定を使用してください。");
+                tags.Add(_strings.BadgeFallbackText);
+                tooltipParts.Add(_strings.BadgeFallbackTooltip);
             }
 
             if (avatarData != null)
@@ -385,11 +492,8 @@ namespace colloid.PBReplacer
                 var animator = avatarData.AvatarAnimator;
                 if (animator == null || !animator.isHuman)
                 {
-                    tags.Add("非Humanoid");
-                    tooltipParts.Add(
-                        "非HumanoidのためHumanoidボーンマッピングが使用できません。\n" +
-                        "パス名/ボーン名での解決になります。" +
-                        "必要に応じてパスリマップルールを追加してください。");
+                    tags.Add(_strings.BadgeNonHumanoidText);
+                    tooltipParts.Add(_strings.BadgeNonHumanoidTooltip);
                 }
             }
 
@@ -738,42 +842,38 @@ namespace colloid.PBReplacer
             hintLabel.style.display = _showRuleHints ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
-        private static void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
+        private void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
         {
             switch (mode)
             {
                 case PathRemapRule.RemapMode.PrefixReplace:
-                    hintLabel.text =
-                        "ボーン名の先頭を双方向で置換。空欄で接頭辞を除去/追加\n" +
-                        "例: [J_Bip_C_] \u2194 [] → J_Bip_C_Hips \u2194 Hips";
+                    hintLabel.text = _strings.HintPrefixReplace;
                     break;
                 case PathRemapRule.RemapMode.CharacterSubstitution:
-                    hintLabel.text = "ボーン名内の文字列を双方向で全置換  例: [_L] \u2194 [.L]";
+                    hintLabel.text = _strings.HintCharSubstitution;
                     break;
                 case PathRemapRule.RemapMode.RegexReplace:
-                    hintLabel.text =
-                        "左欄=正規表現パターン  右欄=置換文字列（双方向）\n" +
-                        "例: [Bone(\\d+)] \u2194 [B$1]";
+                    hintLabel.text = _strings.HintRegexReplace;
                     break;
             }
         }
 
-        private static void UpdateFieldTooltips(
+        private void UpdateFieldTooltips(
             TextField sourceField, TextField destField, PathRemapRule.RemapMode mode)
         {
             switch (mode)
             {
                 case PathRemapRule.RemapMode.PrefixReplace:
-                    sourceField.tooltip = "移植元の接頭辞（空欄 = 接頭辞なし）";
-                    destField.tooltip = "移植先の接頭辞（空欄 = 接頭辞なし）";
+                    sourceField.tooltip = _strings.TooltipPrefixSource;
+                    destField.tooltip = _strings.TooltipPrefixDest;
                     break;
                 case PathRemapRule.RemapMode.CharacterSubstitution:
-                    sourceField.tooltip = "移植元の文字列";
-                    destField.tooltip = "移植先の文字列";
+                    sourceField.tooltip = _strings.TooltipCharSource;
+                    destField.tooltip = _strings.TooltipCharDest;
                     break;
                 case PathRemapRule.RemapMode.RegexReplace:
-                    sourceField.tooltip = "正規表現パターン（例: Bone(\\d+)）";
-                    destField.tooltip = "置換文字列（例: B$1）。$1 でキャプチャグループ参照";
+                    sourceField.tooltip = _strings.TooltipRegexSource;
+                    destField.tooltip = _strings.TooltipRegexDest;
                     break;
             }
         }
@@ -848,18 +948,15 @@ namespace colloid.PBReplacer
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
             {
-                string destName = _detection?.DestinationAvatar?.name ?? "(不明)";
                 string sourceName = _detection?.IsLiveMode == true
                     ? _detection.SourceAvatar?.name ?? "(不明)"
                     : "(Prefab)";
+                string destName = _detection?.DestinationAvatar?.name ?? "(不明)";
 
                 bool confirmed = EditorUtility.DisplayDialog(
-                    "コンポーネント移植",
-                    $"移植元: {sourceName}\n" +
-                    $"移植先: {destName}\n\n" +
-                    "移植を実行しますか？\n" +
-                    "（コンポーネントのボーン参照がリマップされます）",
-                    "実行", "キャンセル");
+                    _strings.DialogTitle,
+                    string.Format(_strings.DialogConfirmTemplate, sourceName, destName),
+                    _strings.DialogOk, _strings.DialogCancel);
 
                 if (!confirmed)
                     return;
@@ -885,7 +982,8 @@ namespace colloid.PBReplacer
                         message += $"\n\n警告 ({success.Warnings.Count}):\n" +
                                    string.Join("\n", success.Warnings);
 
-                    EditorUtility.DisplayDialog("移植完了", message, "OK");
+                    EditorUtility.DisplayDialog(
+                        _strings.DialogCompleteTitle, message, _strings.DialogCompleteOk);
 
                     _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ" +
                         (success.AutoCreatedObjectCount > 0
@@ -952,17 +1050,17 @@ namespace colloid.PBReplacer
                     }
                     else
                     {
-                        _calculatedScaleLabel.text = "算出不可 (ソーススケール未保存)";
+                        _calculatedScaleLabel.text = _strings.ScaleNoSourceScale;
                     }
                 }
                 else
                 {
-                    _calculatedScaleLabel.text = "算出不可";
+                    _calculatedScaleLabel.text = _strings.ScaleUnavailable;
                 }
             }
             catch
             {
-                _calculatedScaleLabel.text = "算出不可";
+                _calculatedScaleLabel.text = _strings.ScaleUnavailable;
             }
         }
 
