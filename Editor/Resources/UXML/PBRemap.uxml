@@ -1,51 +1,117 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss" />
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss" />
 
-    <!-- 検出状態セクション -->
+    <!-- 検出状態セクション (移植元 → 移植先の順) -->
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss?fileID=7433441132597879392&amp;guid=d2599c9a80cec7b45a0eb873e03b097b&amp;type=3#PBRemap" />
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
     <ui:VisualElement name="detection-section" class="pbremap-section">
-        <ui:Label name="dest-avatar-label" text="移植先: (未検出)" class="pbremap-detection-label" />
-        <ui:Label name="source-avatar-label" text="移植元: (未検出)" class="pbremap-detection-label" />
-        <ui:Label name="mode-label" text="" class="pbremap-mode-label" />
+        <ui:VisualElement name="detection-row-source" class="pbremap-detection-row">
+            <ui:Label name="source-avatar-label" text="移植元: (未検出)" class="pbremap-detection-label" />
+            <ui:Label name="source-badge" class="pbremap-detection-badge" style="display: none;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="detection-row-dest" class="pbremap-detection-row">
+            <ui:Label name="dest-avatar-label" text="移植先: (未検出)" class="pbremap-detection-label" />
+            <ui:Label name="dest-badge" class="pbremap-detection-badge" style="display: none;" />
+        </ui:VisualElement>
+        <ui:Label name="mode-label" class="pbremap-mode-label" style="font-size: 9px;" />
     </ui:VisualElement>
 
-    <!-- ステータス表示 -->
+    <!-- ステータス表示 (ガイダンス・警告のみ) -->
     <ui:HelpBox name="pbremap-state-box" style="display: none;" />
     <ui:HelpBox name="detection-warning-box" style="display: none;" />
-    <ui:HelpBox name="humanoid-info-box" style="display: none;" />
 
-    <!-- コンポーネント一覧セクション -->
-    <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="pbremap-section">
-        <ui:Label name="components-summary" text="" class="pbremap-components-summary" />
+    <!-- コンポーネント一覧 (主要コンテンツ、常時表示) -->
+    <ui:VisualElement name="components-section" class="pbremap-section">
+        <ui:Label name="components-header" text="移植対象コンポーネント" class="pbremap-section-header" style="font-size: 12px;" />
+        <ui:Label name="components-summary" class="pbremap-components-summary" />
         <ui:VisualElement name="resolution-summary" class="pbremap-resolution-summary" style="display: none;" />
-    </ui:Foldout>
+    </ui:VisualElement>
 
-    <!-- パスリマップルール -->
-    <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" class="pbremap-section">
-        <ui:Foldout name="remap-rules-help" text="ヘルプ" value="false">
-            <ui:Label
-                text="ボーン名やパスが異なるアバター間の移植時に使用します。&#10;ルールは双方向に適用されるため、どちらの方向に移植しても同じルールが使えます。"
-                class="remap-rules-description" />
-        </ui:Foldout>
-        <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
-        <ui:Button name="add-rule-button" text="ルール追加" class="pbremap-add-button" />
-    </ui:Foldout>
-
-    <!-- スケール設定 -->
+    <!-- スケール設定 (現状維持) -->
     <ui:VisualElement name="scale-section" class="pbremap-section">
         <ui:Toggle name="auto-scale-toggle" label="スケール自動算出" binding-path="autoCalculateScale" />
         <ui:VisualElement name="manual-scale-container">
             <uie:FloatField name="scale-factor-field" label="スケールファクター" binding-path="scaleFactor" />
         </ui:VisualElement>
-        <ui:Label name="calculated-scale-label" text="" class="pbremap-scale-label" />
+        <ui:Label name="calculated-scale-label" class="pbremap-scale-label" />
     </ui:VisualElement>
 
     <!-- アクションセクション -->
-    <ui:VisualElement name="action-section" class="pbremap-section">
+    <ui:VisualElement name="action-section" class="pbremap-section pbremap-action-section">
         <ui:VisualElement name="action-buttons" style="flex-direction: row; justify-content: center; margin-top: 8px; margin-bottom: 4px;">
             <ui:Button name="preview-button" text="プレビュー" style="margin-right: 8px;" />
             <ui:Button name="pbremap-button" text="移植実行" class="pbremap-execute-button" />
         </ui:VisualElement>
-        <ui:HelpBox name="status-box" />
+        <ui:HelpBox name="status-box" style="display: none;" />
+    </ui:VisualElement>
+
+    <!-- 詳細設定 -->
+    <ui:Foldout name="advanced-settings-foldout" text="詳細設定" value="false" class="pbremap-section">
+
+        <!-- パスリマップルール -->
+        <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" tooltip="ボーン名やパスが異なるアバター間の移植時に使用します。&#10;ルールは双方向に適用されるため、どちらの方向に移植しても同じルールが使えます。">
+            <ui:VisualElement name="remap-rules-toolbar" class="pbremap-rules-toolbar">
+                <ui:Button name="toggle-hints-button" text="?" tooltip="ルールごとのヒント表示を切り替え" class="pbremap-hint-toggle-button" />
+                <ui:Button name="add-rule-button" text="+ ルール追加" class="pbremap-add-button" />
+            </ui:VisualElement>
+            <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
+        </ui:Foldout>
+
+        <!-- 手動指定 -->
+        <ui:Foldout name="manual-override-foldout" text="手動指定" value="false" tooltip="自動検出が正しく動作しない場合に移植元/移植先を手動で指定します。&#10;AvatarDescriptorが無いFBXやMA衣装プレハブでは通常自動検出されますが、&#10;それでも正しく検出されない場合にここで指定してください。">
+            <uie:ObjectField name="source-root-override" label="移植元 (手動)" binding-path="sourceRootOverride" />
+            <uie:ObjectField name="dest-root-override" label="移植先 (手動)" binding-path="destinationRootOverride" />
+        </ui:Foldout>
+
+    </ui:Foldout>
+
+    <!-- 文字列リソース (UIに表示されない。C#から参照する) -->
+    <ui:VisualElement name="string-resources" style="display: none;">
+        <!-- 検出ラベル -->
+        <ui:Label name="str-detect-source-prefix" text="移植元: " />
+        <ui:Label name="str-detect-dest-prefix" text="移植先: " />
+        <ui:Label name="str-detect-source-undetected" text="移植元: (未検出)" />
+        <ui:Label name="str-detect-dest-undetected" text="移植先: (未検出)" />
+        <ui:Label name="str-detect-source-error" text="移植元: (検出エラー)" />
+        <ui:Label name="str-detect-dest-error" text="移植先: (検出エラー)" />
+        <ui:Label name="str-detect-source-transplanted" text="移植元: (移植済み)" />
+        <ui:Label name="str-detect-source-prefab" text="移植元: (Prefabデータから復元)" />
+
+        <!-- モードラベル -->
+        <ui:Label name="str-mode-live" text="同一シーンモード" />
+        <ui:Label name="str-mode-prefab" text="Prefabモード" />
+
+        <!-- ステートボックスメッセージ -->
+
+        <!-- バッジ -->
+
+        <!-- スケール -->
+        <ui:Label name="str-state-no-dest" text="このコンポーネントをアバターの子階層に配置するか、手動指定で移植先を設定してください。" />
+        <ui:Label name="str-state-transplanted" text="移植済み — ボーン参照は移植先アバターに接続されています。" />
+        <ui:Label name="str-state-no-source" text="移植対象のコンポーネントをこの階層の子に配置するか、手動指定で移植元を設定してください。" />
+        <ui:Label name="str-badge-fallback" text="フォールバック検出" tooltip="VRC_AvatarDescriptorが無いため、Animator/MA/Prefabによるフォールバック検出が使用されました。&#10;検出結果が正しくない場合は詳細設定 &gt; 手動指定を使用してください。" />
+        <ui:Label name="str-badge-non-humanoid" text="非Humanoid" tooltip="非HumanoidのためHumanoidボーンマッピングが使用できません。&#10;パス名/ボーン名での解決になります。必要に応じてパスリマップルールを追加してください。" />
+        <ui:Label name="str-scale-unavailable" text="算出不可" />
+        <ui:Label name="str-scale-no-source-scale" text="算出不可 (ソーススケール未保存)" />
+
+        <!-- ルールヒント -->
+
+        <!-- ルールフィールドtooltip -->
+        <ui:Label name="str-hint-prefix-replace" text="ボーン名の先頭を双方向で置換。空欄で接頭辞を除去/追加&#10;例: [J_Bip_C_] ↔ [] → J_Bip_C_Hips ↔ Hips" />
+        <ui:Label name="str-hint-char-substitution" text="ボーン名内の文字列を双方向で全置換  例: [_L] ↔ [.L]" />
+        <ui:Label name="str-hint-regex-replace" text="左欄=正規表現パターン  右欄=置換文字列（双方向）&#10;例: [Bone(\d+)] ↔ [B$1]" />
+        <ui:Label name="str-tooltip-prefix-source" text="移植元の接頭辞（空欄 = 接頭辞なし）" />
+        <ui:Label name="str-tooltip-prefix-dest" text="移植先の接頭辞（空欄 = 接頭辞なし）" />
+        <ui:Label name="str-tooltip-char-source" text="移植元の文字列" />
+        <ui:Label name="str-tooltip-char-dest" text="移植先の文字列" />
+        <ui:Label name="str-tooltip-regex-source" text="正規表現パターン（例: Bone(\d+)）" />
+        <ui:Label name="str-tooltip-regex-dest" text="置換文字列（例: B$1）。$1 でキャプチャグループ参照" />
+
+        <!-- ダイアログ -->
+        <ui:Label name="str-dialog-title" text="コンポーネント移植" />
+        <ui:Label name="str-dialog-confirm-template" text="移植元: {0}&#10;移植先: {1}&#10;&#10;移植を実行しますか？&#10;（コンポーネントのボーン参照がリマップされます）" />
+        <ui:Label name="str-dialog-ok" text="実行" />
+        <ui:Label name="str-dialog-cancel" text="キャンセル" />
+        <ui:Label name="str-dialog-complete-title" text="移植完了" />
+        <ui:Label name="str-dialog-complete-ok" text="OK" />
     </ui:VisualElement>
 </ui:UXML>
