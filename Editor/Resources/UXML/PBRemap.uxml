@@ -11,8 +11,18 @@
 
     <!-- ステータス表示 -->
     <ui:HelpBox name="pbremap-state-box" style="display: none;" />
+    <ui:HelpBox name="non-vrc-info-box" style="display: none;" />
     <ui:HelpBox name="detection-warning-box" style="display: none;" />
     <ui:HelpBox name="humanoid-info-box" style="display: none;" />
+
+    <!-- 手動指定セクション -->
+    <ui:Foldout name="manual-override-foldout" text="手動指定" value="false" class="pbremap-section">
+        <ui:Label
+            text="自動検出が正しく動作しない場合に移植元/移植先を手動で指定します。&#10;AvatarDescriptorが無いFBXやMA衣装プレハブでは自動検出を使用しますが、&#10;それでも正しく検出されない場合にここで指定してください。"
+            class="remap-rules-description" />
+        <uie:ObjectField name="source-root-override" label="移植元 (手動)" binding-path="sourceRootOverride" />
+        <uie:ObjectField name="dest-root-override" label="移植先 (手動)" binding-path="destinationRootOverride" />
+    </ui:Foldout>
 
     <!-- コンポーネント一覧セクション -->
     <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="pbremap-section">

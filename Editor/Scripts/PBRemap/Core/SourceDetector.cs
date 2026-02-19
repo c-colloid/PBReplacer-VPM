@@ -8,10 +8,16 @@ using VRC.SDK3.Dynamics.Contact.Components;
 using VRC.Dynamics;
 using VRC.SDKBase;
 
+#if MODULAR_AVATAR
+using nadena.dev.modular_avatar.core;
+#endif
+
 namespace colloid.PBReplacer
 {
     /// <summary>
     /// PBRemapの配置状態からソースアバター・デスティネーションアバターを自動検出する。
+    /// AvatarDescriptorが無い場合のフォールバック検出にも対応する。
+    /// 検出優先順位: VRC_AvatarDescriptor → Animator → MAコンポーネント → Prefab → ルートGameObject → 手動指定
     /// </summary>
     public static class SourceDetector
     {
@@ -40,6 +46,12 @@ namespace colloid.PBReplacer
 
             /// <summary>子コンポーネントの参照がデスティネーションアバター自身を指している（移植済み状態）</summary>
             public bool IsReferencingDestination { get; set; }
+
+            /// <summary>デスティネーションがVRC_AvatarDescriptorで検出されたか（フォールバックか）</summary>
+            public bool DestinationHasDescriptor { get; set; }
+
+            /// <summary>ソースがVRC_AvatarDescriptorで検出されたか（フォールバックか）</summary>
+            public bool SourceHasDescriptor { get; set; }
         }
 
         /// <summary>
@@ -54,20 +66,8 @@ namespace colloid.PBReplacer
 
             var result = new DetectionResult();
 
-            // デスティネーション検出: 親階層を辿ってVRC_AvatarDescriptorを探す
-            var destDescriptor = FindAvatarDescriptorInParent(definition.transform);
-            if (destDescriptor != null)
-            {
-                result.DestinationAvatar = destDescriptor.gameObject;
-                try
-                {
-                    result.DestAvatarData = new AvatarData(result.DestinationAvatar);
-                }
-                catch (System.Exception ex)
-                {
-                    result.Warnings.Add($"デスティネーションアバターの解析に失敗: {ex.Message}");
-                }
-            }
+            // デスティネーション検出
+            DetectDestination(definition, result);
 
             // ソース検出: 子コンポーネントのTransform参照から逆引き
             var sourceAvatar = DetectSourceFromChildComponents(definition);
@@ -81,6 +81,8 @@ namespace colloid.PBReplacer
                 else
                 {
                     result.SourceAvatar = sourceAvatar;
+                    result.SourceHasDescriptor =
+                        sourceAvatar.GetComponent<VRC_AvatarDescriptor>() != null;
                     result.IsLiveMode = true;
                     try
                     {
@@ -94,17 +96,36 @@ namespace colloid.PBReplacer
             }
             else
             {
-                // Transform参照がない → Prefabモードの可能性
-                result.IsLiveMode = false;
-                if (definition.SerializedBoneReferences.Count > 0)
+                // ソースの手動指定を確認
+                if (definition.SourceRootOverride != null)
                 {
-                    // シリアライズデータあり → Prefabモードとして動作可能
+                    result.SourceAvatar = definition.SourceRootOverride;
+                    result.SourceHasDescriptor =
+                        definition.SourceRootOverride.GetComponent<VRC_AvatarDescriptor>() != null;
+                    result.IsLiveMode = true;
+                    try
+                    {
+                        result.SourceAvatarData = new AvatarData(result.SourceAvatar);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        result.Warnings.Add($"手動指定ソースアバターの解析に失敗: {ex.Message}");
+                    }
                 }
                 else
                 {
-                    result.Warnings.Add("ソースアバターを検出できません。" +
-                        "子コンポーネントのTransform参照がないか、シリアライズデータがありません。" +
-                        "Inspectorを開いてボーン情報を取得してください。");
+                    // Transform参照がない → Prefabモードの可能性
+                    result.IsLiveMode = false;
+                    if (definition.SerializedBoneReferences.Count > 0)
+                    {
+                        // シリアライズデータあり → Prefabモードとして動作可能
+                    }
+                    else
+                    {
+                        result.Warnings.Add("ソースアバターを検出できません。" +
+                            "子コンポーネントのTransform参照がないか、シリアライズデータがありません。" +
+                            "手動で移植元を指定するか、Inspectorを開いてボーン情報を取得してください。");
+                    }
                 }
             }
 
@@ -112,25 +133,110 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// 親階層を辿ってVRC_AvatarDescriptorを持つGameObjectを探す。
-        /// PBRemap自身のGameObjectは除外する。
+        /// デスティネーションアバターを検出する。
+        /// 優先順位: 手動指定 → VRC_AvatarDescriptor → Animator → MAコンポーネント → Prefab → ルートGameObject
         /// </summary>
-        private static VRC_AvatarDescriptor FindAvatarDescriptorInParent(Transform current)
+        private static void DetectDestination(PBRemap definition, DetectionResult result)
+        {
+            // 手動指定がある場合はそれを使用
+            if (definition.DestinationRootOverride != null)
+            {
+                result.DestinationAvatar = definition.DestinationRootOverride;
+                result.DestinationHasDescriptor =
+                    definition.DestinationRootOverride.GetComponent<VRC_AvatarDescriptor>() != null;
+                try
+                {
+                    result.DestAvatarData = new AvatarData(result.DestinationAvatar);
+                }
+                catch (System.Exception ex)
+                {
+                    result.Warnings.Add($"手動指定デスティネーションアバターの解析に失敗: {ex.Message}");
+                }
+                return;
+            }
+
+            // 自動検出: 親階層を辿ってアバタールートを探す
+            var destRoot = FindAvatarRootInParent(definition.transform);
+            if (destRoot != null)
+            {
+                result.DestinationAvatar = destRoot;
+                result.DestinationHasDescriptor =
+                    destRoot.GetComponent<VRC_AvatarDescriptor>() != null;
+                try
+                {
+                    result.DestAvatarData = new AvatarData(result.DestinationAvatar);
+                }
+                catch (System.Exception ex)
+                {
+                    result.Warnings.Add($"デスティネーションアバターの解析に失敗: {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 親階層を辿ってアバタールートとなるGameObjectを探す。
+        /// PBRemap自身のGameObjectは除外する。
+        /// 検出優先順位:
+        /// 1. VRC_AvatarDescriptor（VRCアバター）
+        /// 2. Animator（FBXインポート等）
+        /// 3. ModularAvatarコンポーネント（MA衣装）
+        /// 4. PrefabInstanceRoot（Prefabインスタンス）
+        /// 5. ルートGameObject（最終手段）
+        /// </summary>
+        private static GameObject FindAvatarRootInParent(Transform current)
         {
             Transform parent = current.parent;
-            while (parent != null)
+
+            // 第1段階: VRC_AvatarDescriptorを探す
+            Transform scan = parent;
+            while (scan != null)
             {
-                var descriptor = parent.GetComponent<VRC_AvatarDescriptor>();
-                if (descriptor != null)
-                    return descriptor;
-                parent = parent.parent;
+                if (scan.GetComponent<VRC_AvatarDescriptor>() != null)
+                    return scan.gameObject;
+                scan = scan.parent;
             }
+
+            // 第2段階: Animatorを探す（最も上位にあるAnimatorを返す）
+            scan = parent;
+            GameObject animatorRoot = null;
+            while (scan != null)
+            {
+                if (scan.GetComponent<Animator>() != null)
+                    animatorRoot = scan.gameObject;
+                scan = scan.parent;
+            }
+            if (animatorRoot != null)
+                return animatorRoot;
+
+            // 第3段階: ModularAvatarコンポーネントを探す
+            #if MODULAR_AVATAR
+            scan = parent;
+            while (scan != null)
+            {
+                if (scan.GetComponent<ModularAvatarMergeArmature>() != null)
+                    return scan.gameObject;
+                scan = scan.parent;
+            }
+            #endif
+
+            // 第4段階: Prefabインスタンスルートを探す
+            if (parent != null)
+            {
+                var prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(parent);
+                if (prefabRoot != null)
+                    return prefabRoot;
+            }
+
+            // 第5段階: ルートGameObject
+            if (parent != null)
+                return parent.root.gameObject;
+
             return null;
         }
 
         /// <summary>
         /// 子コンポーネントの外部Transform参照からソースアバターを検出する。
-        /// 最も多くの参照が指しているVRC_AvatarDescriptor配下のアバターを返す。
+        /// 最も多くの参照が指しているアバタールートを返す。
         /// </summary>
         private static GameObject DetectSourceFromChildComponents(PBRemap definition)
         {
@@ -138,7 +244,7 @@ namespace colloid.PBReplacer
             if (externalTransforms.Count == 0)
                 return null;
 
-            // 各Transform参照の親を辿り、VRC_AvatarDescriptorを持つアバターを集計
+            // 各Transform参照の親を辿り、アバタールートを集計
             var avatarCounts = new Dictionary<GameObject, int>();
             foreach (var t in externalTransforms)
             {
@@ -224,10 +330,17 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// TransformからVRC_AvatarDescriptorを持つアバタールートを探す。
+        /// TransformからアバタールートGameObjectを探す。
+        /// 検出優先順位:
+        /// 1. VRC_AvatarDescriptor（VRCアバター）
+        /// 2. Animator（FBXインポート等）
+        /// 3. ModularAvatarコンポーネント（MA衣装）
+        /// 4. PrefabInstanceRoot（Prefabインスタンス）
+        /// 5. ルートGameObject（最終手段）
         /// </summary>
         private static GameObject FindAvatarRoot(Transform bone)
         {
+            // 第1段階: VRC_AvatarDescriptorを探す
             Transform current = bone;
             while (current != null)
             {
@@ -235,7 +348,37 @@ namespace colloid.PBReplacer
                     return current.gameObject;
                 current = current.parent;
             }
-            return null;
+
+            // 第2段階: Animatorを探す（最も上位にあるAnimatorを返す）
+            current = bone;
+            GameObject animatorRoot = null;
+            while (current != null)
+            {
+                if (current.GetComponent<Animator>() != null)
+                    animatorRoot = current.gameObject;
+                current = current.parent;
+            }
+            if (animatorRoot != null)
+                return animatorRoot;
+
+            // 第3段階: ModularAvatarコンポーネントを探す
+            #if MODULAR_AVATAR
+            current = bone;
+            while (current != null)
+            {
+                if (current.GetComponent<ModularAvatarMergeArmature>() != null)
+                    return current.gameObject;
+                current = current.parent;
+            }
+            #endif
+
+            // 第4段階: Prefabインスタンスルートを探す
+            var prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(bone);
+            if (prefabRoot != null)
+                return prefabRoot;
+
+            // 第5段階: ルートGameObject
+            return bone.root.gameObject;
         }
     }
 }

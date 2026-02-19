@@ -22,8 +22,13 @@ namespace colloid.PBReplacer
         private Label _sourceAvatarLabel;
         private Label _modeLabel;
         private HelpBox _stateBox;
+        private HelpBox _nonVrcInfoBox;
         private HelpBox _detectionWarningBox;
         private HelpBox _humanoidInfoBox;
+
+        // 手動指定
+        private ObjectField _sourceRootOverrideField;
+        private ObjectField _destRootOverrideField;
 
         // コンポーネント一覧
         private Label _componentsSummary;
@@ -50,6 +55,8 @@ namespace colloid.PBReplacer
         private SerializedProperty _pathRemapRulesProp;
         private SerializedProperty _serializedBoneRefsProp;
         private SerializedProperty _sourceAvatarScaleProp;
+        private SerializedProperty _sourceRootOverrideProp;
+        private SerializedProperty _destRootOverrideProp;
 
         // 検出結果キャッシュ
         private SourceDetector.DetectionResult _detection;
@@ -68,6 +75,8 @@ namespace colloid.PBReplacer
             _pathRemapRulesProp = serializedObject.FindProperty("pathRemapRules");
             _serializedBoneRefsProp = serializedObject.FindProperty("serializedBoneReferences");
             _sourceAvatarScaleProp = serializedObject.FindProperty("sourceAvatarScale");
+            _sourceRootOverrideProp = serializedObject.FindProperty("sourceRootOverride");
+            _destRootOverrideProp = serializedObject.FindProperty("destinationRootOverride");
 
             // UXMLをロード
             var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemap");
@@ -89,8 +98,11 @@ namespace colloid.PBReplacer
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
             _stateBox = _root.Q<HelpBox>("pbremap-state-box");
+            _nonVrcInfoBox = _root.Q<HelpBox>("non-vrc-info-box");
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
             _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
+            _sourceRootOverrideField = _root.Q<ObjectField>("source-root-override");
+            _destRootOverrideField = _root.Q<ObjectField>("dest-root-override");
             _componentsSummary = _root.Q<Label>("components-summary");
             _resolutionSummary = _root.Q<VisualElement>("resolution-summary");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
@@ -108,6 +120,26 @@ namespace colloid.PBReplacer
 
             // ListView設定
             SetupRemapRulesListView();
+
+            // 手動指定フィールドの型を設定
+            if (_sourceRootOverrideField != null)
+            {
+                _sourceRootOverrideField.objectType = typeof(GameObject);
+                _sourceRootOverrideField.RegisterValueChangedCallback(_ =>
+                {
+                    RefreshDetection();
+                    UpdateSerializedBoneReferences();
+                });
+            }
+            if (_destRootOverrideField != null)
+            {
+                _destRootOverrideField.objectType = typeof(GameObject);
+                _destRootOverrideField.RegisterValueChangedCallback(_ =>
+                {
+                    RefreshDetection();
+                    UpdateSerializedBoneReferences();
+                });
+            }
 
             // イベント登録
             _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
@@ -238,6 +270,7 @@ namespace colloid.PBReplacer
             }
 
             UpdateStateBox(definition);
+            UpdateNonVrcInfoBox();
 
             if (_detection.Warnings.Count > 0)
             {
@@ -285,7 +318,9 @@ namespace colloid.PBReplacer
         {
             if (_detection.DestinationAvatar == null)
             {
-                _stateBox.text = "このコンポーネントをアバターの子階層に配置してください。";
+                _stateBox.text =
+                    "このコンポーネントをアバターの子階層に配置するか、" +
+                    "手動指定で移植先を設定してください。";
                 _stateBox.messageType = HelpBoxMessageType.Info;
                 _stateBox.style.display = DisplayStyle.Flex;
             }
@@ -304,9 +339,38 @@ namespace colloid.PBReplacer
             else
             {
                 _stateBox.text =
-                    "移植対象のコンポーネントをこの階層の子に配置してください。";
+                    "移植対象のコンポーネントをこの階層の子に配置するか、" +
+                    "手動指定で移植元を設定してください。";
                 _stateBox.messageType = HelpBoxMessageType.Info;
                 _stateBox.style.display = DisplayStyle.Flex;
+            }
+        }
+
+        private void UpdateNonVrcInfoBox()
+        {
+            if (_nonVrcInfoBox == null || _detection == null)
+                return;
+
+            var nonVrcNames = new List<string>();
+
+            if (_detection.DestinationAvatar != null && !_detection.DestinationHasDescriptor)
+                nonVrcNames.Add($"移植先 ({_detection.DestinationAvatar.name})");
+
+            if (_detection.SourceAvatar != null && !_detection.SourceHasDescriptor)
+                nonVrcNames.Add($"移植元 ({_detection.SourceAvatar.name})");
+
+            if (nonVrcNames.Count > 0)
+            {
+                _nonVrcInfoBox.text =
+                    $"{string.Join("、", nonVrcNames)} はVRC_AvatarDescriptorを持たないため、" +
+                    "フォールバック検出（Animator/MA/Prefab）で検出されました。" +
+                    "検出結果が正しくない場合は手動指定を使用してください。";
+                _nonVrcInfoBox.messageType = HelpBoxMessageType.Info;
+                _nonVrcInfoBox.style.display = DisplayStyle.Flex;
+            }
+            else
+            {
+                _nonVrcInfoBox.style.display = DisplayStyle.None;
             }
         }
 
