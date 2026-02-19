@@ -8,6 +8,8 @@ namespace colloid.PBReplacer
     /// AvatarDynamicsコンポーネントの移植設定を定義するMonoBehaviour。
     /// AvatarDynamicsフォルダに配置し、フォルダごとD&amp;Dで別アバターに移植する。
     /// ソース/デスティネーションアバターは階層から自動検出される。
+    /// AvatarDescriptorが無い場合はAnimator/MA/Prefab等のフォールバック検出を行い、
+    /// それでも検出できない場合は手動指定フィールドを使用する。
     /// </summary>
     [AddComponentMenu("PBReplacer/PB Remap")]
     [DisallowMultipleComponent]
@@ -33,6 +35,14 @@ namespace colloid.PBReplacer
         [Tooltip("Prefab用: ソースアバターのスケール基準値（Hips→Head距離）")]
         private float sourceAvatarScale;
 
+        [SerializeField]
+        [Tooltip("手動指定: 移植元のルートオブジェクト（自動検出できない場合に使用）")]
+        private GameObject sourceRootOverride;
+
+        [SerializeField]
+        [Tooltip("手動指定: 移植先のルートオブジェクト（自動検出できない場合に使用）")]
+        private GameObject destinationRootOverride;
+
         /// <summary>スケールファクターを自動計算するかどうか</summary>
         public bool AutoCalculateScale => autoCalculateScale;
 
@@ -47,5 +57,11 @@ namespace colloid.PBReplacer
 
         /// <summary>Prefab用: ソースアバターのスケール基準値</summary>
         public float SourceAvatarScale => sourceAvatarScale;
+
+        /// <summary>手動指定: 移植元のルートオブジェクト</summary>
+        public GameObject SourceRootOverride => sourceRootOverride;
+
+        /// <summary>手動指定: 移植先のルートオブジェクト</summary>
+        public GameObject DestinationRootOverride => destinationRootOverride;
     }
 }

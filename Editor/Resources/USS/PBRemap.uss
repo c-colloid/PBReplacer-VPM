@@ -5,10 +5,63 @@
     margin-bottom: 4px;
 }
 
+.pbremap-detection-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.pbremap-detection-badge {
+    font-size: 10px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    border-radius: 3px;
+    background-color: rgba(220, 180, 50, 0.15);
+    color: rgb(220, 180, 50);
+    flex-shrink: 0;
+}
+
+.pbremap-section-header {
+    font-size: 11px;
+    -unity-font-style: bold;
+    color: var(--unity-colors-label-text);
+    padding: 0 4px 2px 4px;
+    margin-bottom: 2px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.3);
+}
+
+.pbremap-action-section {
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(85, 85, 85, 0.4);
+}
+
 .pbremap-add-button {
     align-self: flex-end;
     width: 100px;
     margin-top: 4px;
+}
+
+.pbremap-rules-toolbar {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.pbremap-hint-toggle-button {
+    width: 22px;
+    height: 20px;
+    margin-right: 4px;
+    font-size: 12px;
+    -unity-font-style: bold;
+    border-radius: 3px;
+}
+
+.pbremap-hint-toggle-button-active {
+    background-color: rgba(100, 200, 100, 0.2);
+    color: rgb(100, 200, 100);
 }
 
 .pbremap-scale-label {
@@ -174,13 +227,6 @@
     font-size: 10px;
     color: rgb(140, 140, 140);
     padding: 0 4px 2px 24px;
-}
-
-.remap-rules-description {
-    font-size: 11px;
-    color: rgb(160, 160, 160);
-    padding: 2px 4px 4px 4px;
-    white-space: normal;
 }
 
 .preview-summary-label {
