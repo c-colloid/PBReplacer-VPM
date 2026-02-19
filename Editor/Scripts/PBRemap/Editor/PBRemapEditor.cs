@@ -21,10 +21,10 @@ namespace colloid.PBReplacer
         private Label _destAvatarLabel;
         private Label _sourceAvatarLabel;
         private Label _modeLabel;
+        private Label _destBadge;
+        private Label _sourceBadge;
         private HelpBox _stateBox;
-        private HelpBox _nonVrcInfoBox;
         private HelpBox _detectionWarningBox;
-        private HelpBox _humanoidInfoBox;
 
         // 手動指定
         private ObjectField _sourceRootOverrideField;
@@ -97,10 +97,10 @@ namespace colloid.PBReplacer
             _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
+            _destBadge = _root.Q<Label>("dest-badge");
+            _sourceBadge = _root.Q<Label>("source-badge");
             _stateBox = _root.Q<HelpBox>("pbremap-state-box");
-            _nonVrcInfoBox = _root.Q<HelpBox>("non-vrc-info-box");
             _detectionWarningBox = _root.Q<HelpBox>("detection-warning-box");
-            _humanoidInfoBox = _root.Q<HelpBox>("humanoid-info-box");
             _sourceRootOverrideField = _root.Q<ObjectField>("source-root-override");
             _destRootOverrideField = _root.Q<ObjectField>("dest-root-override");
             _componentsSummary = _root.Q<Label>("components-summary");
@@ -147,15 +147,16 @@ namespace colloid.PBReplacer
             _remapButton.clicked += OnRemapClicked;
             _previewButton.clicked += OnPreviewClicked;
 
-            // ルールヘルプ表示切替
-            var helpFoldout = _root.Q<Foldout>("remap-rules-help");
-            if (helpFoldout != null)
+            // ルールヒント表示切替ボタン
+            var toggleHintsButton = _root.Q<Button>("toggle-hints-button");
+            if (toggleHintsButton != null)
             {
-                helpFoldout.RegisterValueChangedCallback(evt =>
+                toggleHintsButton.clicked += () =>
                 {
-                    _showRuleHints = evt.newValue;
+                    _showRuleHints = !_showRuleHints;
+                    toggleHintsButton.EnableInClassList("pbremap-hint-toggle-button-active", _showRuleHints);
                     _rulesListView.Rebuild();
-                });
+                };
             }
 
             // 初期状態を設定
@@ -270,7 +271,7 @@ namespace colloid.PBReplacer
             }
 
             UpdateStateBox(definition);
-            UpdateNonVrcInfoBox();
+            UpdateDetectionBadges();
 
             if (_detection.Warnings.Count > 0)
             {
@@ -284,7 +285,6 @@ namespace colloid.PBReplacer
             }
 
             UpdateComponentsSummary(definition);
-            UpdateHumanoidInfoBox();
 
             bool canOperate = !_detection.IsReferencingDestination
                 && _detection.DestinationAvatar != null
@@ -346,31 +346,62 @@ namespace colloid.PBReplacer
             }
         }
 
-        private void UpdateNonVrcInfoBox()
+        private void UpdateDetectionBadges()
         {
-            if (_nonVrcInfoBox == null || _detection == null)
-                return;
+            if (_detection == null) return;
 
-            var nonVrcNames = new List<string>();
+            UpdateSingleBadge(
+                _destBadge,
+                _detection.DestinationAvatar,
+                _detection.DestinationHasDescriptor,
+                _detection.DestAvatarData);
 
-            if (_detection.DestinationAvatar != null && !_detection.DestinationHasDescriptor)
-                nonVrcNames.Add($"移植先 ({_detection.DestinationAvatar.name})");
+            UpdateSingleBadge(
+                _sourceBadge,
+                _detection.SourceAvatar,
+                _detection.SourceHasDescriptor,
+                _detection.SourceAvatarData);
+        }
 
-            if (_detection.SourceAvatar != null && !_detection.SourceHasDescriptor)
-                nonVrcNames.Add($"移植元 ({_detection.SourceAvatar.name})");
+        private static void UpdateSingleBadge(
+            Label badge, GameObject avatar, bool hasDescriptor, AvatarData avatarData)
+        {
+            if (badge == null) return;
 
-            if (nonVrcNames.Count > 0)
+            var tags = new List<string>();
+            var tooltipParts = new List<string>();
+
+            if (avatar != null && !hasDescriptor)
             {
-                _nonVrcInfoBox.text =
-                    $"{string.Join("、", nonVrcNames)} はVRC_AvatarDescriptorを持たないため、" +
-                    "フォールバック検出（Animator/MA/Prefab）で検出されました。" +
-                    "検出結果が正しくない場合は手動指定を使用してください。";
-                _nonVrcInfoBox.messageType = HelpBoxMessageType.Info;
-                _nonVrcInfoBox.style.display = DisplayStyle.Flex;
+                tags.Add("フォールバック検出");
+                tooltipParts.Add(
+                    "VRC_AvatarDescriptorが無いため、Animator/MA/Prefabによる" +
+                    "フォールバック検出が使用されました。\n" +
+                    "検出結果が正しくない場合は詳細設定 > 手動指定を使用してください。");
+            }
+
+            if (avatarData != null)
+            {
+                var animator = avatarData.AvatarAnimator;
+                if (animator == null || !animator.isHuman)
+                {
+                    tags.Add("非Humanoid");
+                    tooltipParts.Add(
+                        "非HumanoidのためHumanoidボーンマッピングが使用できません。\n" +
+                        "パス名/ボーン名での解決になります。" +
+                        "必要に応じてパスリマップルールを追加してください。");
+                }
+            }
+
+            if (tags.Count > 0)
+            {
+                badge.text = string.Join(" / ", tags);
+                badge.tooltip = string.Join("\n\n", tooltipParts);
+                badge.style.display = DisplayStyle.Flex;
             }
             else
             {
-                _nonVrcInfoBox.style.display = DisplayStyle.None;
+                badge.style.display = DisplayStyle.None;
             }
         }
 
@@ -462,42 +493,6 @@ namespace colloid.PBReplacer
                 $"PhysBone: {pb}  PhysBoneCollider: {pbc}  " +
                 $"Constraint: {constraint}  Contact: {contact}  " +
                 $"(合計: {total})";
-        }
-
-        private void UpdateHumanoidInfoBox()
-        {
-            if (_humanoidInfoBox == null || _detection == null)
-                return;
-
-            var nonHumanoidNames = new List<string>();
-
-            if (_detection.SourceAvatarData != null)
-            {
-                var srcAnimator = _detection.SourceAvatarData.AvatarAnimator;
-                if (srcAnimator == null || !srcAnimator.isHuman)
-                    nonHumanoidNames.Add($"移植元 ({_detection.SourceAvatar.name})");
-            }
-
-            if (_detection.DestAvatarData != null)
-            {
-                var destAnimator = _detection.DestAvatarData.AvatarAnimator;
-                if (destAnimator == null || !destAnimator.isHuman)
-                    nonHumanoidNames.Add($"移植先 ({_detection.DestinationAvatar.name})");
-            }
-
-            if (nonHumanoidNames.Count > 0)
-            {
-                _humanoidInfoBox.text =
-                    $"{string.Join("、", nonHumanoidNames)} は非Humanoidです。" +
-                    "Humanoidボーンマッピングが使用できないため、パス名/ボーン名での解決になります。" +
-                    "必要に応じてパスリマップルールを追加してください。";
-                _humanoidInfoBox.messageType = HelpBoxMessageType.Info;
-                _humanoidInfoBox.style.display = DisplayStyle.Flex;
-            }
-            else
-            {
-                _humanoidInfoBox.style.display = DisplayStyle.None;
-            }
         }
 
         private void UpdateSerializedBoneReferences()

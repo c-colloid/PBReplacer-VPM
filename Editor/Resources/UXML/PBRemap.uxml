@@ -4,44 +4,29 @@
 
     <!-- 検出状態セクション -->
     <ui:VisualElement name="detection-section" class="pbremap-section">
-        <ui:Label name="dest-avatar-label" text="移植先: (未検出)" class="pbremap-detection-label" />
-        <ui:Label name="source-avatar-label" text="移植元: (未検出)" class="pbremap-detection-label" />
+        <ui:VisualElement name="detection-row-dest" class="pbremap-detection-row">
+            <ui:Label name="dest-avatar-label" text="移植先: (未検出)" class="pbremap-detection-label" />
+            <ui:Label name="dest-badge" class="pbremap-detection-badge" style="display: none;" />
+        </ui:VisualElement>
+        <ui:VisualElement name="detection-row-source" class="pbremap-detection-row">
+            <ui:Label name="source-avatar-label" text="移植元: (未検出)" class="pbremap-detection-label" />
+            <ui:Label name="source-badge" class="pbremap-detection-badge" style="display: none;" />
+        </ui:VisualElement>
         <ui:Label name="mode-label" text="" class="pbremap-mode-label" />
     </ui:VisualElement>
 
-    <!-- ステータス表示 -->
+    <!-- ステータス表示 (ガイダンス・警告のみ) -->
     <ui:HelpBox name="pbremap-state-box" style="display: none;" />
-    <ui:HelpBox name="non-vrc-info-box" style="display: none;" />
     <ui:HelpBox name="detection-warning-box" style="display: none;" />
-    <ui:HelpBox name="humanoid-info-box" style="display: none;" />
 
-    <!-- 手動指定セクション -->
-    <ui:Foldout name="manual-override-foldout" text="手動指定" value="false" class="pbremap-section">
-        <ui:Label
-            text="自動検出が正しく動作しない場合に移植元/移植先を手動で指定します。&#10;AvatarDescriptorが無いFBXやMA衣装プレハブでは自動検出を使用しますが、&#10;それでも正しく検出されない場合にここで指定してください。"
-            class="remap-rules-description" />
-        <uie:ObjectField name="source-root-override" label="移植元 (手動)" binding-path="sourceRootOverride" />
-        <uie:ObjectField name="dest-root-override" label="移植先 (手動)" binding-path="destinationRootOverride" />
-    </ui:Foldout>
-
-    <!-- コンポーネント一覧セクション -->
-    <ui:Foldout name="components-foldout" text="移植対象コンポーネント" value="true" class="pbremap-section">
+    <!-- コンポーネント一覧 (主要コンテンツ、常時表示) -->
+    <ui:VisualElement name="components-section" class="pbremap-section">
+        <ui:Label name="components-header" text="移植対象コンポーネント" class="pbremap-section-header" />
         <ui:Label name="components-summary" text="" class="pbremap-components-summary" />
         <ui:VisualElement name="resolution-summary" class="pbremap-resolution-summary" style="display: none;" />
-    </ui:Foldout>
+    </ui:VisualElement>
 
-    <!-- パスリマップルール -->
-    <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false" class="pbremap-section">
-        <ui:Foldout name="remap-rules-help" text="ヘルプ" value="false">
-            <ui:Label
-                text="ボーン名やパスが異なるアバター間の移植時に使用します。&#10;ルールは双方向に適用されるため、どちらの方向に移植しても同じルールが使えます。"
-                class="remap-rules-description" />
-        </ui:Foldout>
-        <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
-        <ui:Button name="add-rule-button" text="ルール追加" class="pbremap-add-button" />
-    </ui:Foldout>
-
-    <!-- スケール設定 -->
+    <!-- スケール設定 (現状維持) -->
     <ui:VisualElement name="scale-section" class="pbremap-section">
         <ui:Toggle name="auto-scale-toggle" label="スケール自動算出" binding-path="autoCalculateScale" />
         <ui:VisualElement name="manual-scale-container">
@@ -51,11 +36,34 @@
     </ui:VisualElement>
 
     <!-- アクションセクション -->
-    <ui:VisualElement name="action-section" class="pbremap-section">
+    <ui:VisualElement name="action-section" class="pbremap-section pbremap-action-section">
         <ui:VisualElement name="action-buttons" style="flex-direction: row; justify-content: center; margin-top: 8px; margin-bottom: 4px;">
             <ui:Button name="preview-button" text="プレビュー" style="margin-right: 8px;" />
             <ui:Button name="pbremap-button" text="移植実行" class="pbremap-execute-button" />
         </ui:VisualElement>
-        <ui:HelpBox name="status-box" />
+        <ui:HelpBox name="status-box" style="display: none;" />
     </ui:VisualElement>
+
+    <!-- 詳細設定 -->
+    <ui:Foldout name="advanced-settings-foldout" text="詳細設定" value="false" class="pbremap-section">
+
+        <!-- パスリマップルール -->
+        <ui:Foldout name="remap-rules-foldout" text="パスリマップルール" value="false"
+            tooltip="ボーン名やパスが異なるアバター間の移植時に使用します。&#10;ルールは双方向に適用されるため、どちらの方向に移植しても同じルールが使えます。">
+            <ui:VisualElement name="remap-rules-toolbar" class="pbremap-rules-toolbar">
+                <ui:Button name="toggle-hints-button" text="?" tooltip="ルールごとのヒント表示を切り替え"
+                    class="pbremap-hint-toggle-button" />
+                <ui:Button name="add-rule-button" text="+ ルール追加" class="pbremap-add-button" />
+            </ui:VisualElement>
+            <ui:ListView name="remap-rules-list" show-foldout-header="false" reorder-mode="Animated" show-add-remove-footer="false" />
+        </ui:Foldout>
+
+        <!-- 手動指定 -->
+        <ui:Foldout name="manual-override-foldout" text="手動指定" value="false"
+            tooltip="自動検出が正しく動作しない場合に移植元/移植先を手動で指定します。&#10;AvatarDescriptorが無いFBXやMA衣装プレハブでは通常自動検出されますが、&#10;それでも正しく検出されない場合にここで指定してください。">
+            <uie:ObjectField name="source-root-override" label="移植元 (手動)" binding-path="sourceRootOverride" />
+            <uie:ObjectField name="dest-root-override" label="移植先 (手動)" binding-path="destinationRootOverride" />
+        </ui:Foldout>
+
+    </ui:Foldout>
 </ui:UXML>
