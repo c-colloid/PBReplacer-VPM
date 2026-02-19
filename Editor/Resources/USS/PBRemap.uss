@@ -23,7 +23,7 @@
 .pbremap-section-header {
     font-size: 11px;
     -unity-font-style: bold;
-    color: rgb(180, 180, 180);
+    color: var(--unity-colors-label-text);
     padding: 0 4px 2px 4px;
     margin-bottom: 2px;
     border-bottom-width: 1px;
