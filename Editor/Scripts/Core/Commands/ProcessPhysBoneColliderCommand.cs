@@ -51,11 +51,6 @@ namespace colloid.PBReplacer
 				var avatarDynamics = processor.PrepareRootObject(avatar.AvatarObject);
 				processor.RevertFolderFromPrefab(avatarDynamics, processor.Settings.PhysBoneCollidersFolder);
 
-				// 空の未使用フォルダを削除
-				processor.CleanupUnusedFolders(avatarDynamics,
-					processor.Settings.PhysBonesFolder,
-					processor.Settings.PhysBoneCollidersFolder);
-
 				// Helper経由で処理
 				var result = ComponentProcessingHelper.ProcessPhysBoneColliders(
 					processor, avatar.AvatarObject, targetPBC);
