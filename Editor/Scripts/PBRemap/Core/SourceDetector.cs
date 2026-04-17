@@ -178,9 +178,9 @@ namespace colloid.PBReplacer
         /// PBRemap自身のGameObjectは除外する。
         /// 検出優先順位:
         /// 1. PBRemap自身が属するPrefabルート（Prefab境界内に限定）
-        /// 2. VRC_AvatarDescriptor（VRCアバター）
-        /// 3. Animator（FBXインポート等）
-        /// 4. ModularAvatarコンポーネント（MA衣装）
+        /// 2. ModularAvatarMergeArmature（VRC依存、最も具体的）
+        /// 3. VRC_AvatarDescriptor（アバター依存）
+        /// 4. Animator（最も汎用的）
         /// 5. ルートGameObject（最終手段）
         /// </summary>
         private static GameObject FindAvatarRootInParent(Transform current)
@@ -195,8 +195,23 @@ namespace colloid.PBReplacer
             // Prefabに属さない場合（シーン直置き等）は親階層を辿る
             Transform parent = current.parent;
 
-            // 第2段階: VRC_AvatarDescriptorを探す
+            // 第2段階: ModularAvatarMergeArmatureを探す（VRC依存の最具体的コンポーネント）
+            #if MODULAR_AVATAR
             Transform scan = parent;
+            while (scan != null)
+            {
+                if (scan.GetComponent<ModularAvatarMergeArmature>() != null)
+                    return scan.gameObject;
+                scan = scan.parent;
+            }
+            #endif
+
+            // 第3段階: VRC_AvatarDescriptorを探す
+            #if MODULAR_AVATAR
+            scan = parent;
+            #else
+            Transform scan = parent;
+            #endif
             while (scan != null)
             {
                 if (scan.GetComponent<VRC_AvatarDescriptor>() != null)
@@ -204,7 +219,7 @@ namespace colloid.PBReplacer
                 scan = scan.parent;
             }
 
-            // 第3段階: Animatorを探す（最も上位にあるAnimatorを返す）
+            // 第4段階: Animatorを探す（最も上位にあるAnimatorを返す）
             scan = parent;
             GameObject animatorRoot = null;
             while (scan != null)
@@ -215,17 +230,6 @@ namespace colloid.PBReplacer
             }
             if (animatorRoot != null)
                 return animatorRoot;
-
-            // 第4段階: ModularAvatarコンポーネントを探す
-            #if MODULAR_AVATAR
-            scan = parent;
-            while (scan != null)
-            {
-                if (scan.GetComponent<ModularAvatarMergeArmature>() != null)
-                    return scan.gameObject;
-                scan = scan.parent;
-            }
-            #endif
 
             // 第5段階: ルートGameObject
             if (parent != null)
