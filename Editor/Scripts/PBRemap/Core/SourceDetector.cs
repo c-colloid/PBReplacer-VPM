@@ -177,17 +177,25 @@ namespace colloid.PBReplacer
         /// 親階層を辿ってアバタールートとなるGameObjectを探す。
         /// PBRemap自身のGameObjectは除外する。
         /// 検出優先順位:
-        /// 1. VRC_AvatarDescriptor（VRCアバター）
-        /// 2. Animator（FBXインポート等）
-        /// 3. ModularAvatarコンポーネント（MA衣装）
-        /// 4. PrefabInstanceRoot（Prefabインスタンス）
+        /// 1. PBRemap自身が属するPrefabルート（Prefab境界内に限定）
+        /// 2. VRC_AvatarDescriptor（VRCアバター）
+        /// 3. Animator（FBXインポート等）
+        /// 4. ModularAvatarコンポーネント（MA衣装）
         /// 5. ルートGameObject（最終手段）
         /// </summary>
         private static GameObject FindAvatarRootInParent(Transform current)
         {
+            // 第1段階: PBRemap自身が属するPrefabルートを確認
+            // AD > MA.prefab > PBRemap の構造でMAが正しくDestinationになるよう、
+            // 祖先を全辿りする前にPrefab境界で先に確定させる
+            var ownPrefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(current.gameObject);
+            if (ownPrefabRoot != null)
+                return ownPrefabRoot;
+
+            // Prefabに属さない場合（シーン直置き等）は親階層を辿る
             Transform parent = current.parent;
 
-            // 第1段階: VRC_AvatarDescriptorを探す
+            // 第2段階: VRC_AvatarDescriptorを探す
             Transform scan = parent;
             while (scan != null)
             {
@@ -196,7 +204,7 @@ namespace colloid.PBReplacer
                 scan = scan.parent;
             }
 
-            // 第2段階: Animatorを探す（最も上位にあるAnimatorを返す）
+            // 第3段階: Animatorを探す（最も上位にあるAnimatorを返す）
             scan = parent;
             GameObject animatorRoot = null;
             while (scan != null)
@@ -208,7 +216,7 @@ namespace colloid.PBReplacer
             if (animatorRoot != null)
                 return animatorRoot;
 
-            // 第3段階: ModularAvatarコンポーネントを探す
+            // 第4段階: ModularAvatarコンポーネントを探す
             #if MODULAR_AVATAR
             scan = parent;
             while (scan != null)
@@ -218,14 +226,6 @@ namespace colloid.PBReplacer
                 scan = scan.parent;
             }
             #endif
-
-            // 第4段階: Prefabインスタンスルートを探す
-            if (parent != null)
-            {
-                var prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(parent);
-                if (prefabRoot != null)
-                    return prefabRoot;
-            }
 
             // 第5段階: ルートGameObject
             if (parent != null)
