@@ -1,9 +1,10 @@
 このファイルはβ/RC等のプレリリース版の変更履歴です。
 安定版リリース時には ChangeLog.txt に総括を記載します。
 
-[Unreleased]
+[3.0.0-beta.6]2026.04.20
 PBRemap: アバタールート検出ロジックを統合し、AvatarRootOverride指定を最優先に評価するよう修正
 PBRemap: Destination検出順をPrefab境界優先に変更し、ModularAvatarの子孫検出に対応
 PBRemap: ModularAvatar検出の探索範囲を祖先の子孫全体に拡張
 PBRemap: アバター検出方法をDetectionResultとして保持し、Inspectorバッジで検出手段を明示
+CleanupUnusedFoldersをICommandに切り出し、全タブで確実に実行されるよう修正
 リリース作成後にBuild Repo Listingを自動起動するようにワークフローを修正
