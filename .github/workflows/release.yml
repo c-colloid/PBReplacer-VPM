@@ -37,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: write
     env:
       packageName: ${{ vars.PACKAGE_NAME }}
     if: needs.config.outputs.config_package == 'true'
@@ -127,3 +128,14 @@ jobs:
           release_name: Release ${{ env.fileName }}_v${{ env.version }}
           body: |
             ${{ steps.get_commit_summary.outputs.COMMIT_SUMMARY }}
+
+      - name: Trigger Build Repo Listing
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'build-listing.yml',
+              ref: 'main'
+            })
