@@ -161,7 +161,7 @@ namespace colloid.PBReplacer
         /// Transform を起点に祖先を走査してアバタールートを返す。
         /// 優先順位:
         /// 1. Prefab 境界 (PBRemap 自身の最内 Prefab はスキップし、その外側の Prefab から探索)
-        /// 2. ModularAvatarMergeArmature (祖先自身、または祖先の直接の子 = Armature に付くケースに対応)
+        /// 2. ModularAvatarMergeArmature (祖先自身またはその子孫に存在すれば、その祖先を返す)
         /// 3. VRC_AvatarDescriptor (祖先走査)
         /// 4. Animator（最上位を優先。FBX 直移植対応）
         /// 5. transform.root （最終手段）
@@ -190,18 +190,15 @@ namespace colloid.PBReplacer
             Transform scanStart = includeSelf ? start : start.parent;
 
             // 2. ModularAvatarMergeArmature
-            // MA は通常 衣装 → Armature(MergeArmature) の形で Armature オブジェクトに付くため、
-            // 祖先自身だけでなく祖先の直接の子もチェックする（= 衣装ルートを返す）。
+            // MA は通常 衣装 → Armature(MergeArmature) の形で衣装の子孫に付くため、
+            // 祖先を辿りつつ、各祖先の子孫全体に MA が含まれるかチェックする。
+            // PBRemap に最も近い祖先から順に見るので、衣装 root が最内側で確定する。
+            // (Unpack 済み階層や中間コンテナが挟まる階層にも対応)
             #if MODULAR_AVATAR
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
             {
-                if (scan.GetComponent<ModularAvatarMergeArmature>() != null)
+                if (scan.GetComponentInChildren<ModularAvatarMergeArmature>(true) != null)
                     return scan.gameObject;
-                foreach (Transform child in scan)
-                {
-                    if (child.GetComponent<ModularAvatarMergeArmature>() != null)
-                        return scan.gameObject;
-                }
             }
             #endif
 
