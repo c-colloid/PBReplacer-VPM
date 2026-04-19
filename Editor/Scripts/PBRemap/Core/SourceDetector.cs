@@ -17,7 +17,8 @@ namespace colloid.PBReplacer
     /// <summary>
     /// PBRemapの配置状態からソースアバター・デスティネーションアバターを自動検出する。
     /// AvatarDescriptorが無い場合のフォールバック検出にも対応する。
-    /// 検出優先順位: 手動指定 → MA(MergeArmature) → VRC_AvatarDescriptor → Prefab境界 → Animator → root
+    /// 検出優先順位: 手動指定 → Prefab境界(PBRemap自身の最内Prefabは除外)
+    ///   → MA(MergeArmature) → VRC_AvatarDescriptor → Animator → root
     /// </summary>
     public static class SourceDetector
     {
@@ -103,7 +104,8 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// デスティネーションアバターを検出する。
-        /// 優先順位: 手動指定 → MA(MergeArmature) → VRC_AvatarDescriptor → Prefab境界 → Animator → root
+        /// 優先順位: 手動指定 → Prefab境界(PBRemap自身の最内Prefabは除外)
+        ///   → MA(MergeArmature) → VRC_AvatarDescriptor → Animator → root
         /// </summary>
         private static void DetectDestination(PBRemap definition, DetectionResult result)
         {
@@ -158,9 +160,9 @@ namespace colloid.PBReplacer
         /// <summary>
         /// Transform を起点に祖先を走査してアバタールートを返す。
         /// 優先順位:
-        /// 1. ModularAvatarMergeArmature (最も具体的な VRC 依存マーカー)
-        /// 2. VRC_AvatarDescriptor
-        /// 3. Prefab 境界 (PrefabUtility.GetNearestPrefabInstanceRoot)
+        /// 1. Prefab 境界 (PBRemap 自身の最内 Prefab はスキップし、その外側の Prefab から探索)
+        /// 2. ModularAvatarMergeArmature (祖先自身、または祖先の直接の子 = Armature に付くケースに対応)
+        /// 3. VRC_AvatarDescriptor (祖先走査)
         /// 4. Animator（最上位を優先。FBX 直移植対応）
         /// 5. transform.root （最終手段）
         /// </summary>
@@ -175,28 +177,40 @@ namespace colloid.PBReplacer
             if (start == null)
                 return null;
 
+            // 1. Prefab 境界（Destination: PBRemap 自身の最内 Prefab を候補から除外）
+            // AvatarDynamics 自身が Prefab 化されてネストしているケースで、
+            // 内側の AvatarDynamics Prefab を誤検知するのを避ける。
+            Transform prefabScanStart = includeSelf ? start : SkipOwnPrefab(start);
+            for (Transform scan = prefabScanStart; scan != null; scan = scan.parent)
+            {
+                if (PrefabUtility.IsAnyPrefabInstanceRoot(scan.gameObject))
+                    return scan.gameObject;
+            }
+
             Transform scanStart = includeSelf ? start : start.parent;
 
-            // 1. ModularAvatarMergeArmature
+            // 2. ModularAvatarMergeArmature
+            // MA は通常 衣装 → Armature(MergeArmature) の形で Armature オブジェクトに付くため、
+            // 祖先自身だけでなく祖先の直接の子もチェックする（= 衣装ルートを返す）。
             #if MODULAR_AVATAR
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
             {
                 if (scan.GetComponent<ModularAvatarMergeArmature>() != null)
                     return scan.gameObject;
+                foreach (Transform child in scan)
+                {
+                    if (child.GetComponent<ModularAvatarMergeArmature>() != null)
+                        return scan.gameObject;
+                }
             }
             #endif
 
-            // 2. VRC_AvatarDescriptor
+            // 3. VRC_AvatarDescriptor
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
             {
                 if (scan.GetComponent<VRC_AvatarDescriptor>() != null)
                     return scan.gameObject;
             }
-
-            // 3. Prefab 境界（includeSelf=false のとき start 自身が Prefab root でも採用しない）
-            var prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(start.gameObject);
-            if (prefabRoot != null && (includeSelf || prefabRoot != start.gameObject))
-                return prefabRoot;
 
             // 4. Animator（最上位）
             GameObject animatorRoot = null;
@@ -210,6 +224,19 @@ namespace colloid.PBReplacer
 
             // 5. root
             return scanStart != null ? scanStart.root.gameObject : null;
+        }
+
+        /// <summary>
+        /// Destination 検出用の Prefab 境界走査開始点を返す。
+        /// PBRemap を含む最内 Prefab が存在すればその親から走査を始め、
+        /// AvatarDynamics 自身が Prefab 化されているケースで内側 Prefab を誤検知しないようにする。
+        /// </summary>
+        private static Transform SkipOwnPrefab(Transform start)
+        {
+            var ownPrefab = PrefabUtility.GetNearestPrefabInstanceRoot(start.gameObject);
+            if (ownPrefab != null)
+                return ownPrefab.transform.parent;
+            return start.parent;
         }
 
         /// <summary>
