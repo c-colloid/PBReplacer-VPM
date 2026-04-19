@@ -39,8 +39,8 @@ namespace colloid.PBReplacer
     /// <summary>
     /// PBRemapの配置状態からソースアバター・デスティネーションアバターを自動検出する。
     /// AvatarDescriptorが無い場合のフォールバック検出にも対応する。
-    /// 検出優先順位: 手動指定 → Prefab境界(PBRemap自身の最内Prefabは除外)
-    ///   → MA(MergeArmature) → VRC_AvatarDescriptor → Animator → root
+    /// 検出優先順位: 手動指定 → MA(MergeArmature) → Prefab境界(PBRemap自身の最内Prefabは除外)
+    ///   → VRC_AvatarDescriptor → Animator → root
     /// </summary>
     public static class SourceDetector
     {
@@ -135,8 +135,8 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// デスティネーションアバターを検出する。
-        /// 優先順位: 手動指定 → Prefab境界(PBRemap自身の最内Prefabは除外)
-        ///   → MA(MergeArmature) → VRC_AvatarDescriptor → Animator → root
+        /// 優先順位: 手動指定 → MA(MergeArmature) → Prefab境界(PBRemap自身の最内Prefabは除外)
+        ///   → VRC_AvatarDescriptor → Animator → root
         /// </summary>
         private static void DetectDestination(PBRemap definition, DetectionResult result)
         {
@@ -193,8 +193,8 @@ namespace colloid.PBReplacer
         /// <summary>
         /// Transform を起点に祖先を走査してアバタールートを返す。
         /// 優先順位:
-        /// 1. Prefab 境界 (PBRemap 自身の最内 Prefab はスキップし、その外側の Prefab から探索)
-        /// 2. ModularAvatarMergeArmature (祖先自身またはその子孫に存在すれば、その祖先を返す)
+        /// 1. ModularAvatarMergeArmature (祖先自身またはその子孫に存在すれば、その祖先を返す)
+        /// 2. Prefab 境界 (PBRemap 自身の最内 Prefab はスキップし、その外側の Prefab から探索)
         /// 3. VRC_AvatarDescriptor (祖先走査)
         /// 4. Animator（最上位を優先。FBX 直移植対応）
         /// 5. transform.root （最終手段）
@@ -212,7 +212,26 @@ namespace colloid.PBReplacer
             if (start == null)
                 return null;
 
-            // 1. Prefab 境界（Destination: PBRemap 自身の最内 Prefab を候補から除外）
+            Transform scanStart = includeSelf ? start : start.parent;
+
+            // 1. ModularAvatarMergeArmature
+            // MA は通常 衣装 → Armature(MergeArmature) の形で衣装の子孫に付くため、
+            // 祖先を辿りつつ、各祖先の子孫全体に MA が含まれるかチェックする。
+            // PBRemap に最も近い祖先から順に見るので、衣装 root が最内側で確定する。
+            // Prefab 境界より先に見る: Avatar(Prefab) 内にネストした MA 衣装 Prefab に
+            // PBRemap がある場合、Prefab 境界優先では外側 Avatar が返ってしまうため。
+            #if MODULAR_AVATAR
+            for (Transform scan = scanStart; scan != null; scan = scan.parent)
+            {
+                if (scan.GetComponentInChildren<ModularAvatarMergeArmature>(true) != null)
+                {
+                    method = AvatarDetectionMethod.MergeArmature;
+                    return scan.gameObject;
+                }
+            }
+            #endif
+
+            // 2. Prefab 境界（Destination: PBRemap 自身の最内 Prefab を候補から除外）
             // AvatarDynamics 自身が Prefab 化されてネストしているケースで、
             // 内側の AvatarDynamics Prefab を誤検知するのを避ける。
             Transform prefabScanStart = includeSelf ? start : SkipOwnPrefab(start);
@@ -224,24 +243,6 @@ namespace colloid.PBReplacer
                     return scan.gameObject;
                 }
             }
-
-            Transform scanStart = includeSelf ? start : start.parent;
-
-            // 2. ModularAvatarMergeArmature
-            // MA は通常 衣装 → Armature(MergeArmature) の形で衣装の子孫に付くため、
-            // 祖先を辿りつつ、各祖先の子孫全体に MA が含まれるかチェックする。
-            // PBRemap に最も近い祖先から順に見るので、衣装 root が最内側で確定する。
-            // (Unpack 済み階層や中間コンテナが挟まる階層にも対応)
-            #if MODULAR_AVATAR
-            for (Transform scan = scanStart; scan != null; scan = scan.parent)
-            {
-                if (scan.GetComponentInChildren<ModularAvatarMergeArmature>(true) != null)
-                {
-                    method = AvatarDetectionMethod.MergeArmature;
-                    return scan.gameObject;
-                }
-            }
-            #endif
 
             // 3. VRC_AvatarDescriptor
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
