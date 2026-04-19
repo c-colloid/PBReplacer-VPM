@@ -8,3 +8,4 @@ PBRemap: ModularAvatar検出の探索範囲を祖先の子孫全体に拡張
 PBRemap: アバター検出方法をDetectionResultとして保持し、Inspectorバッジで検出手段を明示
 CleanupUnusedFoldersをICommandに切り出し、全タブで確実に実行されるよう修正
 リリース作成後にBuild Repo Listingを自動起動するようにワークフローを修正
+FindComponent.AllChilds時にAvatarDynamics配下のコンポーネントが二重検出されリストに重複表示される問題を修正（Distinctによるフェイルセーフも追加）
