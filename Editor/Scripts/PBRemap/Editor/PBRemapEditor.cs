@@ -93,9 +93,15 @@ namespace colloid.PBReplacer
             public string StateTransplanted;
             public string StateNoSource;
 
-            // バッジ
-            public string BadgeFallbackText;
-            public string BadgeFallbackTooltip;
+            // バッジ (検出メソッド別)
+            public string BadgeMergeArmatureText;
+            public string BadgeMergeArmatureTooltip;
+            public string BadgePrefabText;
+            public string BadgePrefabTooltip;
+            public string BadgeAnimatorText;
+            public string BadgeAnimatorTooltip;
+            public string BadgeRootText;
+            public string BadgeRootTooltip;
             public string BadgeNonHumanoidText;
             public string BadgeNonHumanoidTooltip;
 
@@ -148,8 +154,14 @@ namespace colloid.PBReplacer
                 StateTransplanted = Text("str-state-transplanted"),
                 StateNoSource = Text("str-state-no-source"),
 
-                BadgeFallbackText = Text("str-badge-fallback"),
-                BadgeFallbackTooltip = Tooltip("str-badge-fallback"),
+                BadgeMergeArmatureText = Text("str-badge-merge-armature"),
+                BadgeMergeArmatureTooltip = Tooltip("str-badge-merge-armature"),
+                BadgePrefabText = Text("str-badge-prefab"),
+                BadgePrefabTooltip = Tooltip("str-badge-prefab"),
+                BadgeAnimatorText = Text("str-badge-animator"),
+                BadgeAnimatorTooltip = Tooltip("str-badge-animator"),
+                BadgeRootText = Text("str-badge-root"),
+                BadgeRootTooltip = Tooltip("str-badge-root"),
                 BadgeNonHumanoidText = Text("str-badge-non-humanoid"),
                 BadgeNonHumanoidTooltip = Tooltip("str-badge-non-humanoid"),
 
@@ -463,28 +475,46 @@ namespace colloid.PBReplacer
             UpdateSingleBadge(
                 _sourceBadge,
                 _detection.SourceAvatar,
-                _detection.SourceHasDescriptor,
+                _detection.SourceDetectionMethod,
                 _detection.SourceAvatarData);
 
             UpdateSingleBadge(
                 _destBadge,
                 _detection.DestinationAvatar,
-                _detection.DestinationHasDescriptor,
+                _detection.DestinationDetectionMethod,
                 _detection.DestAvatarData);
         }
 
         private void UpdateSingleBadge(
-            Label badge, GameObject avatar, bool hasDescriptor, AvatarData avatarData)
+            Label badge, GameObject avatar, AvatarDetectionMethod method, AvatarData avatarData)
         {
             if (badge == null) return;
 
             var tags = new List<string>();
             var tooltipParts = new List<string>();
 
-            if (avatar != null && !hasDescriptor)
+            if (avatar != null)
             {
-                tags.Add(_strings.BadgeFallbackText);
-                tooltipParts.Add(_strings.BadgeFallbackTooltip);
+                switch (method)
+                {
+                    case AvatarDetectionMethod.MergeArmature:
+                        tags.Add(_strings.BadgeMergeArmatureText);
+                        tooltipParts.Add(_strings.BadgeMergeArmatureTooltip);
+                        break;
+                    case AvatarDetectionMethod.PrefabBoundary:
+                        tags.Add(_strings.BadgePrefabText);
+                        tooltipParts.Add(_strings.BadgePrefabTooltip);
+                        break;
+                    case AvatarDetectionMethod.Animator:
+                        tags.Add(_strings.BadgeAnimatorText);
+                        tooltipParts.Add(_strings.BadgeAnimatorTooltip);
+                        break;
+                    case AvatarDetectionMethod.Root:
+                        tags.Add(_strings.BadgeRootText);
+                        tooltipParts.Add(_strings.BadgeRootTooltip);
+                        break;
+                    // VRCAvatarDescriptor / Manual / None は method バッジなし
+                }
             }
 
             if (avatarData != null)

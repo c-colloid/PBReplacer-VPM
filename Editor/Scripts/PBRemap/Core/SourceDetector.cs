@@ -15,6 +15,28 @@ using nadena.dev.modular_avatar.core;
 namespace colloid.PBReplacer
 {
     /// <summary>
+    /// アバタールートの検出方法を示す列挙体。
+    /// UI のバッジ表示などで、どの経路で検出されたかをユーザーに伝えるために用いる。
+    /// </summary>
+    public enum AvatarDetectionMethod
+    {
+        /// <summary>未検出</summary>
+        None,
+        /// <summary>手動指定 (SourceRootOverride / DestinationRootOverride)</summary>
+        Manual,
+        /// <summary>VRC_AvatarDescriptor（標準パターン）</summary>
+        VRCAvatarDescriptor,
+        /// <summary>ModularAvatar MergeArmature</summary>
+        MergeArmature,
+        /// <summary>Prefab 境界 (Prefab Instance Root)</summary>
+        PrefabBoundary,
+        /// <summary>Animator（FBX 直置き等）</summary>
+        Animator,
+        /// <summary>transform.root（最終フォールバック）</summary>
+        Root,
+    }
+
+    /// <summary>
     /// PBRemapの配置状態からソースアバター・デスティネーションアバターを自動検出する。
     /// AvatarDescriptorが無い場合のフォールバック検出にも対応する。
     /// 検出優先順位: 手動指定 → Prefab境界(PBRemap自身の最内Prefabは除外)
@@ -48,11 +70,11 @@ namespace colloid.PBReplacer
             /// <summary>子コンポーネントの参照がデスティネーションアバター自身を指している（移植済み状態）</summary>
             public bool IsReferencingDestination { get; set; }
 
-            /// <summary>デスティネーションがVRC_AvatarDescriptorで検出されたか（フォールバックか）</summary>
-            public bool DestinationHasDescriptor { get; set; }
+            /// <summary>デスティネーションアバターがどの検出経路で特定されたか</summary>
+            public AvatarDetectionMethod DestinationDetectionMethod { get; set; }
 
-            /// <summary>ソースがVRC_AvatarDescriptorで検出されたか（フォールバックか）</summary>
-            public bool SourceHasDescriptor { get; set; }
+            /// <summary>ソースアバターがどの検出経路で特定されたか</summary>
+            public AvatarDetectionMethod SourceDetectionMethod { get; set; }
         }
 
         /// <summary>
@@ -71,9 +93,17 @@ namespace colloid.PBReplacer
             DetectDestination(definition, result);
 
             // ソース検出: 手動指定 → 自動検出 → Prefabモード候補
-            GameObject sourceAvatar = definition.SourceRootOverride != null
-                ? definition.SourceRootOverride
-                : DetectSourceFromChildComponents(definition);
+            GameObject sourceAvatar;
+            AvatarDetectionMethod sourceMethod;
+            if (definition.SourceRootOverride != null)
+            {
+                sourceAvatar = definition.SourceRootOverride;
+                sourceMethod = AvatarDetectionMethod.Manual;
+            }
+            else
+            {
+                sourceAvatar = DetectSourceFromChildComponents(definition, out sourceMethod);
+            }
 
             if (sourceAvatar != null)
             {
@@ -85,6 +115,7 @@ namespace colloid.PBReplacer
                 else
                 {
                     AssignSource(sourceAvatar, result);
+                    result.SourceDetectionMethod = sourceMethod;
                 }
             }
             else
@@ -112,22 +143,25 @@ namespace colloid.PBReplacer
             if (definition.DestinationRootOverride != null)
             {
                 AssignDestination(definition.DestinationRootOverride, result);
+                result.DestinationDetectionMethod = AvatarDetectionMethod.Manual;
                 return;
             }
 
-            var destRoot = FindAvatarRoot(definition.transform, includeSelf: false);
+            var destRoot = FindAvatarRoot(definition.transform, includeSelf: false, out var method);
             if (destRoot != null)
+            {
                 AssignDestination(destRoot, result);
+                result.DestinationDetectionMethod = method;
+            }
         }
 
         /// <summary>
         /// 検出したデスティネーションアバターを DetectionResult に設定し、AvatarData を構築する。
+        /// DestinationDetectionMethod は呼び出し側で設定する。
         /// </summary>
         private static void AssignDestination(GameObject avatar, DetectionResult result)
         {
             result.DestinationAvatar = avatar;
-            result.DestinationHasDescriptor =
-                avatar.GetComponent<VRC_AvatarDescriptor>() != null;
             try
             {
                 result.DestAvatarData = new AvatarData(avatar);
@@ -140,12 +174,11 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 検出したソースアバターを DetectionResult に設定し、AvatarData を構築する。
+        /// SourceDetectionMethod は呼び出し側で設定する。
         /// </summary>
         private static void AssignSource(GameObject avatar, DetectionResult result)
         {
             result.SourceAvatar = avatar;
-            result.SourceHasDescriptor =
-                avatar.GetComponent<VRC_AvatarDescriptor>() != null;
             result.IsLiveMode = true;
             try
             {
@@ -172,8 +205,10 @@ namespace colloid.PBReplacer
         ///   Destination 検出は PBRemap 自身を除外するため false、
         ///   Source 検出は参照 Transform がアバタールートを指す可能性があるため true。
         /// </param>
-        private static GameObject FindAvatarRoot(Transform start, bool includeSelf)
+        /// <param name="method">検出に使われたメソッドを out で返す</param>
+        private static GameObject FindAvatarRoot(Transform start, bool includeSelf, out AvatarDetectionMethod method)
         {
+            method = AvatarDetectionMethod.None;
             if (start == null)
                 return null;
 
@@ -184,7 +219,10 @@ namespace colloid.PBReplacer
             for (Transform scan = prefabScanStart; scan != null; scan = scan.parent)
             {
                 if (PrefabUtility.IsAnyPrefabInstanceRoot(scan.gameObject))
+                {
+                    method = AvatarDetectionMethod.PrefabBoundary;
                     return scan.gameObject;
+                }
             }
 
             Transform scanStart = includeSelf ? start : start.parent;
@@ -198,7 +236,10 @@ namespace colloid.PBReplacer
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
             {
                 if (scan.GetComponentInChildren<ModularAvatarMergeArmature>(true) != null)
+                {
+                    method = AvatarDetectionMethod.MergeArmature;
                     return scan.gameObject;
+                }
             }
             #endif
 
@@ -206,7 +247,10 @@ namespace colloid.PBReplacer
             for (Transform scan = scanStart; scan != null; scan = scan.parent)
             {
                 if (scan.GetComponent<VRC_AvatarDescriptor>() != null)
+                {
+                    method = AvatarDetectionMethod.VRCAvatarDescriptor;
                     return scan.gameObject;
+                }
             }
 
             // 4. Animator（最上位）
@@ -217,10 +261,19 @@ namespace colloid.PBReplacer
                     animatorRoot = scan.gameObject;
             }
             if (animatorRoot != null)
+            {
+                method = AvatarDetectionMethod.Animator;
                 return animatorRoot;
+            }
 
             // 5. root
-            return scanStart != null ? scanStart.root.gameObject : null;
+            if (scanStart != null)
+            {
+                method = AvatarDetectionMethod.Root;
+                return scanStart.root.gameObject;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -238,23 +291,28 @@ namespace colloid.PBReplacer
 
         /// <summary>
         /// 子コンポーネントの外部Transform参照からソースアバターを検出する。
-        /// 最も多くの参照が指しているアバタールートを返す。
+        /// 最も多くの参照が指しているアバタールートを返す。検出経路も out で返す。
         /// </summary>
-        private static GameObject DetectSourceFromChildComponents(PBRemap definition)
+        private static GameObject DetectSourceFromChildComponents(PBRemap definition, out AvatarDetectionMethod method)
         {
+            method = AvatarDetectionMethod.None;
             var externalTransforms = CollectExternalTransformReferences(definition);
             if (externalTransforms.Count == 0)
                 return null;
 
-            // 各Transform参照の親を辿り、アバタールートを集計
+            // 各Transform参照の親を辿り、アバタールートとその検出経路を集計
             var avatarCounts = new Dictionary<GameObject, int>();
+            var avatarMethods = new Dictionary<GameObject, AvatarDetectionMethod>();
             foreach (var t in externalTransforms)
             {
-                var avatar = FindAvatarRoot(t, includeSelf: true);
+                var avatar = FindAvatarRoot(t, includeSelf: true, out var m);
                 if (avatar != null)
                 {
                     avatarCounts.TryGetValue(avatar, out int count);
                     avatarCounts[avatar] = count + 1;
+                    // 同一アバターに複数の経路で辿り着いた場合、最初の経路を採用
+                    if (!avatarMethods.ContainsKey(avatar))
+                        avatarMethods[avatar] = m;
                 }
             }
 
@@ -262,7 +320,9 @@ namespace colloid.PBReplacer
                 return null;
 
             // 最多のアバターを返す
-            return avatarCounts.OrderByDescending(kvp => kvp.Value).First().Key;
+            var winner = avatarCounts.OrderByDescending(kvp => kvp.Value).First().Key;
+            method = avatarMethods[winner];
+            return winner;
         }
 
         /// <summary>
