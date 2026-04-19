@@ -265,18 +265,21 @@ namespace colloid.PBReplacer
 				var pbComposite = new CompositeCommand("PhysBone一括処理");
 				pbComposite.Add(new ProcessPhysBoneColliderCommand());
 				pbComposite.Add(new ProcessPhysBoneCommand());
+				pbComposite.Add(new CleanupUnusedFoldersCommand(_settings.PhysBonesFolder, _settings.PhysBoneCollidersFolder));
 				pbComposite.Add(new FinalizeCommand());
 				return pbComposite;
 
 			case 1: // Constraint
 				var constraintComposite = new CompositeCommand("Constraint処理");
 				constraintComposite.Add(new ProcessConstraintCommand());
+				constraintComposite.Add(new CleanupUnusedFoldersCommand(_settings.ConstraintsFolder));
 				constraintComposite.Add(new FinalizeCommand());
 				return constraintComposite;
 
 			case 2: // Contact
 				var contactComposite = new CompositeCommand("Contact処理");
 				contactComposite.Add(new ProcessContactCommand());
+				contactComposite.Add(new CleanupUnusedFoldersCommand(_settings.ContactsFolder));
 				contactComposite.Add(new FinalizeCommand());
 				return contactComposite;
 
