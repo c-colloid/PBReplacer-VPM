@@ -122,48 +122,75 @@ namespace colloid.PBReplacer
 				InvokeChanged();
 				return;
 			}
-			
+
 			IEnumerable<T> targetComponents = _settings.FindComponent switch
 			{
 				FindComponent.InArmature => CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
-				
+
 				FindComponent.InPrefab => PrefabUtility.IsPartOfAnyPrefab(CurrentAvatar.AvatarObject)
 				? CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true)
 				.Where(c => PrefabUtility.GetNearestPrefabInstanceRoot(c) == PrefabUtility.GetNearestPrefabInstanceRoot(CurrentAvatar.AvatarObject))
 				: CurrentAvatar.Armature.GetComponentsInChildren<T>(true),
-				
+
 				FindComponent.AllChilds => CurrentAvatar.AvatarObject.GetComponentsInChildren<T>(true),
-				
+
 				_ => null
 			};
-			
-			targetComponents ??= CurrentAvatar.Armature.GetComponentsInChildren<T>(true); 
 
-			_components.AddRange(targetComponents);
-            
-			_components.AddRange(GetAvatarDynamicsComponent<T>());
-			
+			targetComponents ??= CurrentAvatar.Armature.GetComponentsInChildren<T>(true);
+
+			// 根本対応: AvatarDynamics サブツリー配下は別途合流させるため、通常検索結果からは除外
+			var avatarDynamicsRoot = GetAvatarDynamicsRoot();
+			if (avatarDynamicsRoot != null)
+			{
+				targetComponents = targetComponents.Where(c => !IsUnderAvatarDynamics(c, avatarDynamicsRoot));
+			}
+
+			// フェイルセーフ: Concat で合流した後に Distinct で重複排除（参照等価）
+			var combined = targetComponents
+				.Concat(GetAvatarDynamicsComponent<T>())
+				.Where(c => c != null)
+				.Distinct();
+
+			_components.AddRange(combined);
+
 			InvokeChanged();
 		}
-		
+
 		// 抽象メソッド
 		public abstract bool ProcessComponents();
-    
+
 		// ヘルパーメソッド
 		public List<TComponent> GetAvatarDynamicsComponent<TComponent>() where TComponent : Component
 		{
 			var result = new List<TComponent>();
-			
+
 			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
-			if (CurrentAvatar?.AvatarObject == null) return result;
-    
-			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
+			var avatarDynamicsTransform = GetAvatarDynamicsRoot();
 			if (avatarDynamicsTransform == null) return result;
-    
+
 			// 該当するコンポーネントをすべて収集
 			result.AddRange(avatarDynamicsTransform.GetComponentsInChildren<TComponent>(true));
 
 			return result;
+		}
+
+		/// <summary>
+		/// 設定で指定された名称の AvatarDynamics ルート Transform を取得する。
+		/// ルート名は PBReplacerSettings.RootObjectName（将来ユーザー設定化予定）から取る。
+		/// </summary>
+		protected Transform GetAvatarDynamicsRoot()
+		{
+			if (CurrentAvatar?.AvatarObject == null) return null;
+			var rootName = _settings?.RootObjectName;
+			if (string.IsNullOrEmpty(rootName)) return null;
+			return CurrentAvatar.AvatarObject.transform.Find(rootName);
+		}
+
+		private static bool IsUnderAvatarDynamics(Component c, Transform avatarDynamicsRoot)
+		{
+			if (avatarDynamicsRoot == null || c == null) return false;
+			return c.transform.IsChildOf(avatarDynamicsRoot);
 		}
 		
 		protected virtual void NotifyComponentsChanged()
