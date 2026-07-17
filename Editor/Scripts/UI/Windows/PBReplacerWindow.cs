@@ -95,6 +95,7 @@ namespace colloid.PBReplacer
 		private const string STATUS_SET_AVATAR = "アバターをセットしてください";
 		private const string STATUS_READY = "Applyを押してください";
 		private const string MENU_ITEM_PBREMAP = "他のアバターへ移植 (PBRemap)...";
+		private const string PBREMAP_CONTAINER_NAME = "PBRemap";
 		#endregion
 
 		#region Unity Methods

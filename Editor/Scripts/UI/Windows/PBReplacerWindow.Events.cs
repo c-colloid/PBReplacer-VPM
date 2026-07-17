@@ -191,18 +191,38 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// アバタールートにPBRemapを追加し、Inspectorへ誘導する
+		/// アバターの子オブジェクトにPBRemapを追加し、Inspectorへ誘導する。
+		/// SourceDetectorのDestination検出はPBRemap自身を除外して祖先を走査するため、
+		/// アバタールート自身にPBRemapを付けると自動検出が機能しない。
+		/// そのため専用の子オブジェクト（"PBRemap"）を用意し、そこに付与する。
 		/// </summary>
 		private void AddPBRemapToAvatar(GameObject avatar)
 		{
-			PBRemap remap = avatar.GetComponent<PBRemap>();
-			if (remap == null)
+			Transform container = avatar.transform.Find(PBREMAP_CONTAINER_NAME);
+			GameObject containerObject;
+			if (container != null)
 			{
-				remap = Undo.AddComponent<PBRemap>(avatar);
+				containerObject = container.gameObject;
+			}
+			else
+			{
+				containerObject = new GameObject(PBREMAP_CONTAINER_NAME);
+				containerObject.transform.SetParent(avatar.transform);
+				containerObject.transform.localPosition = Vector3.zero;
+				containerObject.transform.localRotation = Quaternion.identity;
+				containerObject.transform.localScale = Vector3.one;
+
+				Undo.RegisterCreatedObjectUndo(containerObject, $"Create {PBREMAP_CONTAINER_NAME}");
 			}
 
-			EditorGUIUtility.PingObject(avatar);
-			Selection.activeObject = avatar;
+			PBRemap remap = containerObject.GetComponent<PBRemap>();
+			if (remap == null)
+			{
+				remap = Undo.AddComponent<PBRemap>(containerObject);
+			}
+
+			EditorGUIUtility.PingObject(containerObject);
+			Selection.activeObject = containerObject;
 		}
 
 		/// <summary>
