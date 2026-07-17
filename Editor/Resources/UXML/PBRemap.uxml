@@ -88,7 +88,10 @@
         <ui:Label name="str-state-no-dest" text="このコンポーネントをアバターの子階層に配置するか、手動指定で移植先を設定してください。" />
         <ui:Label name="str-state-transplanted" text="移植済み — ボーン参照は移植先アバターに接続されています。" />
         <ui:Label name="str-state-no-source" text="移植対象のコンポーネントをこの階層の子に配置するか、手動指定で移植元を設定してください。" />
-        <ui:Label name="str-badge-fallback" text="フォールバック検出" tooltip="VRC_AvatarDescriptorが無いため、Animator/MA/Prefabによるフォールバック検出が使用されました。&#10;検出結果が正しくない場合は詳細設定 &gt; 手動指定を使用してください。" />
+        <ui:Label name="str-badge-merge-armature" text="MA" tooltip="ModularAvatar MergeArmature を含む衣装ルートとして検出されました。" />
+        <ui:Label name="str-badge-prefab" text="Prefab" tooltip="Prefab 境界 (Prefab Instance Root) から検出されました。" />
+        <ui:Label name="str-badge-animator" text="Animator" tooltip="Animator コンポーネントから検出されました（FBX 直置き等、MA/VRC が無いケース）。&#10;検出結果が正しくない場合は詳細設定 &gt; 手動指定を使用してください。" />
+        <ui:Label name="str-badge-root" text="Root" tooltip="他の検出方法がすべて失敗したため、最終手段として transform.root を採用しました。&#10;検出結果が正しくない場合は詳細設定 &gt; 手動指定を使用してください。" />
         <ui:Label name="str-badge-non-humanoid" text="非Humanoid" tooltip="非HumanoidのためHumanoidボーンマッピングが使用できません。&#10;パス名/ボーン名での解決になります。必要に応じてパスリマップルールを追加してください。" />
         <ui:Label name="str-scale-unavailable" text="算出不可" />
         <ui:Label name="str-scale-no-source-scale" text="算出不可 (ソーススケール未保存)" />

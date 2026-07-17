@@ -370,8 +370,6 @@ namespace colloid.PBReplacer
                 }
             }
 
-            // 未使用フォルダをクリーンアップ
-            CleanupUnusedFolders(root, parentFolder);
         }
 
         /// <summary>
