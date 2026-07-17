@@ -44,6 +44,9 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void InitializeDragHandlers()
 		{
+			// タブ切替等による再Initializeに備え、既存ハンドラが残っていれば先にクリーンアップ
+			CleanupDragHandlers();
+
 			_pbListDragHandler = new ListViewDragHandler(_pbListView, typeof(VRCPhysBone));
 			_pbcListDragHandler = new ListViewDragHandler(_pbcListView, typeof(VRCPhysBoneCollider));
 			_constraintDragHandlerList = new List<ListViewDragHandler>();
@@ -60,6 +63,16 @@ namespace colloid.PBReplacer
 			});
 			_contactSenderDragHandler = new ListViewDragHandler(_contactSenderListView, typeof(VRCContactSender));
 			_contactReciverDragHandler = new ListViewDragHandler(_contactReciverListView, typeof(VRCContactReceiver));
+
+			// 生成した全ハンドラを一元管理リストへ登録（CleanupDragHandlers()での漏れなしDispose用）
+			_dragHandlers = new List<ListViewDragHandler>
+			{
+				_pbListDragHandler,
+				_pbcListDragHandler,
+				_contactSenderDragHandler,
+				_contactReciverDragHandler,
+			};
+			_dragHandlers.AddRange(_constraintDragHandlerList);
 		}
 
 		/// <summary>
@@ -142,16 +155,28 @@ namespace colloid.PBReplacer
 			if (_pbListDragHandler != null)
 			{
 				_pbListDragHandler.OnDrop -= OnPhysBoneListDrop;
-				_pbListDragHandler.Cleanup();
-				_pbListDragHandler = null;
 			}
 
 			if (_pbcListDragHandler != null)
 			{
 				_pbcListDragHandler.OnDrop -= OnPhysBoneColliderListDrop;
-				_pbcListDragHandler.Cleanup();
-				_pbcListDragHandler = null;
 			}
+
+			// 生成済みの全ドラッグハンドラ（PB/PBC/Constraint x6/Contact x2）を一元的にDispose
+			if (_dragHandlers != null)
+			{
+				foreach (var handler in _dragHandlers)
+				{
+					handler?.Dispose();
+				}
+				_dragHandlers.Clear();
+			}
+
+			_pbListDragHandler = null;
+			_pbcListDragHandler = null;
+			_constraintDragHandlerList = null;
+			_contactSenderDragHandler = null;
+			_contactReciverDragHandler = null;
 		}
 		#endregion
 

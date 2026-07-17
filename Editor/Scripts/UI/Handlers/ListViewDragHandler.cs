@@ -11,7 +11,7 @@ namespace colloid.PBReplacer
 	/// <summary>
 	/// リストビューのドラッグ&ドロップ操作を処理するクラス
 	/// </summary>
-	public class ListViewDragHandler
+	public class ListViewDragHandler : IDisposable
 	{
         #region Variables
 		// 操作対象のリストビュー
@@ -105,6 +105,14 @@ namespace colloid.PBReplacer
 				UnityEngine.Object.DestroyImmediate(_tempRootObject);
 				_tempRootObject = null;
 			}
+		}
+
+		/// <summary>
+		/// IDisposable実装。Cleanup()を呼び出しリソースを解放する
+		/// </summary>
+		public void Dispose()
+		{
+			Cleanup();
 		}
         #endregion
 

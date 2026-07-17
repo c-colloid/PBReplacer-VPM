@@ -60,6 +60,9 @@ namespace colloid.PBReplacer
 
 		private List<ListViewDragHandler> _constraintDragHandlerList;
 
+		// 生成した全ドラッグハンドラを一元管理し、CleanupDragHandlers()で漏れなくDisposeするためのリスト
+		private List<ListViewDragHandler> _dragHandlers;
+
 		private List<Component> _processed;
 		#endregion
 
