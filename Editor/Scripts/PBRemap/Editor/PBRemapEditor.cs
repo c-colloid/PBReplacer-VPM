@@ -908,7 +908,7 @@ namespace colloid.PBReplacer
             var tempRule = new PathRemapRule { mode = mode, sourcePattern = sourcePattern };
             bool isValid = tempRule.TryValidate(out string errorMessage);
 
-            ruleRow.EnableInClassList("pbr-rule-error", !isValid);
+            ruleRow.EnableInClassList("remap-rule-error", !isValid);
 
             if (isValid)
             {
