@@ -101,7 +101,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"PositionConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"PositionConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -117,7 +118,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"RotationConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"RotationConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -133,7 +135,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"ScaleConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"ScaleConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -149,7 +152,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"ParentConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"ParentConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -165,7 +169,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"LookAtConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"LookAtConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -181,7 +186,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"AimConstraint処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"AimConstraint処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 

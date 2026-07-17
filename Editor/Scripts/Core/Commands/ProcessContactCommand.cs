@@ -38,8 +38,13 @@ namespace colloid.PBReplacer
 				}
 				else
 				{
+					// Manager側で保持しているエラー詳細をUIまで伝播（PhysBone系との対称性）
+					string message = string.IsNullOrEmpty(_manager.LastErrorMessage)
+						? "Contact処理に失敗しました"
+						: _manager.LastErrorMessage;
+
 					return Result<CommandResult, ProcessingError>.Failure(
-						new ProcessingError("Contact処理に失敗しました", ErrorType.ProcessingFailed));
+						new ProcessingError(message, ErrorType.ProcessingFailed));
 				}
 			}
 			catch (Exception ex)
