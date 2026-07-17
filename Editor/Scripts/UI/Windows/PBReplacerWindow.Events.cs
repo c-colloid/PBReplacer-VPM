@@ -171,6 +171,41 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
+		/// オーバーフローメニューボタンクリック時の処理
+		/// </summary>
+		private void OnOverflowMenuButtonClicked()
+		{
+			var menu = new GenericMenu();
+			GameObject avatar = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+
+			if (avatar != null)
+			{
+				menu.AddItem(new GUIContent(MENU_ITEM_PBREMAP), false, () => AddPBRemapToAvatar(avatar));
+			}
+			else
+			{
+				menu.AddDisabledItem(new GUIContent(MENU_ITEM_PBREMAP));
+			}
+
+			menu.DropDown(_overflowMenuButton.worldBound);
+		}
+
+		/// <summary>
+		/// アバタールートにPBRemapを追加し、Inspectorへ誘導する
+		/// </summary>
+		private void AddPBRemapToAvatar(GameObject avatar)
+		{
+			PBRemap remap = avatar.GetComponent<PBRemap>();
+			if (remap == null)
+			{
+				remap = Undo.AddComponent<PBRemap>(avatar);
+			}
+
+			EditorGUIUtility.PingObject(avatar);
+			Selection.activeObject = avatar;
+		}
+
+		/// <summary>
 		/// Undo/Redo時の処理
 		/// </summary>
 		private void OnUndoRedo()

@@ -147,6 +147,15 @@ namespace colloid.PBReplacer
 				_settingsButton.clicked += OnSettingsButtonClicked;
 				SetButtonIcon(_settingsButton, "_Popup");
 			}
+
+			// オーバーフローメニューボタンの作成と登録（存在する場合）
+			var overflowMenuButton = _root.Query<Button>("OverflowMenuButton").First();
+			if (overflowMenuButton != null)
+			{
+				_overflowMenuButton = overflowMenuButton;
+				_overflowMenuButton.clicked += OnOverflowMenuButtonClicked;
+				SetButtonIcon(_overflowMenuButton, "_Menu");
+			}
 		}
 
 		/// <summary>

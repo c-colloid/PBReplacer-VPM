@@ -36,6 +36,7 @@ namespace colloid.PBReplacer
 		private Button _applyButton;
 		private Button _reloadButton;
 		private Button _settingsButton;
+		private Button _overflowMenuButton;
 		private VerticalTabContainer _tabContainer;
 		private Box _physBoneBox;
 		private Box _constraintBox;
@@ -93,6 +94,7 @@ namespace colloid.PBReplacer
 		private const string APPLY_DIALOG_CANCEL = "キャンセル";
 		private const string STATUS_SET_AVATAR = "アバターをセットしてください";
 		private const string STATUS_READY = "Applyを押してください";
+		private const string MENU_ITEM_PBREMAP = "他のアバターへ移植 (PBRemap)...";
 		#endregion
 
 		#region Unity Methods
@@ -116,6 +118,33 @@ namespace colloid.PBReplacer
 			{
 				window._avatarField.value = Selection.activeGameObject;
 			}
+		}
+
+		/// <summary>
+		/// 選択中のGameObjectにPBRemapコンポーネントを追加する
+		/// （"GameObject/PBReplacer"は既に単体のコマンド項目のため、
+		/// サブメニュー化による衝突を避けてフラットな項目として登録）
+		/// </summary>
+		[MenuItem("GameObject/PBRemapを追加", false, 27)]
+		public static void AddPBRemapToSelection()
+		{
+			GameObject selected = Selection.activeGameObject;
+			if (selected == null) return;
+
+			PBRemap remap = selected.GetComponent<PBRemap>();
+			if (remap == null)
+			{
+				remap = Undo.AddComponent<PBRemap>(selected);
+			}
+
+			EditorGUIUtility.PingObject(selected);
+			Selection.activeObject = selected;
+		}
+
+		[MenuItem("GameObject/PBRemapを追加", true)]
+		public static bool ValidateAddPBRemapToSelection()
+		{
+			return Selection.activeGameObject != null;
 		}
 
 		private void OnEnable()
