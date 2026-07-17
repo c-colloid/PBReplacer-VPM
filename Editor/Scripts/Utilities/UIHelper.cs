@@ -152,73 +152,7 @@ namespace colloid.PBReplacer
             
             return box;
         }
-        
-        /// <summary>
-        /// 設定パネルを作成
-        /// </summary>
-        public static VisualElement CreateSettingsPanel(PBReplacerSettings settings, Action onSettingsChanged = null)
-        {
-            var panel = new ScrollView();
-            
-            // タイトル
-            var titleLabel = new Label("PBReplacer 設定");
-            titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            titleLabel.style.fontSize = 14;
-            titleLabel.style.marginBottom = 10;
-            panel.Add(titleLabel);
-            
-            // 自動読み込み設定
-            var autoLoadToggle = new Toggle("前回のアバターを自動的に読み込む");
-            autoLoadToggle.value = settings.AutoLoadLastAvatar;
-            autoLoadToggle.RegisterValueChangedCallback(evt => {
-                settings.AutoLoadLastAvatar = evt.newValue;
-                settings.Save();
-                onSettingsChanged?.Invoke();
-            });
-            panel.Add(autoLoadToggle);
-            
-            // 確認ダイアログ設定
-            var confirmDialogToggle = new Toggle("処理前に確認ダイアログを表示する");
-            confirmDialogToggle.value = settings.ShowConfirmDialog;
-            confirmDialogToggle.RegisterValueChangedCallback(evt => {
-                settings.ShowConfirmDialog = evt.newValue;
-                settings.Save();
-                onSettingsChanged?.Invoke();
-            });
-            panel.Add(confirmDialogToggle);
-            
-            // 進捗バー設定
-            var progressBarToggle = new Toggle("処理中に進捗バーを表示する");
-            progressBarToggle.value = settings.ShowProgressBar;
-            progressBarToggle.RegisterValueChangedCallback(evt => {
-                settings.ShowProgressBar = evt.newValue;
-                settings.Save();
-                onSettingsChanged?.Invoke();
-            });
-            panel.Add(progressBarToggle);
-            
-            // テーマ設定
-            var themeToggle = new Toggle("エディターテーマに合わせる");
-            themeToggle.value = settings.FollowEditorTheme;
-            themeToggle.RegisterValueChangedCallback(evt => {
-                settings.FollowEditorTheme = evt.newValue;
-                settings.Save();
-                onSettingsChanged?.Invoke();
-            });
-            panel.Add(themeToggle);
-            
-            // 区切り線
-            panel.Add(CreateSeparator());
-            
-            // バージョン情報
-            var versionInfo = new Label("Version: " + GetVersionString());
-            versionInfo.style.fontSize = 10;
-            versionInfo.style.color = new Color(0.5f, 0.5f, 0.5f);
-            panel.Add(versionInfo);
-            
-            return panel;
-        }
-        
+
         /// <summary>
         /// バージョン文字列を取得
         /// </summary>
