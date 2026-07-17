@@ -229,6 +229,19 @@
     padding: 0 4px 2px 24px;
 }
 
+.pbr-rule-error {
+    border-left-width: 2px;
+    border-left-color: rgb(220, 80, 80);
+    background-color: rgba(220, 80, 80, 0.08);
+}
+
+.remap-rule-error-label {
+    font-size: 10px;
+    color: rgb(220, 80, 80);
+    padding: 0 4px 2px 24px;
+    white-space: normal;
+}
+
 .preview-summary-label {
     -unity-font-style: bold;
     padding: 4px;

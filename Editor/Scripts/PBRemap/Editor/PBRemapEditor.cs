@@ -793,6 +793,7 @@ namespace colloid.PBReplacer
             var root = new VisualElement();
 
             var row = new VisualElement();
+            row.name = "rule-row";
             row.AddToClassList("remap-rule-item");
 
             var enabledToggle = new Toggle();
@@ -828,6 +829,12 @@ namespace colloid.PBReplacer
             hintLabel.AddToClassList("remap-rule-hint");
             root.Add(hintLabel);
 
+            var errorLabel = new Label();
+            errorLabel.name = "rule-error";
+            errorLabel.AddToClassList("remap-rule-error-label");
+            errorLabel.style.display = DisplayStyle.None;
+            root.Add(errorLabel);
+
             // モード変更時にヒントとtooltipを更新（makeItemで1回だけ登録）
             modeField.RegisterValueChangedCallback(evt =>
             {
@@ -835,7 +842,17 @@ namespace colloid.PBReplacer
                 {
                     UpdateRuleHint(hintLabel, mode);
                     UpdateFieldTooltips(sourcePatternField, destPatternField, mode);
+                    UpdateRuleErrorDisplay(row, errorLabel, mode, sourcePatternField.value);
                 }
+            });
+
+            // 正規表現パターン変更時にもエラー表示を即時更新
+            sourcePatternField.RegisterValueChangedCallback(evt =>
+            {
+                var mode = modeField.value is PathRemapRule.RemapMode m
+                    ? m
+                    : PathRemapRule.RemapMode.CharacterSubstitution;
+                UpdateRuleErrorDisplay(row, errorLabel, mode, evt.newValue);
             });
 
             return root;
@@ -852,12 +869,14 @@ namespace colloid.PBReplacer
             var sourcePatternProp = ruleProp.FindPropertyRelative("sourcePattern");
             var destPatternProp = ruleProp.FindPropertyRelative("destinationPattern");
 
+            var ruleRow = element.Q<VisualElement>("rule-row");
             var enabledToggle = element.Q<Toggle>("rule-enabled");
             var modeField = element.Q<EnumField>("rule-mode");
             var sourcePatternField = element.Q<TextField>("rule-source-pattern");
             var destPatternField = element.Q<TextField>("rule-dest-pattern");
             var deleteButton = element.Q<Button>("rule-delete");
             var hintLabel = element.Q<Label>("rule-hint");
+            var errorLabel = element.Q<Label>("rule-error");
 
             enabledToggle.BindProperty(enabledProp);
             modeField.BindProperty(modeProp);
@@ -870,6 +889,39 @@ namespace colloid.PBReplacer
             UpdateRuleHint(hintLabel, mode);
             UpdateFieldTooltips(sourcePatternField, destPatternField, mode);
             hintLabel.style.display = _showRuleHints ? DisplayStyle.Flex : DisplayStyle.None;
+
+            // ListViewの要素再利用に備え、毎回明示的にエラー状態を検証・反映する
+            UpdateRuleErrorDisplay(ruleRow, errorLabel, mode, sourcePatternProp.stringValue);
+        }
+
+        /// <summary>
+        /// ルールの正規表現バリデーション結果を行の見た目に反映する。
+        /// ListViewの要素再利用があってもクラス/ラベルが確実にリセットされるよう、
+        /// 呼び出しごとに状態を明示的に設定する。
+        /// </summary>
+        private void UpdateRuleErrorDisplay(
+            VisualElement ruleRow, Label errorLabel, PathRemapRule.RemapMode mode, string sourcePattern)
+        {
+            if (ruleRow == null || errorLabel == null)
+                return;
+
+            var tempRule = new PathRemapRule { mode = mode, sourcePattern = sourcePattern };
+            bool isValid = tempRule.TryValidate(out string errorMessage);
+
+            ruleRow.EnableInClassList("pbr-rule-error", !isValid);
+
+            if (isValid)
+            {
+                errorLabel.style.display = DisplayStyle.None;
+                errorLabel.text = "";
+                errorLabel.tooltip = "";
+            }
+            else
+            {
+                errorLabel.style.display = DisplayStyle.Flex;
+                errorLabel.text = errorMessage;
+                errorLabel.tooltip = errorMessage;
+            }
         }
 
         private void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
