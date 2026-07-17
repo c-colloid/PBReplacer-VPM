@@ -100,7 +100,7 @@ namespace colloid.PBReplacer
 			// EditorWindowを表示
 			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
 			window.titleContent = new GUIContent(WINDOW_TITLE);
-			window.minSize = new Vector2(450, 300);
+			window.minSize = new Vector2(650, 450);
 		}
 
 		[MenuItem("GameObject/PBReplacer Selected", false, 26)]
