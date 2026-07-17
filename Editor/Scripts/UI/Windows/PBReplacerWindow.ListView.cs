@@ -76,7 +76,18 @@ namespace colloid.PBReplacer
 				label.focusable = true;
 				label.AddManipulator(new ContextualMenuManipulator(evt => {
 					var target = label.userData as Component;
-					evt.menu.AppendAction("Delete", action => {
+					evt.menu.AppendAction("削除", action => {
+						if (target == null) return;
+
+						// 削除前に確認ダイアログを表示
+						bool confirmed = EditorUtility.DisplayDialog(
+							"コンポーネントの削除",
+							$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
+							"削除する",
+							"キャンセル");
+
+						if (!confirmed) return;
+
 						UnityEditor.Undo.DestroyObjectImmediate(target);
 						DataManagerHelper.NotifyComponentsRemoved(target);
 					});
