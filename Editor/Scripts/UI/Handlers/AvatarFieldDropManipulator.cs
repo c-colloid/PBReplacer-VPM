@@ -185,8 +185,8 @@ namespace colloid.PBReplacer
 			if (hasMergeArmature) return true;
             #endif
             
-			// いずれも持たない場合は警告ダイアログで受け入れる可能性がある
-			return true;
+			// いずれも持たない場合、ドラッグ中の受付表示は不可（ドロップ時の警告ダイアログでの受け入れ判断は別途行われる）
+			return false;
 		}
         
         #if MODULAR_AVATAR
