@@ -17,14 +17,19 @@ namespace colloid.PBReplacer
 		// プロジェクト設定（処理結果に影響・チーム共有）の保存先。VCSコミット対象
 		private static readonly string ProjectSettingsPath = "ProjectSettings/PBReplacerSettings.json";
 
-		// 個人設定（UI/利便性）のEditorPrefsキー
-		private const string PrefKeyLastAvatarGUID = "PBReplacer.LastAvatarGUID";
+		// 個人設定（UI/利便性）のEditorPrefsキー。EditorPrefsは全プロジェクト共通のため
+		// プロジェクト固有の値をここに保存しないこと
 		private const string PrefKeyAutoLoadLastAvatar = "PBReplacer.AutoLoadLastAvatar";
 		private const string PrefKeyShowConfirmDialog = "PBReplacer.ShowConfirmDialog";
 		private const string PrefKeyShowProgressBar = "PBReplacer.ShowProgressBar";
 
-		// 旧設定からの移行済みフラグ（EditorPrefs）
-		private const string PrefKeyMigratedFromLegacy = "PBReplacer.MigratedFromLegacyJson";
+		// LastAvatarGUIDはプロジェクト内アセットのGUID参照でありプロジェクト固有の値のため、
+		// 全プロジェクト共通のEditorPrefsではなくプロジェクトごとのEditorUserSettingsへ保存
+		private const string ConfigKeyLastAvatarGUID = "PBReplacer.LastAvatarGUID";
+
+		// 旧設定からの移行済みフラグ。移行要否はプロジェクトごとに判定する必要があるため
+		// こちらもEditorPrefsではなくプロジェクトごとのEditorUserSettingsへ保存
+		private const string ConfigKeyMigratedFromLegacy = "PBReplacer.MigratedFromLegacyJson";
         
 		// 前回使用したアバターのGUID
 		public string LastAvatarGUID;
@@ -101,10 +106,12 @@ namespace colloid.PBReplacer
 				File.WriteAllText(ProjectSettingsPath, json);
 
 				// 個人設定（UI/利便性）はEditorPrefsへ保存
-				EditorPrefs.SetString(PrefKeyLastAvatarGUID, LastAvatarGUID ?? string.Empty);
 				EditorPrefs.SetBool(PrefKeyAutoLoadLastAvatar, AutoLoadLastAvatar);
 				EditorPrefs.SetBool(PrefKeyShowConfirmDialog, ShowConfirmDialog);
 				EditorPrefs.SetBool(PrefKeyShowProgressBar, ShowProgressBar);
+
+				// LastAvatarGUIDはプロジェクト固有の参照のためEditorUserSettingsへ保存
+				EditorUserSettings.SetConfigValue(ConfigKeyLastAvatarGUID, LastAvatarGUID ?? string.Empty);
 
 				OnSettingsChanged?.Invoke();
 			}
@@ -141,7 +148,8 @@ namespace colloid.PBReplacer
 					Debug.LogError($"設定の読み込み中にエラーが発生しました: {ex.Message}");
 				}
 
-			settings.LastAvatarGUID = EditorPrefs.GetString(PrefKeyLastAvatarGUID, settings.LastAvatarGUID ?? string.Empty);
+			string savedGuid = EditorUserSettings.GetConfigValue(ConfigKeyLastAvatarGUID);
+			settings.LastAvatarGUID = string.IsNullOrEmpty(savedGuid) ? (settings.LastAvatarGUID ?? string.Empty) : savedGuid;
 			settings.AutoLoadLastAvatar = EditorPrefs.GetBool(PrefKeyAutoLoadLastAvatar, settings.AutoLoadLastAvatar);
 			settings.ShowConfirmDialog = EditorPrefs.GetBool(PrefKeyShowConfirmDialog, settings.ShowConfirmDialog);
 			settings.ShowProgressBar = EditorPrefs.GetBool(PrefKeyShowProgressBar, settings.ShowProgressBar);
@@ -152,8 +160,10 @@ namespace colloid.PBReplacer
 		// 旧Library/PBReplacerSettings.jsonから新形式（ProjectSettings + EditorPrefs）への自動移行
 		private static void TryMigrateFromLegacyJson()
 		{
-			// 既に移行判定済みなら何もしない（再移行はしない）
-			if (EditorPrefs.GetBool(PrefKeyMigratedFromLegacy, false))
+			// 既に移行判定済みなら何もしない（再移行はしない）。
+			// 移行要否はプロジェクトごとに異なるため、全プロジェクト共通のEditorPrefsではなく
+			// プロジェクトごとのEditorUserSettingsで判定する
+			if (EditorUserSettings.GetConfigValue(ConfigKeyMigratedFromLegacy) == "1")
 			{
 				return;
 			}
@@ -180,7 +190,7 @@ namespace colloid.PBReplacer
 				}
 				finally
 				{
-					EditorPrefs.SetBool(PrefKeyMigratedFromLegacy, true);
+					EditorUserSettings.SetConfigValue(ConfigKeyMigratedFromLegacy, "1");
 				}
 		}
 		
