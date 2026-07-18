@@ -92,6 +92,7 @@ namespace colloid.PBReplacer
 この操作はUndo可能です";
 		private const string APPLY_DIALOG_OK = "続行";
 		private const string APPLY_DIALOG_CANCEL = "キャンセル";
+		private const string APPLY_SUCCESS_NOTIFICATION = "処理が完了しました\nCtrl+Zで元に戻せます";
 		private const string STATUS_SET_AVATAR = "アバターをセットしてください";
 		private const string STATUS_READY = "Applyを押してください";
 		private const string MENU_ITEM_PBREMAP = "他のアバターへ移植 (PBRemap)...";

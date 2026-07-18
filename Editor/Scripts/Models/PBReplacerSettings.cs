@@ -22,6 +22,8 @@ namespace colloid.PBReplacer
 		private const string PrefKeyAutoLoadLastAvatar = "PBReplacer.AutoLoadLastAvatar";
 		private const string PrefKeyShowConfirmDialog = "PBReplacer.ShowConfirmDialog";
 		private const string PrefKeyShowProgressBar = "PBReplacer.ShowProgressBar";
+		private const string PrefKeySkipConfirmForSmallBatches = "PBReplacer.SkipConfirmForSmallBatches";
+		private const string PrefKeySkipConfirmThreshold = "PBReplacer.SkipConfirmThreshold";
 
 		// LastAvatarGUIDはプロジェクト内アセットのGUID参照でありプロジェクト固有の値のため、
 		// 全プロジェクト共通のEditorPrefsではなくプロジェクトごとのEditorUserSettingsへ保存
@@ -42,7 +44,13 @@ namespace colloid.PBReplacer
         
 		// 処理進捗を表示するかどうか
 		public bool ShowProgressBar = true;
-        
+
+		// 少件数の場合に確認ダイアログを省略するかどうか（有効時もUndo通知は必ず表示）
+		public bool SkipConfirmForSmallBatches = false;
+
+		// 確認ダイアログを省略する件数の閾値（この件数以下なら省略）
+		public int SkipConfirmThreshold = 5;
+
 		// ダークモード対応（ユーザー設定に従う）
 		public bool FollowEditorTheme = true;
         
@@ -109,6 +117,8 @@ namespace colloid.PBReplacer
 				EditorPrefs.SetBool(PrefKeyAutoLoadLastAvatar, AutoLoadLastAvatar);
 				EditorPrefs.SetBool(PrefKeyShowConfirmDialog, ShowConfirmDialog);
 				EditorPrefs.SetBool(PrefKeyShowProgressBar, ShowProgressBar);
+				EditorPrefs.SetBool(PrefKeySkipConfirmForSmallBatches, SkipConfirmForSmallBatches);
+				EditorPrefs.SetInt(PrefKeySkipConfirmThreshold, SkipConfirmThreshold);
 
 				// LastAvatarGUIDはプロジェクト固有の参照のためEditorUserSettingsへ保存
 				EditorUserSettings.SetConfigValue(ConfigKeyLastAvatarGUID, LastAvatarGUID ?? string.Empty);
@@ -153,6 +163,8 @@ namespace colloid.PBReplacer
 			settings.AutoLoadLastAvatar = EditorPrefs.GetBool(PrefKeyAutoLoadLastAvatar, settings.AutoLoadLastAvatar);
 			settings.ShowConfirmDialog = EditorPrefs.GetBool(PrefKeyShowConfirmDialog, settings.ShowConfirmDialog);
 			settings.ShowProgressBar = EditorPrefs.GetBool(PrefKeyShowProgressBar, settings.ShowProgressBar);
+			settings.SkipConfirmForSmallBatches = EditorPrefs.GetBool(PrefKeySkipConfirmForSmallBatches, settings.SkipConfirmForSmallBatches);
+			settings.SkipConfirmThreshold = EditorPrefs.GetInt(PrefKeySkipConfirmThreshold, settings.SkipConfirmThreshold);
 
 			return settings;
 		}

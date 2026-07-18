@@ -12,6 +12,8 @@
             <ui:Toggle label="Prefabを継承" name="UnpackPrefab" />
             <ui:Toggle label="未使用オブジェクトを生成しない" name="DestroyUnusedObject" />
             <ui:EnumField type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" label="コンポーネントを検索する階層" name="FindComponent" />
+            <ui:Toggle label="n件以下なら確認を省略(Undo通知のみ)" name="SkipConfirmForSmallBatches" />
+            <ui:IntegerField label="件数" name="SkipConfirmThreshold" value="5" />
         </ui:VisualElement>
     </ui:ScrollView>
     <ui:VisualElement style="margin-top: 20px; justify-content: center; flex-direction: row;">

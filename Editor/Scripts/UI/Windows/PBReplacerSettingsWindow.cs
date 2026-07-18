@@ -202,6 +202,32 @@ namespace colloid.PBReplacer
 	        		_settings.FindComponent = (FindComponent)evt.newValue;
 	        	});
 	        }
+
+	        var skipConfirmThresholdField = panel.Q<IntegerField>("SkipConfirmThreshold");
+	        if (skipConfirmThresholdField != null)
+	        {
+	        	skipConfirmThresholdField.label = "件数";
+	        	skipConfirmThresholdField.value = _settings.SkipConfirmThreshold;
+	        	skipConfirmThresholdField.SetEnabled(_settings.SkipConfirmForSmallBatches);
+	        	skipConfirmThresholdField.RegisterValueChangedCallback(evt => {
+	        		_settings.SkipConfirmThreshold = evt.newValue;
+	        	});
+	        }
+
+	        var skipConfirmToggle = panel.Q<Toggle>("SkipConfirmForSmallBatches");
+	        if (skipConfirmToggle != null)
+	        {
+	        	skipConfirmToggle.label = "n件以下なら確認を省略（Undo通知のみ）";
+	        	skipConfirmToggle.tooltip = "有効にした場合もApply実行後にUndo可能であることを通知します";
+	        	skipConfirmToggle.value = _settings.SkipConfirmForSmallBatches;
+	        	skipConfirmToggle.RegisterValueChangedCallback(evt => {
+	        		_settings.SkipConfirmForSmallBatches = evt.newValue;
+	        		if (skipConfirmThresholdField != null)
+	        		{
+	        			skipConfirmThresholdField.SetEnabled(evt.newValue);
+	        		}
+	        	});
+	        }
         }
 
         /// <summary>

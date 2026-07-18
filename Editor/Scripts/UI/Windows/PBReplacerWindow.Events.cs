@@ -117,30 +117,36 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			// 確認ダイアログを表示（設定で無効化可能）
+			// 確認ダイアログを表示（設定で無効化可能。少件数オプトイン時は閾値以下で省略）
 			if (_settings.ShowConfirmDialog)
 			{
-				string componentname = null;
-				switch (_tabContainer.value)
+				bool skipConfirm = _settings.SkipConfirmForSmallBatches
+					&& GetUnprocessedComponentCount() <= _settings.SkipConfirmThreshold;
+
+				if (!skipConfirm)
 				{
-				case 0: // PhysBone
-					componentname = "PhysBone";
-					break;
-				case 1: // Constraint
-					componentname = "Constraint";
-					break;
-				case 2: // Contact
-					componentname = "Contact";
-					break;
+					string componentname = null;
+					switch (_tabContainer.value)
+					{
+					case 0: // PhysBone
+						componentname = "PhysBone";
+						break;
+					case 1: // Constraint
+						componentname = "Constraint";
+						break;
+					case 2: // Contact
+						componentname = "Contact";
+						break;
+					}
+
+					bool proceed = EditorUtility.DisplayDialog(
+						componentname + APPLY_DIALOG_TITLE,
+						componentname + APPLY_DIALOG_MESSAGE,
+						APPLY_DIALOG_OK,
+						APPLY_DIALOG_CANCEL);
+
+					if (!proceed) return;
 				}
-
-				bool proceed = EditorUtility.DisplayDialog(
-					componentname + APPLY_DIALOG_TITLE,
-					componentname + APPLY_DIALOG_MESSAGE,
-					APPLY_DIALOG_OK,
-					APPLY_DIALOG_CANCEL);
-
-				if (!proceed) return;
 			}
 
 			// 処理中のプログレスバーを表示（設定で無効化可能）
@@ -269,6 +275,12 @@ namespace colloid.PBReplacer
 
 						// データを再読み込みしてUIを更新
 						ReloadDataForTab(tabIndex);
+
+						// Undo可能であることをトーストで案内
+						if (data.AffectedCount > 0)
+						{
+							ShowNotification(new GUIContent(APPLY_SUCCESS_NOTIFICATION));
+						}
 
 						return data;
 					},
@@ -505,6 +517,27 @@ namespace colloid.PBReplacer
 				return _contactDataManager.Components.Any(c => !_processed.Contains(c));
 			default:
 				return false;
+			}
+		}
+
+		/// <summary>
+		/// 現在のタブの未処理コンポーネント件数を取得
+		/// 確認ダイアログの省略可否判定（閾値比較）に使用
+		/// </summary>
+		private int GetUnprocessedComponentCount()
+		{
+			switch (_tabContainer.value)
+			{
+			case 0: // PhysBone (PB + PBC両方をカウント)
+				var pbUnprocessedCount = _pbDataManager.Components.Count(c => !_processed.Contains(c));
+				var pbcUnprocessedCount = _pbcDataManager.Components.Count(c => !_processed.Contains(c));
+				return pbUnprocessedCount + pbcUnprocessedCount;
+			case 1: // Constraint
+				return _constraintDataManager.Components.Count(c => !_processed.Contains(c));
+			case 2: // Contact
+				return _contactDataManager.Components.Count(c => !_processed.Contains(c));
+			default:
+				return 0;
 			}
 		}
 
