@@ -154,29 +154,6 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// バージョン文字列を取得
-        /// </summary>
-        private static string GetVersionString()
-        {
-            try
-            {
-                var packageJsonTextAsset = Resources.Load<TextAsset>("package");
-                if (packageJsonTextAsset != null)
-                {
-                    var json = JsonUtility.FromJson<PackageInfo>(packageJsonTextAsset.text);
-                    return json.version;
-                }
-            }
-            catch (Exception)
-            {
-                // バージョン取得に失敗しても処理を続行
-            }
-            
-            // パッケージから取得できない場合は埋め込みバージョンを返す
-            return "1.6.2";
-        }
-        
-        /// <summary>
         /// メッセージの種類
         /// </summary>
         public enum MessageType
@@ -185,15 +162,6 @@ namespace colloid.PBReplacer
             Warning,
             Error,
             Success
-        }
-        
-        /// <summary>
-        /// パッケージ情報を扱うためのクラス
-        /// </summary>
-        [Serializable]
-        private class PackageInfo
-        {
-            public string version;
         }
     }
 }
