@@ -11,8 +11,20 @@ namespace colloid.PBReplacer
 	[Serializable]
 	public class PBReplacerSettings
 	{
-		// 設定ファイルのパス
-		private static readonly string SettingsPath = "Library/PBReplacerSettings.json";
+		// 旧設定ファイルのパス（移行元。VCS管理外）
+		private static readonly string LegacySettingsPath = "Library/PBReplacerSettings.json";
+
+		// プロジェクト設定（処理結果に影響・チーム共有）の保存先。VCSコミット対象
+		private static readonly string ProjectSettingsPath = "ProjectSettings/PBReplacerSettings.json";
+
+		// 個人設定（UI/利便性）のEditorPrefsキー
+		private const string PrefKeyLastAvatarGUID = "PBReplacer.LastAvatarGUID";
+		private const string PrefKeyAutoLoadLastAvatar = "PBReplacer.AutoLoadLastAvatar";
+		private const string PrefKeyShowConfirmDialog = "PBReplacer.ShowConfirmDialog";
+		private const string PrefKeyShowProgressBar = "PBReplacer.ShowProgressBar";
+
+		// 旧設定からの移行済みフラグ（EditorPrefs）
+		private const string PrefKeyMigratedFromLegacy = "PBReplacer.MigratedFromLegacyJson";
         
 		// 前回使用したアバターのGUID
 		public string LastAvatarGUID;
@@ -78,9 +90,22 @@ namespace colloid.PBReplacer
 		{
 			try
 			{
-				string json = JsonUtility.ToJson(this, true);
-				File.WriteAllText(SettingsPath, json);
-				
+				// プロジェクト設定（処理結果に影響・チーム共有）はProjectSettingsへJsonUtilityで保存
+				var projectData = new ProjectSettingsData
+				{
+					UnpackPrefab = UnpackPrefab,
+					DestroyUnusedObject = DestroyUnusedObject,
+					FindComponent = FindComponent
+				};
+				string json = JsonUtility.ToJson(projectData, true);
+				File.WriteAllText(ProjectSettingsPath, json);
+
+				// 個人設定（UI/利便性）はEditorPrefsへ保存
+				EditorPrefs.SetString(PrefKeyLastAvatarGUID, LastAvatarGUID ?? string.Empty);
+				EditorPrefs.SetBool(PrefKeyAutoLoadLastAvatar, AutoLoadLastAvatar);
+				EditorPrefs.SetBool(PrefKeyShowConfirmDialog, ShowConfirmDialog);
+				EditorPrefs.SetBool(PrefKeyShowProgressBar, ShowProgressBar);
+
 				OnSettingsChanged?.Invoke();
 			}
 				catch (Exception ex)
@@ -88,24 +113,75 @@ namespace colloid.PBReplacer
 					Debug.LogError($"設定の保存中にエラーが発生しました: {ex.Message}");
 				}
 		}
-        
+
 		// 設定を読み込み
 		public static PBReplacerSettings Load()
 		{
+			// 旧Library配下のJSONからの自動移行（初回のみ）
+			TryMigrateFromLegacyJson();
+
+			var settings = new PBReplacerSettings();
+
 			try
 			{
-				if (File.Exists(SettingsPath))
+				if (File.Exists(ProjectSettingsPath))
 				{
-					string json = File.ReadAllText(SettingsPath);
-					return JsonUtility.FromJson<PBReplacerSettings>(json);
+					string json = File.ReadAllText(ProjectSettingsPath);
+					var projectData = JsonUtility.FromJson<ProjectSettingsData>(json);
+					if (projectData != null)
+					{
+						settings.UnpackPrefab = projectData.UnpackPrefab;
+						settings.DestroyUnusedObject = projectData.DestroyUnusedObject;
+						settings.FindComponent = projectData.FindComponent;
+					}
 				}
 			}
 				catch (Exception ex)
 				{
 					Debug.LogError($"設定の読み込み中にエラーが発生しました: {ex.Message}");
 				}
-            
-			return new PBReplacerSettings();
+
+			settings.LastAvatarGUID = EditorPrefs.GetString(PrefKeyLastAvatarGUID, settings.LastAvatarGUID ?? string.Empty);
+			settings.AutoLoadLastAvatar = EditorPrefs.GetBool(PrefKeyAutoLoadLastAvatar, settings.AutoLoadLastAvatar);
+			settings.ShowConfirmDialog = EditorPrefs.GetBool(PrefKeyShowConfirmDialog, settings.ShowConfirmDialog);
+			settings.ShowProgressBar = EditorPrefs.GetBool(PrefKeyShowProgressBar, settings.ShowProgressBar);
+
+			return settings;
+		}
+
+		// 旧Library/PBReplacerSettings.jsonから新形式（ProjectSettings + EditorPrefs）への自動移行
+		private static void TryMigrateFromLegacyJson()
+		{
+			// 既に移行判定済みなら何もしない（再移行はしない）
+			if (EditorPrefs.GetBool(PrefKeyMigratedFromLegacy, false))
+			{
+				return;
+			}
+
+			try
+			{
+				bool legacyExists = File.Exists(LegacySettingsPath);
+				bool newFormatSaved = File.Exists(ProjectSettingsPath);
+
+				if (legacyExists && !newFormatSaved)
+				{
+					string json = File.ReadAllText(LegacySettingsPath);
+					var legacy = JsonUtility.FromJson<PBReplacerSettings>(json);
+					if (legacy != null)
+					{
+						legacy.Save();
+						Debug.Log("既存設定を引き継ぎました");
+					}
+				}
+			}
+				catch (Exception ex)
+				{
+					Debug.LogError($"旧設定の移行中にエラーが発生しました: {ex.Message}");
+				}
+				finally
+				{
+					EditorPrefs.SetBool(PrefKeyMigratedFromLegacy, true);
+				}
 		}
 		
 		public static PBReplacerSettings GetLatestSettings()
@@ -184,8 +260,17 @@ namespace colloid.PBReplacer
 		{
 			OnSettingsChanged?.Invoke();
 		}
+
+		// プロジェクト設定（処理結果に影響・チーム共有）のシリアライズ用データ
+		[Serializable]
+		private class ProjectSettingsData
+		{
+			public bool UnpackPrefab;
+			public bool DestroyUnusedObject;
+			public FindComponent FindComponent;
+		}
 	}
-	
+
 	public enum FindComponent
 	{
 		[InspectorName("アーマチュア内のみ")]
