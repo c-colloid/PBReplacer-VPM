@@ -164,7 +164,7 @@ namespace colloid.PBReplacer
 	        }
 
             // 高度な設定セクション
-	        var advancedSettingsLabel = panel.Q<Label>("Advanced");
+	        var advancedSettingsLabel = panel.Q<Label>("AdvancedLabel");
 	        if (advancedSettingsLabel != null)
 	        {
 	            advancedSettingsLabel.text = "高度な設定";

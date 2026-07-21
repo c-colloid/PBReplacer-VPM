@@ -8,7 +8,7 @@
         <ui:Toggle label="処理中に進捗バーを表示する" name="ShowProgressBar" />
         <ui:VisualElement name="Separator2" style="border-left-color: rgba(128, 128, 128, 0.3); border-right-color: rgba(128, 128, 128, 0.3); border-top-color: rgba(128, 128, 128, 0.3); border-bottom-color: rgba(128, 128, 128, 0.3); margin-top: 10px; margin-bottom: 10px; border-top-width: 1px; border-right-width: 1px; border-bottom-width: 1px; border-left-width: 1px; display: flex;" />
         <ui:VisualElement name="Advanced" style="display: flex;">
-            <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="Advanced" style="margin-bottom: 5px; -unity-font-definition: resource(&apos;Font/Noto_Sans_JP/NotoSansJP-VariableFont_wght SDF&apos;);" />
+            <ui:Label tabindex="-1" text="高度な設定" parse-escape-sequences="true" display-tooltip-when-elided="true" name="AdvancedLabel" style="margin-bottom: 5px; -unity-font-definition: resource(&apos;Font/Noto_Sans_JP/NotoSansJP-VariableFont_wght SDF&apos;);" />
             <ui:Toggle label="Prefabを継承" name="UnpackPrefab" />
             <ui:Toggle label="未使用オブジェクトを生成しない" name="DestroyUnusedObject" />
             <ui:EnumField type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" label="コンポーネントを検索する階層" name="FindComponent" />
