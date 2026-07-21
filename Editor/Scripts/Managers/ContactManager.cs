@@ -92,7 +92,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"ContactSender処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"ContactSender処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
@@ -108,7 +109,8 @@ namespace colloid.PBReplacer
 
 				if (!result.Success)
 				{
-					Debug.LogError($"ContactReceiver処理エラー: {result.ErrorMessage}");
+					LastErrorMessage = $"ContactReceiver処理エラー: {result.ErrorMessage}";
+					Debug.LogError(LastErrorMessage);
 					return false;
 				}
 
