@@ -126,6 +126,16 @@ namespace colloid.PBReplacer
 			listView.selectionType = SelectionType.Multiple;
 
 			// 選択変更イベントの登録
+			// (onSelectionChange/onItemsChosenは2022.2でリネームされ旧名はobsolete。旧バージョン互換のため条件分岐)
+#if UNITY_2022_2_OR_NEWER
+			listView.selectionChanged += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+			// 選択変更イベント(ダブルクリック)の登録
+			listView.itemsChosen += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+#else
 			listView.onSelectionChange += (selectedItems) => {
 				SelectGameObject(selectedItems);
 			};
@@ -133,6 +143,7 @@ namespace colloid.PBReplacer
 			listView.onItemsChosen += (selectedItems) => {
 				SelectGameObject(selectedItems);
 			};
+#endif
 
 			void SelectGameObject(IEnumerable<object> selectedItems)
 			{
