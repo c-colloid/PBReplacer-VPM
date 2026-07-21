@@ -19,7 +19,7 @@ namespace colloid.PBReplacer
 			// AvatarDynamics内にすでに移動されているコンポーネントを検索（再実行時用）
 			if (CurrentAvatar?.AvatarObject == null) return result;
     
-			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find("AvatarDynamics");
+			var avatarDynamicsTransform = CurrentAvatar.AvatarObject.transform.Find(AvatarContext.Instance.Settings.RootObjectName);
 			if (avatarDynamicsTransform == null) return result;
     
 			//var avatarDynamics = avatarDynamicsTransform.gameObject;

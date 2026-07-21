@@ -97,7 +97,7 @@ namespace colloid.PBReplacer
         /// </summary>
         private void FindLargestChildrenStructure()
         {
-            GameObject avatarDynamics = AvatarObject.transform.Find("AvatarDynamics")?.gameObject;
+            GameObject avatarDynamics = AvatarObject.transform.Find(AvatarContext.Instance.Settings.RootObjectName)?.gameObject;
             IEnumerable<Transform> avatarDynamicsChildren = avatarDynamics?.GetComponentsInChildren<Transform>();
             
             GameObject largestChild = null;
