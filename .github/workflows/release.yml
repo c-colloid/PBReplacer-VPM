@@ -56,20 +56,32 @@ jobs:
             file_path: "package.json"
             prop_path: "version"
 
-      # Get commit summary from previous tag
-      - name: Get commit summary
+      # Build release notes: ChangeLogの該当バージョンセクションを抽出し、無ければコミット一覧にフォールバック
+      - name: Build release notes
         id: get_commit_summary
         run: |
-          PREVIOUS_TAG=$(git tag --sort=-creatordate | sed -n 2p)
-          echo "PREVIOUS_TAG: $PREVIOUS_TAG"
-          if [ -n "$PREVIOUS_TAG" ]; then
-            COMMIT_SUMMARY="$(git log --oneline --pretty=tformat:"%h %s" $PREVIOUS_TAG..${{ github.ref }})"
-          else
-            COMMIT_SUMMARY="$(git log --oneline --pretty=tformat:"%h %s")"
+          VERSION="${{ steps.version.outputs.value }}"
+          case "$VERSION" in
+            *-*) CHANGELOG_FILE="ChangeLog-Beta.txt" ;;
+            *)   CHANGELOG_FILE="ChangeLog.txt" ;;
+          esac
+          NOTES=""
+          if [ -f "$CHANGELOG_FILE" ]; then
+            NOTES="$(awk -v ver="[$VERSION]" 'index($0, ver) == 1 {flag=1; next} flag && substr($0,1,1) == "[" {exit} flag {print}' "$CHANGELOG_FILE")"
+          fi
+          if [ -z "$(echo "$NOTES" | tr -d '[:space:]')" ]; then
+            echo "ChangeLog section not found for $VERSION, falling back to commit summary"
+            PREVIOUS_TAG=$(git tag --sort=-creatordate | sed -n 2p)
+            echo "PREVIOUS_TAG: $PREVIOUS_TAG"
+            if [ -n "$PREVIOUS_TAG" ]; then
+              NOTES="$(git log --oneline --pretty=tformat:"%h %s" $PREVIOUS_TAG..${{ github.ref }})"
+            else
+              NOTES="$(git log --oneline --pretty=tformat:"%h %s")"
+            fi
           fi
           {
             echo "COMMIT_SUMMARY<<EOF"
-            echo "$COMMIT_SUMMARY"
+            echo "$NOTES"
             echo "EOF"
           } >> $GITHUB_OUTPUT
 
@@ -120,6 +132,9 @@ jobs:
       - name: Make Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
         with:
+          # ハイフンを含むバージョン(beta/rc等)は自動的にプレリリース扱いにし、
+          # Releasesページの「Latest」が安定版を指すようにする
+          prerelease: ${{ contains(env.version, '-') }}
           tag_name: ${{ env.version }}
           files: |
             ${{ env.zipFile }}
