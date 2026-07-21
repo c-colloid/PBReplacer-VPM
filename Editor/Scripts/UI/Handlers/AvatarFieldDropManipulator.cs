@@ -3,11 +3,6 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
 using UnityEditor.UIElements;
-using VRC.SDKBase;
-
-#if MODULAR_AVATAR
-using nadena.dev.modular_avatar.core;
-#endif
 
 namespace colloid.PBReplacer
 {
@@ -124,41 +119,33 @@ namespace colloid.PBReplacer
 			{
 				return;
 			}
-            
-			bool isAvatarDescriptor = _targetObject.TryGetComponent<VRC_AvatarDescriptor>(out var avatardescriptor);
-            
-			// アバターディスクリプタを持たない場合は確認処理
-			if (!isAvatarDescriptor)
+
+			// 判定はAvatarValidatorに共通化。判定後の挙動（受け入れ方・警告ダイアログ）はここで維持
+			var validation = AvatarValidator.Validate(_targetObject);
+			switch (validation.Method)
 			{
-				// ModularAvatarを使用している場合
-                #if MODULAR_AVATAR
-				bool hasMergeArmature = HasModularAvatarMergeArmature(_targetObject);
-				if (hasMergeArmature)
-				{
+			case AvatarDetectionMethod.VRCAvatarDescriptor:
+				// AvatarDescriptorがある場合は直接受け入れ
+				AcceptObject(_targetObject.GetComponent<VRC.SDKBase.VRC_AvatarDescriptor>());
+				break;
+
+			case AvatarDetectionMethod.MergeArmature:
 				AcceptObject(_targetObject.transform);
-				return;
-				}
-                #endif
-                
-				// アニメーターを持つ場合
-				if (_targetObject.TryGetComponent<Animator>(out var animator))
-				{
-					AcceptObject(animator);
-					return;
-				}
-                
+				break;
+
+			case AvatarDetectionMethod.Animator:
+				AcceptObject(_targetObject.GetComponent<Animator>());
+				break;
+
+			default:
 				// 警告ダイアログを表示
 				if (EditorUtility.DisplayDialog(DIALOG_TITLE, DIALOG_MESSAGE, "OK", "Cancel"))
 				{
 					AcceptObject(_targetObject.transform);
 				}
+				break;
 			}
-			else
-			{
-				// AvatarDescriptorがある場合は直接受け入れ
-				AcceptObject(avatardescriptor);
-			}
-            
+
 			evt.StopPropagation();
 		}
         #endregion
@@ -166,40 +153,16 @@ namespace colloid.PBReplacer
         #region Helper Methods
 		/// <summary>
 		/// ドラッグ対象が有効かどうかを判定
+		/// 意図的に常にtrueを返す: AvatarDescriptor等を持たないオブジェクト(衣装・抜き出したボーン等)も受け入れ、
+		/// 可否の最終判断はOnDragPerformの警告ダイアログでユーザーに委ねる設計。
+		/// ここでRejectedにするとUnityの仕様上DragPerform自体が発火せず、ダイアログでの受け入れ経路が死ぬため、
+		/// この判定で弾いてはならない。
 		/// </summary>
 		private bool IsValidDragTarget(GameObject obj)
 		{
-			if (obj == null) return false;
-            
-			// アバターディスクリプタ
-			bool hasAvatarDescriptor = obj.GetComponent<VRC_AvatarDescriptor>() != null;
-			if (hasAvatarDescriptor) return true;
-            
-			// アニメーター
-			bool hasAnimator = obj.GetComponent<Animator>() != null;
-			if (hasAnimator) return true;
-            
-			// ModularAvatar
-            #if MODULAR_AVATAR
-			bool hasMergeArmature = HasModularAvatarMergeArmature(obj);
-			if (hasMergeArmature) return true;
-            #endif
-            
-			// いずれも持たない場合は警告ダイアログで受け入れる可能性がある
-			return true;
+			return obj != null;
 		}
-        
-        #if MODULAR_AVATAR
-		/// <summary>
-		/// ModularAvatarのマージアーマチュアを持つかどうかを判定
-		/// </summary>
-		private bool HasModularAvatarMergeArmature(GameObject obj)
-		{
-		return obj.GetComponent<ModularAvatarMergeArmature>() != null ||
-		obj.GetComponentInChildren<ModularAvatarMergeArmature>(true) != null;
-		}
-        #endif
-        
+
 		/// <summary>
 		/// オブジェクトをフィールドに設定
 		/// </summary>

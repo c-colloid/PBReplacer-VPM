@@ -137,6 +137,7 @@ namespace colloid.PBReplacer
 
 			// Reloadボタンのイベント登録
 			_reloadButton.clicked += OnReloadButtonClicked;
+			SetButtonIcon(_reloadButton, "Refresh");
 
 			// 設定ボタンの作成と登録（存在する場合）
 			var settingsButton = _root.Query<Button>("SettingsButton").First();
@@ -144,6 +145,31 @@ namespace colloid.PBReplacer
 			{
 				_settingsButton = settingsButton;
 				_settingsButton.clicked += OnSettingsButtonClicked;
+				SetButtonIcon(_settingsButton, "_Popup");
+			}
+
+			// オーバーフローメニューボタンの作成と登録（存在する場合）
+			var overflowMenuButton = _root.Query<Button>("OverflowMenuButton").First();
+			if (overflowMenuButton != null)
+			{
+				_overflowMenuButton = overflowMenuButton;
+				_overflowMenuButton.clicked += OnOverflowMenuButtonClicked;
+				SetButtonIcon(_overflowMenuButton, "_Menu");
+			}
+		}
+
+		/// <summary>
+		/// 絵文字フォントの代わりにUnity組み込みアイコンをボタンに設定する
+		/// </summary>
+		/// <param name="button">対象のボタン</param>
+		/// <param name="iconName">EditorGUIUtility.IconContentに渡すアイコン名（テーマ非依存の名前）</param>
+		private static void SetButtonIcon(Button button, string iconName)
+		{
+			var iconContent = EditorGUIUtility.IconContent(iconName);
+			if (iconContent?.image is Texture2D iconTexture)
+			{
+				button.style.backgroundImage = new StyleBackground(iconTexture);
+				button.text = string.Empty;
 			}
 		}
 

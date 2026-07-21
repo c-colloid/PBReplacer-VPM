@@ -36,6 +36,7 @@ namespace colloid.PBReplacer
 		private Button _applyButton;
 		private Button _reloadButton;
 		private Button _settingsButton;
+		private Button _overflowMenuButton;
 		private VerticalTabContainer _tabContainer;
 		private Box _physBoneBox;
 		private Box _constraintBox;
@@ -59,6 +60,9 @@ namespace colloid.PBReplacer
 			_contactSenderDragHandler, _contactReciverDragHandler;
 
 		private List<ListViewDragHandler> _constraintDragHandlerList;
+
+		// 生成した全ドラッグハンドラを一元管理し、CleanupDragHandlers()で漏れなくDisposeするためのリスト
+		private List<ListViewDragHandler> _dragHandlers;
 
 		private List<Component> _processed;
 		#endregion
@@ -88,8 +92,11 @@ namespace colloid.PBReplacer
 この操作はUndo可能です";
 		private const string APPLY_DIALOG_OK = "続行";
 		private const string APPLY_DIALOG_CANCEL = "キャンセル";
+		private const string APPLY_SUCCESS_NOTIFICATION = "処理が完了しました\nCtrl+Zで元に戻せます";
 		private const string STATUS_SET_AVATAR = "アバターをセットしてください";
 		private const string STATUS_READY = "Applyを押してください";
+		private const string MENU_ITEM_PBREMAP = "他のアバターへ移植 (PBRemap)...";
+		private const string PBREMAP_CONTAINER_NAME = "PBRemap";
 		#endregion
 
 		#region Unity Methods
@@ -100,7 +107,7 @@ namespace colloid.PBReplacer
 			// EditorWindowを表示
 			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
 			window.titleContent = new GUIContent(WINDOW_TITLE);
-			window.minSize = new Vector2(450, 300);
+			window.minSize = new Vector2(650, 450);
 		}
 
 		[MenuItem("GameObject/PBReplacer Selected", false, 26)]
@@ -113,6 +120,33 @@ namespace colloid.PBReplacer
 			{
 				window._avatarField.value = Selection.activeGameObject;
 			}
+		}
+
+		/// <summary>
+		/// 選択中のGameObjectにPBRemapコンポーネントを追加する
+		/// （"GameObject/PBReplacer"は既に単体のコマンド項目のため、
+		/// サブメニュー化による衝突を避けてフラットな項目として登録）
+		/// </summary>
+		[MenuItem("GameObject/PBRemapを追加", false, 27)]
+		public static void AddPBRemapToSelection()
+		{
+			GameObject selected = Selection.activeGameObject;
+			if (selected == null) return;
+
+			PBRemap remap = selected.GetComponent<PBRemap>();
+			if (remap == null)
+			{
+				remap = Undo.AddComponent<PBRemap>(selected);
+			}
+
+			EditorGUIUtility.PingObject(selected);
+			Selection.activeObject = selected;
+		}
+
+		[MenuItem("GameObject/PBRemapを追加", true)]
+		public static bool ValidateAddPBRemapToSelection()
+		{
+			return Selection.activeGameObject != null;
 		}
 
 		private void OnEnable()

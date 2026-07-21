@@ -35,6 +35,12 @@ namespace colloid.PBReplacer
 		// プロパティ実装
 		public List<T> Components => _components;
 
+		/// <summary>
+		/// ExecuteWithErrorHandling経由の処理で発生した直近のエラー詳細。
+		/// PhysBone系のProcessingResult.ErrorMessageに相当する情報をCommand側へ伝えるために保持する。
+		/// </summary>
+		public string LastErrorMessage { get; protected set; } = string.Empty;
+
 		// 現在のアバター（コンテキスト経由でアクセス）
 		public AvatarData CurrentAvatar => _context.CurrentAvatar;
 		
@@ -207,10 +213,14 @@ namespace colloid.PBReplacer
 		/// <returns>処理が成功した場合はtrue</returns>
 		protected bool ExecuteWithErrorHandling(Func<bool> action, string operationName)
 		{
+			// 直近のエラーをクリア
+			LastErrorMessage = string.Empty;
+
 			// アバターnullチェック
 			if (CurrentAvatar == null || CurrentAvatar.AvatarObject == null)
 			{
-				Debug.LogWarning("アバターが設定されていません");
+				LastErrorMessage = "アバターが設定されていません";
+				Debug.LogWarning(LastErrorMessage);
 				return false;
 			}
 
@@ -226,6 +236,7 @@ namespace colloid.PBReplacer
 			}
 			catch (Exception ex)
 			{
+				LastErrorMessage = ex.Message;
 				Debug.LogError($"{operationName}中にエラーが発生しました: {ex.Message}");
 				return false;
 			}

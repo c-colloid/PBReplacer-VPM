@@ -70,9 +70,12 @@ namespace colloid.PBReplacer
 			return true;
 		}
 
-		public override void InvokeChanged()
+		// RemoveComponent/AddComponent/ClearData等の基底クラス内の全変更経路で
+		// 型付きイベントが発火するよう、InvokeChangedではなくNotifyComponentsChangedを拡張する
+		// (Constraint/Contactマネージャーと同一のパターン)
+		protected override void NotifyComponentsChanged()
 		{
-			base.InvokeChanged();
+			base.NotifyComponentsChanged();
 			OnCollidersChanged?.Invoke(_components);
 		}
 

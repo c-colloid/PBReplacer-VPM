@@ -44,6 +44,9 @@ namespace colloid.PBReplacer
 		/// </summary>
 		private void InitializeDragHandlers()
 		{
+			// タブ切替等による再Initializeに備え、既存ハンドラが残っていれば先にクリーンアップ
+			CleanupDragHandlers();
+
 			_pbListDragHandler = new ListViewDragHandler(_pbListView, typeof(VRCPhysBone));
 			_pbcListDragHandler = new ListViewDragHandler(_pbcListView, typeof(VRCPhysBoneCollider));
 			_constraintDragHandlerList = new List<ListViewDragHandler>();
@@ -60,6 +63,16 @@ namespace colloid.PBReplacer
 			});
 			_contactSenderDragHandler = new ListViewDragHandler(_contactSenderListView, typeof(VRCContactSender));
 			_contactReciverDragHandler = new ListViewDragHandler(_contactReciverListView, typeof(VRCContactReceiver));
+
+			// 生成した全ハンドラを一元管理リストへ登録（CleanupDragHandlers()での漏れなしDispose用）
+			_dragHandlers = new List<ListViewDragHandler>
+			{
+				_pbListDragHandler,
+				_pbcListDragHandler,
+				_contactSenderDragHandler,
+				_contactReciverDragHandler,
+			};
+			_dragHandlers.AddRange(_constraintDragHandlerList);
 		}
 
 		/// <summary>
@@ -76,7 +89,18 @@ namespace colloid.PBReplacer
 				label.focusable = true;
 				label.AddManipulator(new ContextualMenuManipulator(evt => {
 					var target = label.userData as Component;
-					evt.menu.AppendAction("Delete", action => {
+					evt.menu.AppendAction("削除", action => {
+						if (target == null) return;
+
+						// 削除前に確認ダイアログを表示
+						bool confirmed = EditorUtility.DisplayDialog(
+							"コンポーネントの削除",
+							$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
+							"削除する",
+							"キャンセル");
+
+						if (!confirmed) return;
+
 						UnityEditor.Undo.DestroyObjectImmediate(target);
 						DataManagerHelper.NotifyComponentsRemoved(target);
 					});
@@ -102,6 +126,16 @@ namespace colloid.PBReplacer
 			listView.selectionType = SelectionType.Multiple;
 
 			// 選択変更イベントの登録
+			// (onSelectionChange/onItemsChosenは2022.2でリネームされ旧名はobsolete。旧バージョン互換のため条件分岐)
+#if UNITY_2022_2_OR_NEWER
+			listView.selectionChanged += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+			// 選択変更イベント(ダブルクリック)の登録
+			listView.itemsChosen += (selectedItems) => {
+				SelectGameObject(selectedItems);
+			};
+#else
 			listView.onSelectionChange += (selectedItems) => {
 				SelectGameObject(selectedItems);
 			};
@@ -109,6 +143,7 @@ namespace colloid.PBReplacer
 			listView.onItemsChosen += (selectedItems) => {
 				SelectGameObject(selectedItems);
 			};
+#endif
 
 			void SelectGameObject(IEnumerable<object> selectedItems)
 			{
@@ -131,16 +166,28 @@ namespace colloid.PBReplacer
 			if (_pbListDragHandler != null)
 			{
 				_pbListDragHandler.OnDrop -= OnPhysBoneListDrop;
-				_pbListDragHandler.Cleanup();
-				_pbListDragHandler = null;
 			}
 
 			if (_pbcListDragHandler != null)
 			{
 				_pbcListDragHandler.OnDrop -= OnPhysBoneColliderListDrop;
-				_pbcListDragHandler.Cleanup();
-				_pbcListDragHandler = null;
 			}
+
+			// 生成済みの全ドラッグハンドラ（PB/PBC/Constraint x6/Contact x2）を一元的にDispose
+			if (_dragHandlers != null)
+			{
+				foreach (var handler in _dragHandlers)
+				{
+					handler?.Dispose();
+				}
+				_dragHandlers.Clear();
+			}
+
+			_pbListDragHandler = null;
+			_pbcListDragHandler = null;
+			_constraintDragHandlerList = null;
+			_contactSenderDragHandler = null;
+			_contactReciverDragHandler = null;
 		}
 		#endregion
 

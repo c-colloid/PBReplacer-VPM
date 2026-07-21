@@ -34,6 +34,42 @@ namespace colloid.PBReplacer
         public bool enabled = true;
 
         /// <summary>
+        /// 直近のRegex適用（Apply/ApplyReverse/TryValidate）で発生したエラーメッセージ。
+        /// 正常時はnull。
+        /// </summary>
+        public string LastErrorMessage { get; private set; }
+
+        /// <summary>
+        /// RegexReplaceモードの正規表現（sourcePattern）が有効かどうかを検証する。
+        /// 例外を握りつぶさずエラーメッセージを呼び出し元に返すためのAPI。
+        /// </summary>
+        /// <param name="errorMessage">不正な場合のエラーメッセージ。正常時はnull。</param>
+        /// <returns>正規表現として有効であればtrue。RegexReplace以外のモードでは常にtrue。</returns>
+        public bool TryValidate(out string errorMessage)
+        {
+            errorMessage = null;
+
+            if (mode != RemapMode.RegexReplace || string.IsNullOrEmpty(sourcePattern))
+            {
+                LastErrorMessage = null;
+                return true;
+            }
+
+            try
+            {
+                _ = new Regex(sourcePattern);
+                LastErrorMessage = null;
+                return true;
+            }
+            catch (ArgumentException e)
+            {
+                errorMessage = e.Message;
+                LastErrorMessage = errorMessage;
+                return false;
+            }
+        }
+
+        /// <summary>
         /// 入力文字列にこのルールを順方向（source→destination）で適用する。
         /// </summary>
         /// <param name="input">変換対象の文字列</param>
@@ -60,10 +96,13 @@ namespace colloid.PBReplacer
                         return input;
                     try
                     {
-                        return Regex.Replace(input, sourcePattern, destinationPattern ?? "");
+                        string result = Regex.Replace(input, sourcePattern, destinationPattern ?? "");
+                        LastErrorMessage = null;
+                        return result;
                     }
-                    catch (ArgumentException)
+                    catch (ArgumentException e)
                     {
+                        LastErrorMessage = e.Message;
                         return input;
                     }
 
@@ -102,10 +141,13 @@ namespace colloid.PBReplacer
                         return input;
                     try
                     {
-                        return Regex.Replace(input, destinationPattern, sourcePattern ?? "");
+                        string result = Regex.Replace(input, destinationPattern, sourcePattern ?? "");
+                        LastErrorMessage = null;
+                        return result;
                     }
-                    catch (ArgumentException)
+                    catch (ArgumentException e)
                     {
+                        LastErrorMessage = e.Message;
                         return input;
                     }
 
