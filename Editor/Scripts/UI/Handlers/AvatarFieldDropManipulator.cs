@@ -153,11 +153,14 @@ namespace colloid.PBReplacer
         #region Helper Methods
 		/// <summary>
 		/// ドラッグ対象が有効かどうかを判定
-		/// （いずれも持たない場合、ドラッグ中の受付表示は不可。ドロップ時の警告ダイアログでの受け入れ判断は別途行われる）
+		/// 意図的に常にtrueを返す: AvatarDescriptor等を持たないオブジェクト(衣装・抜き出したボーン等)も受け入れ、
+		/// 可否の最終判断はOnDragPerformの警告ダイアログでユーザーに委ねる設計。
+		/// ここでRejectedにするとUnityの仕様上DragPerform自体が発火せず、ダイアログでの受け入れ経路が死ぬため、
+		/// この判定で弾いてはならない。
 		/// </summary>
 		private bool IsValidDragTarget(GameObject obj)
 		{
-			return AvatarValidator.Validate(obj).IsValid;
+			return obj != null;
 		}
 
 		/// <summary>
