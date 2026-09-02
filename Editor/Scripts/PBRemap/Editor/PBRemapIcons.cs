@@ -38,6 +38,8 @@ namespace colloid.PBReplacer
         public const string Empty = "FolderEmpty Icon";             // 対象なし
         public const string Prefab = "Prefab Icon";
         public const string Undo = "back";
+        public const string Pick = "eyeDropper.Large";              // ボーン対応ツール（スポイト = 指して選ぶ）
+        public const string Labels = "FilterByLabel";               // 名前ラベル
 
         private static readonly Dictionary<string, Texture2D> _cache = new Dictionary<string, Texture2D>();
 

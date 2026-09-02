@@ -30,7 +30,7 @@ namespace colloid.PBReplacer
 
 			// SceneViewプレビューを有効化
 			if (detection.IsLiveMode && window._preview != null)
-				PBRemapScenePreviewState.Instance.Activate(window._preview, detection);
+				PBRemapScenePreviewState.Instance.Activate(window._preview, detection, definition);
 
 			return window;
 		}
@@ -44,7 +44,7 @@ namespace colloid.PBReplacer
 
 			// SceneViewプレビューが有効ならキャッシュを更新
 			if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
-				PBRemapScenePreviewState.Instance.Activate(_preview, _detection);
+				PBRemapScenePreviewState.Instance.Activate(_preview, _detection, _definition);
 		}
 
 		public void UpdateDetection(SourceDetector.DetectionResult detection)

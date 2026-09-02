@@ -84,9 +84,13 @@ namespace colloid.PBReplacer
                 {
                     sourceBonePath = res.SourceDisplayPath,
                     referenceKey = res.Ref.componentPath + "." + res.Ref.propertyPath,
+                    sourceKey = res.SourceKey,
                     method = res.Method.ToString(),
                     destinationTransform = res.Target,
                     autoCreateParentTransform = res.AutoCreateParent,
+                    isOuter = res.IsOuter,
+                    manual = res.Status == ResolutionStatus.Manual,
+                    candidateTransforms = new List<Transform>(res.Candidates),
                 };
                 // Live なら移植元Transformを引く（SceneView描画用）
                 if (sourceRoot != null)

@@ -422,6 +422,52 @@ worldRatio = Hips-Head距離比（両Humanoid）
 
 `Editor/Scripts/PBRemap/Editor/PBRemapIcons.cs`（意味→内蔵アイコン）、`PBRemapHierarchyBadge.cs`（Hierarchy 行）、`PBRemapEditor.cs` / `Resources/UXML/PBRemap.uxml` / `Resources/USS/PBRemap.uss`（Inspector）、`PBRemapTracker`（状態キャッシュ・Invalidate）。
 
+## 7. SceneView（オーバーレイ・ギズモ・ハンドル・EditorTool）の再設計
+
+Inspector と同じ 7 原則・同じ語彙で SceneView 側を作り直した。
+
+### 7.1 語彙（Inspector / Hierarchy と共通）
+
+| 記号 | 意味 |
+|---|---|
+| ○ 青の輪 | 移植元のボーン（今ここにあるもの） |
+| ● 緑の点 | 移植先のボーン（これから指すもの）。手動で決めたものは二重の輪 |
+| 青→緑の曲線＋矢印 | 移植の向き（Inspector の左→右と同じ） |
+| ＋ 琥珀、親への点線 | 移植先に無いので自動作成（点線＝まだ無いもの） |
+| ▾ 琥珀の輪、各候補への細い点線 | 候補が複数。候補の輪をクリックすると確定 |
+| ✕ 赤の輪 | 対応先が無い。クリックすると対応ツールが起動 |
+
+文字は「問題のある対応」と「マウスを乗せた／選択中の対応」のボーン名だけ。全ボーンの名前はオーバーレイのトグルで出す。
+
+### 7.2 オーバーレイ（ToolbarOverlay）
+
+Unity 標準の SceneView ツールバーと同じ「アイコンのトグル」だけで構成し、プレビューが有効なときだけ現れる（ITransientOverlay）。
+
+`[線] [名前] | [✔ n] [＋ n] [▾ n] [✖ n] | [スポイト] [目を閉じる]`
+
+件数トグルは Inspector のチップと同じアイコン・同じ共有状態（クリックで絞り込み、Inspector の表と連動）。「ボーン解決: 5/5」「表示:」などの文字は廃止した。
+
+### 7.3 ハンドル（マーカーの操作）
+
+- 移植元／移植先の輪・点をクリック → Hierarchy で Ping（「これはどこ？」に指で答える）
+- 候補の輪をクリック → その候補で確定（手動対応として記録、Undo 可）
+- 赤✕をクリック → ボーン対応ツールが起動し、その対応が選択される
+- マウスを乗せた対応は線が太くなり、名前が出る
+
+### 7.4 EditorTool「PBRemap ボーン対応」
+
+Unity 標準の Tools オーバーレイにスポイトのアイコンで並ぶ（PBRemap を選択中のみ）。
+
+1. 赤✕（または琥珀▾）の輪をクリック → その対応が選ばれ、マウスへ向かう点線と矢印が伸びる（「ここから、どこへ？」）
+2. 移植先の骨に出る小さな点のどれかをクリック（乗せると名前が出る）→ 対応が決まり、線が緑になる
+3. 問題が残っていれば次の対応が自動で選ばれる。Esc で終了
+
+向き（元→先）とクリックの順序（元を指してから先を指す）を、Inspector のドラッグ操作と同じ意味に揃えている。
+
+### 7.5 実装
+
+`PBRemapSceneOverlay.cs`（ToolbarOverlay と EditorToolbarToggle 群）、`PBRemapSceneRenderer.cs`（描画とクリック）、`PBRemapBoneMapTool.cs`（EditorTool）、`PBRemapScenePreviewState.cs`（共有状態。選択/ホバー、要選択フィルタ、手動対応の書き込み）、`PBRemapManualMapping.cs`（Inspector と SceneView で共用する手動対応の保存）。
+
 ---
 
 ## 付録A. コードレビュー所見（8観点、反証検証つき）

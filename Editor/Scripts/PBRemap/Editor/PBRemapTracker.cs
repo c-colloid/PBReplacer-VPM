@@ -154,7 +154,7 @@ namespace colloid.PBReplacer
             {
                 if (def == null || !det.Value.IsLiveMode) return;
                 var previewData = PBRemapPreview.GeneratePreview(def, det.Value);
-                PBRemapScenePreviewState.Instance.Activate(previewData, det.Value);
+                PBRemapScenePreviewState.Instance.Activate(previewData, det.Value, def);
                 SceneView.RepaintAll();
             };
         }

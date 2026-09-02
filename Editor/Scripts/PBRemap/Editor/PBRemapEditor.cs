@@ -59,7 +59,6 @@ namespace colloid.PBReplacer
         private SourceDetector.DetectionResult _detection;
         private PBRemapPreviewData _preview;
         private bool _refreshQueued;
-        private bool _showAmbiguous = true;
         private bool _filterInitialized;
 
         private StringResources _strings;
@@ -243,8 +242,8 @@ namespace colloid.PBReplacer
 
             var previewWindow = FindPreviewWindow();
             if (previewWindow != null) previewWindow.UpdateDetection(_detection);
-            if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode && _preview != null)
-                PBRemapScenePreviewState.Instance.Activate(_preview, _detection);
+            if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode && _preview != null && PBRemapScenePreviewState.Instance.Definition == definition)
+                PBRemapScenePreviewState.Instance.Activate(_preview, _detection, definition);
         }
 
         /// <summary>ノードの名前（1行目: ホーム名 / 2行目: 外側の名前）</summary>
@@ -426,7 +425,7 @@ namespace colloid.PBReplacer
             }
             if (plan.ResolvedCount > 0) _chips.Add(Chip(PBRemapIcons.Resolved, plan.ResolvedCount, "resolved", "解決済み（クリックで表示を切り替え）", Filter.ShowResolved, v => Filter.ShowResolved = v));
             if (plan.AutoCreateCount > 0) _chips.Add(Chip(PBRemapIcons.AutoCreate, plan.AutoCreateCount, "auto", "移植先に無いので自動作成する（クリックで表示を切り替え）", Filter.ShowAutoCreatable, v => Filter.ShowAutoCreatable = v));
-            if (plan.AmbiguousCount > 0) _chips.Add(Chip(PBRemapIcons.Ambiguous, plan.AmbiguousCount, "ambiguous", "同名の候補が複数あり、選択が必要（クリックで表示を切り替え）", _showAmbiguous, v => { _showAmbiguous = v; UpdateMappingTable(definition); }));
+            if (plan.AmbiguousCount > 0) _chips.Add(Chip(PBRemapIcons.Ambiguous, plan.AmbiguousCount, "ambiguous", "同名の候補が複数あり、選択が必要（クリックで表示を切り替え）", Filter.ShowAmbiguous, v => Filter.ShowAmbiguous = v));
             if (unresolved > 0) _chips.Add(Chip(PBRemapIcons.Unresolved, unresolved, "unresolved", "対応するボーンが見つからない（クリックで表示を切り替え）", Filter.ShowUnresolved, v => Filter.ShowUnresolved = v));
 
             int manualCount = definition.MappingOverrides?.Count ?? 0;
@@ -516,7 +515,7 @@ namespace colloid.PBReplacer
                 {
                     case ResolutionStatus.Resolved: case ResolutionStatus.Manual: visible = Filter.ShowResolved; rowClass = ""; icon = res.Status == ResolutionStatus.Manual ? PBRemapIcons.Manual : PBRemapIcons.Resolved; break;
                     case ResolutionStatus.AutoCreate: visible = Filter.ShowAutoCreatable; rowClass = "pbremap-row--auto"; icon = PBRemapIcons.AutoCreate; break;
-                    case ResolutionStatus.Ambiguous: visible = _showAmbiguous; rowClass = "pbremap-row--ambiguous"; icon = PBRemapIcons.Ambiguous; break;
+                    case ResolutionStatus.Ambiguous: visible = Filter.ShowAmbiguous; rowClass = "pbremap-row--ambiguous"; icon = PBRemapIcons.Ambiguous; break;
                     default: visible = Filter.ShowUnresolved; rowClass = "pbremap-row--unresolved"; icon = PBRemapIcons.Unresolved; break;
                 }
                 if (!visible) continue;
@@ -714,35 +713,13 @@ namespace colloid.PBReplacer
 
         private void SetManualMapping(PBRemap definition, string sourceKey, string sourcePath, Transform targetTransform)
         {
-            serializedObject.Update();
-            int found = -1;
-            for (int i = 0; i < _mappingOverridesProp.arraySize; i++)
-            {
-                if (_mappingOverridesProp.GetArrayElementAtIndex(i).FindPropertyRelative("sourceKey").stringValue == sourceKey) { found = i; break; }
-            }
-            if (targetTransform == null)
-            {
-                if (found >= 0) _mappingOverridesProp.DeleteArrayElementAtIndex(found);
-            }
-            else
-            {
-                if (found < 0) { found = _mappingOverridesProp.arraySize; _mappingOverridesProp.arraySize = found + 1; }
-                var el = _mappingOverridesProp.GetArrayElementAtIndex(found);
-                el.FindPropertyRelative("sourceKey").stringValue = sourceKey;
-                el.FindPropertyRelative("sourcePath").stringValue = sourcePath;
-                el.FindPropertyRelative("target").objectReferenceValue = targetTransform;
-                var destRoot = _detection?.DestinationAvatar;
-                el.FindPropertyRelative("targetPathFromRoot").stringValue = destRoot != null ? (BoneMapper.GetRelativePath(targetTransform, destRoot.transform) ?? "") : "";
-            }
-            serializedObject.ApplyModifiedProperties();
+            PBRemapManualMapping.Set(definition, sourceKey, sourcePath, targetTransform, _detection?.DestinationAvatar);
             QueueRefresh();
         }
 
         private void OnClearManualClicked()
         {
-            serializedObject.Update();
-            _mappingOverridesProp.ClearArray();
-            serializedObject.ApplyModifiedProperties();
+            PBRemapManualMapping.Clear((PBRemap)target);
             QueueRefresh();
         }
 
@@ -916,7 +893,7 @@ namespace colloid.PBReplacer
             else if (_detection != null && _detection.IsLiveMode)
             {
                 var previewData = PBRemapPreview.GeneratePreview(definition, _detection);
-                PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
+                PBRemapScenePreviewState.Instance.Activate(previewData, _detection, definition);
                 SceneView.RepaintAll();
             }
             UpdateTools(_detection?.Situation ?? new PBRemapSituation());
