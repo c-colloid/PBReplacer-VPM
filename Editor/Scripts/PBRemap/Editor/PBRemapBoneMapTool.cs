@@ -56,6 +56,8 @@ namespace colloid.PBReplacer
             var state = PBRemapScenePreviewState.Instance;
             if (!(window is SceneView sceneView) || !state.IsActive) return;
             var e = Event.current;
+            // ツール中はシーンのクリック選択を止める（空振りで PBRemap の選択が外れ、ツールが終了するのを防ぐ）
+            HandleUtility.AddDefaultControl(GUIUtility.GetControlID(FocusType.Passive));
 
             if (e.type == EventType.KeyDown && e.keyCode == KeyCode.Escape)
             {
@@ -99,10 +101,10 @@ namespace colloid.PBReplacer
                         if (b == null || b == selected.SourceTransform) continue;
                         Vector3 p = b.position;
                         float ps = HandleUtility.GetHandleSize(p) * PickDotScale;
-                        bool hover = HandleUtility.DistanceToCircle(p, 0f) < 10f;
+                        bool hover = HandleUtility.DistanceToCircle(p, 0f) < 14f;
                         Handles.color = hover ? PBRemapSceneRenderer.DestColor : PBRemapSceneRenderer.PickDotColor;
                         if (hover) PBRemapSceneRenderer.Label(p, ps, b.name, PBRemapSceneRenderer.DestColor);
-                        if (Handles.Button(p, Quaternion.identity, ps, ps * 3f, Handles.DotHandleCap))
+                        if (Handles.Button(p, Quaternion.identity, ps, ps * 4f, Handles.DotHandleCap))
                         {
                             state.AssignManual(selected.SourceKey, b);
                             state.SelectedKey = state.NextProblemKey(selected.SourceKey);

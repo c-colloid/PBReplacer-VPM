@@ -174,8 +174,8 @@ namespace colloid.PBReplacer
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
             Undo.undoRedoPerformed -= OnUndoRedo;
             Filter.FilterStateChanged -= OnFilterChanged;
-            if (FindPreviewWindow() == null)
-                PBRemapScenePreviewState.Instance.Deactivate();
+            // SceneView プレビューは Inspector を閉じても残す（SceneView 上の操作で選択が変わるため）。
+            // 閉じるのはオーバレイの「目を閉じる」か、対象が無くなったとき
         }
 
         private void LoadStringResources()

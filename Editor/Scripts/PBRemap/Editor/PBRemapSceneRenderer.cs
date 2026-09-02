@@ -51,7 +51,10 @@ namespace colloid.PBReplacer
             UpdateHover(state);
             bool toolActive = ToolManager.activeToolType == typeof(PBRemapBoneMapTool);
 
-            foreach (var visual in state.VisualMappings)
+            // 問題のある対応（要選択/未解決）を最後に描く: 重なったときにクリックがそちらへ届く（同距離なら後に登録した方が勝つ）
+            var ordered = new List<BoneMappingVisual>(state.VisualMappings);
+            ordered.Sort((a, b) => (a.IsProblem ? 1 : 0).CompareTo(b.IsProblem ? 1 : 0));
+            foreach (var visual in ordered)
             {
                 if (!state.IsVisible(visual)) continue;
                 bool emphasized = visual.SourceKey == state.HoverKey || visual.SourceKey == state.SelectedKey;
@@ -138,7 +141,7 @@ namespace colloid.PBReplacer
                         if (state.ShowConnectionLines) { Handles.color = AmbiguousColor; Handles.DrawDottedLine(src, cp, 4f); }
                         Ring(cp, camFwd, Size(cp), AmbiguousColor, 1.5f);
                         Label(cp, Size(cp), c.name, AmbiguousColor);
-                        if (Handles.Button(cp, Quaternion.identity, 0f, Size(cp) * 1.6f, Handles.CircleHandleCap))
+                        if (Handles.Button(cp, Quaternion.identity, 0f, Size(cp) * 2.4f, Handles.CircleHandleCap))
                         {
                             state.AssignManual(v.SourceKey, c);
                             GUIUtility.ExitGUI();
@@ -175,7 +178,8 @@ namespace colloid.PBReplacer
         /// <summary>見えないボタン（マーカーの上でクリックを拾う）</summary>
         private static bool ClickMarker(Vector3 pos, float size, BoneMappingVisual v)
         {
-            return Handles.Button(pos, Quaternion.identity, 0f, size * 1.5f, Handles.CircleHandleCap);
+            float pick = v.IsProblem ? size * 2.2f : size * 1.4f;
+            return Handles.Button(pos, Quaternion.identity, 0f, pick, Handles.CircleHandleCap);
         }
 
         #region primitives
