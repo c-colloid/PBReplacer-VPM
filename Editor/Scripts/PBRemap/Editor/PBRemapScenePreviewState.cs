@@ -107,11 +107,8 @@ namespace colloid.PBReplacer
 			if (!Detection.IsLiveMode)
 				return;
 
-			if (Detection.SourceAvatarData == null || Detection.DestAvatarData == null)
-				return;
-
-			var sourceArmature = Detection.SourceAvatarData.Armature.transform;
-			var destArmature = Detection.DestAvatarData.Armature.transform;
+			var sourceArmature = Detection.SourceAvatarData != null ? Detection.SourceAvatarData.Armature.transform : null;
+			var destArmature = Detection.DestAvatarData != null ? Detection.DestAvatarData.Armature.transform : null;
 
 			foreach (var mapping in PreviewData.BoneMappings)
 			{
@@ -124,26 +121,33 @@ namespace colloid.PBReplacer
 					ErrorMessage = mapping.errorMessage
 				};
 
-				visual.SourceTransform =
-					BoneMapper.FindBoneByRelativePath(mapping.sourceBonePath, sourceArmature);
+				visual.SourceTransform = mapping.sourceTransform != null
+					? mapping.sourceTransform
+					: (sourceArmature != null ? BoneMapper.FindBoneByRelativePath(mapping.sourceBonePath, sourceArmature) : null);
 
 				if (mapping.resolved)
 				{
-					visual.DestTransform =
-						BoneMapper.FindBoneByRelativePath(mapping.destinationBonePath, destArmature);
+					visual.DestTransform = mapping.destinationTransform != null
+						? mapping.destinationTransform
+						: (destArmature != null ? BoneMapper.FindBoneByRelativePath(mapping.destinationBonePath, destArmature) : null);
 					ResolvedCount++;
 				}
-				else if (mapping.autoCreatable && !string.IsNullOrEmpty(mapping.autoCreateDestPath))
+				else if (mapping.autoCreatable)
 				{
-					// autoCreateDestPathの親パスからTransformを取得
-					int lastSlash = mapping.autoCreateDestPath.LastIndexOf('/');
-					string parentDestPath = lastSlash >= 0
-						? mapping.autoCreateDestPath.Substring(0, lastSlash)
-						: "";
-					visual.AutoCreateParentTransform =
-						BoneMapper.FindBoneByRelativePath(parentDestPath, destArmature);
+					visual.AutoCreateParentTransform = mapping.autoCreateParentTransform;
+					if (visual.AutoCreateParentTransform == null && destArmature != null && !string.IsNullOrEmpty(mapping.autoCreateDestPath))
+					{
+						int lastSlash = mapping.autoCreateDestPath.LastIndexOf('/');
+						string parentDestPath = lastSlash >= 0 ? mapping.autoCreateDestPath.Substring(0, lastSlash) : "";
+						visual.AutoCreateParentTransform = BoneMapper.FindBoneByRelativePath(parentDestPath, destArmature);
+					}
 					visual.AutoCreatable = true;
 					AutoCreatableCount++;
+				}
+				if (visual.SourceTransform == null)
+				{
+					TotalCount--;
+					continue;
 				}
 
 				VisualMappings.Add(visual);

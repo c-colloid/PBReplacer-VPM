@@ -12,12 +12,17 @@ using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
+    /// <summary>
+    /// PBRemap の Inspector。
+    /// 状態カード（移植元→移植先）／解決サマリ／ボーン対応テーブル（手動マッピング）／スケール／アクション／詳細設定。
+    /// 参照情報（マニフェスト）は <see cref="PBRemapTracker"/> により Inspector を開かなくても更新されるが、
+    /// ここでも表示のたびに最新化する。
+    /// </summary>
     [CustomEditor(typeof(PBRemap))]
     public class PBRemapEditor : Editor
     {
         private VisualElement _root;
 
-        // 検出状態 (移植元 → 移植先の順)
         private Label _sourceAvatarLabel;
         private Label _destAvatarLabel;
         private Label _modeLabel;
@@ -26,200 +31,99 @@ namespace colloid.PBReplacer
         private HelpBox _stateBox;
         private HelpBox _detectionWarningBox;
 
-        // 手動指定
         private ObjectField _sourceRootOverrideField;
         private ObjectField _destRootOverrideField;
 
-        // コンポーネント一覧
         private Label _componentsSummary;
         private VisualElement _resolutionSummary;
+        private Foldout _mappingFoldout;
+        private VisualElement _mappingTable;
+        private Button _clearManualButton;
 
-        // リマップルール
         private ListView _rulesListView;
         private bool _showRuleHints;
 
-        // スケール
-        private Toggle _autoScaleToggle;
+        private EnumField _scaleModeField;
         private VisualElement _manualScaleContainer;
-        private FloatField _scaleFactorField;
         private Label _calculatedScaleLabel;
+        private Label _manifestInfo;
 
-        // アクション
+        private Button _refreshButton;
         private Button _previewButton;
         private Button _remapButton;
         private HelpBox _statusBox;
 
-        // SerializedProperties
-        private SerializedProperty _autoCalculateScaleProp;
-        private SerializedProperty _scaleFactorProp;
         private SerializedProperty _pathRemapRulesProp;
-        private SerializedProperty _serializedBoneRefsProp;
-        private SerializedProperty _sourceAvatarScaleProp;
-        private SerializedProperty _sourceRootOverrideProp;
-        private SerializedProperty _destRootOverrideProp;
+        private SerializedProperty _mappingOverridesProp;
 
-        // 検出結果キャッシュ
         private SourceDetector.DetectionResult _detection;
+        private PBRemapPreviewData _preview;
+        private bool _refreshQueued;
 
-        // 階層変更検知用
-        private Transform _cachedParent;
-        private int _cachedChildCount;
-
-        // UXML文字列リソース
         private StringResources _strings;
 
-        /// <summary>
-        /// UXML文字列リソースのキャッシュ構造体。
-        /// 固定テキストをUXMLに外部化し、コンパイル不要で変更可能にする。
-        /// </summary>
         private struct StringResources
         {
-            // 検出ラベル
-            public string DetectSourcePrefix;
-            public string DetectDestPrefix;
-            public string DetectSourceUndetected;
-            public string DetectDestUndetected;
-            public string DetectSourceError;
-            public string DetectDestError;
-            public string DetectSourceTransplanted;
-            public string DetectSourcePrefab;
-
-            // モードラベル
-            public string ModeLive;
-            public string ModePrefab;
-
-            // ステートボックス
-            public string StateNoDest;
-            public string StateTransplanted;
-            public string StateNoSource;
-
-            // バッジ (検出メソッド別)
-            public string BadgeMergeArmatureText;
-            public string BadgeMergeArmatureTooltip;
-            public string BadgePrefabText;
-            public string BadgePrefabTooltip;
-            public string BadgeAnimatorText;
-            public string BadgeAnimatorTooltip;
-            public string BadgeRootText;
-            public string BadgeRootTooltip;
-            public string BadgeNonHumanoidText;
-            public string BadgeNonHumanoidTooltip;
-
-            // スケール
-            public string ScaleUnavailable;
-            public string ScaleNoSourceScale;
-
-            // ルールヒント
-            public string HintPrefixReplace;
-            public string HintCharSubstitution;
-            public string HintRegexReplace;
-
-            // ルールフィールドtooltip
-            public string TooltipPrefixSource;
-            public string TooltipPrefixDest;
-            public string TooltipCharSource;
-            public string TooltipCharDest;
-            public string TooltipRegexSource;
-            public string TooltipRegexDest;
-
-            // ダイアログ
-            public string DialogTitle;
-            public string DialogConfirmTemplate;
-            public string DialogOk;
-            public string DialogCancel;
-            public string DialogCompleteTitle;
-            public string DialogCompleteOk;
+            public string DetectSourcePrefix, DetectDestPrefix, DetectSourceUndetected, DetectDestUndetected, DetectSourceError, DetectDestError, DetectSourceTransplanted, DetectSourcePrefab;
+            public string ModeLive, ModePrefab, ModeHome, ModeNone;
+            public string StateNoDest, StateTransplanted, StateNoSource, StateBrokenNoManifest, StateReady;
+            public string BadgeMergeArmatureText, BadgeMergeArmatureTooltip, BadgePrefabText, BadgePrefabTooltip, BadgeAnimatorText, BadgeAnimatorTooltip, BadgeRootText, BadgeRootTooltip, BadgeNonHumanoidText, BadgeNonHumanoidTooltip;
+            public string ScaleUnavailable, ScaleNoSourceScale;
+            public string HintPrefixReplace, HintCharSubstitution, HintRegexReplace;
+            public string TooltipPrefixSource, TooltipPrefixDest, TooltipCharSource, TooltipCharDest, TooltipRegexSource, TooltipRegexDest;
+            public string DialogTitle, DialogConfirmTemplate, DialogOk, DialogCancel, DialogCompleteTitle, DialogCompleteOk;
         }
 
         private void LoadStringResources()
         {
             string Text(string name) => _root.Q<Label>(name)?.text ?? "";
             string Tooltip(string name) => _root.Q<Label>(name)?.tooltip ?? "";
-
             _strings = new StringResources
             {
-                DetectSourcePrefix = Text("str-detect-source-prefix"),
-                DetectDestPrefix = Text("str-detect-dest-prefix"),
-                DetectSourceUndetected = Text("str-detect-source-undetected"),
-                DetectDestUndetected = Text("str-detect-dest-undetected"),
-                DetectSourceError = Text("str-detect-source-error"),
-                DetectDestError = Text("str-detect-dest-error"),
-                DetectSourceTransplanted = Text("str-detect-source-transplanted"),
-                DetectSourcePrefab = Text("str-detect-source-prefab"),
-
-                ModeLive = Text("str-mode-live"),
-                ModePrefab = Text("str-mode-prefab"),
-
-                StateNoDest = Text("str-state-no-dest"),
-                StateTransplanted = Text("str-state-transplanted"),
-                StateNoSource = Text("str-state-no-source"),
-
-                BadgeMergeArmatureText = Text("str-badge-merge-armature"),
-                BadgeMergeArmatureTooltip = Tooltip("str-badge-merge-armature"),
-                BadgePrefabText = Text("str-badge-prefab"),
-                BadgePrefabTooltip = Tooltip("str-badge-prefab"),
-                BadgeAnimatorText = Text("str-badge-animator"),
-                BadgeAnimatorTooltip = Tooltip("str-badge-animator"),
-                BadgeRootText = Text("str-badge-root"),
-                BadgeRootTooltip = Tooltip("str-badge-root"),
-                BadgeNonHumanoidText = Text("str-badge-non-humanoid"),
-                BadgeNonHumanoidTooltip = Tooltip("str-badge-non-humanoid"),
-
-                ScaleUnavailable = Text("str-scale-unavailable"),
-                ScaleNoSourceScale = Text("str-scale-no-source-scale"),
-
-                HintPrefixReplace = Text("str-hint-prefix-replace"),
-                HintCharSubstitution = Text("str-hint-char-substitution"),
-                HintRegexReplace = Text("str-hint-regex-replace"),
-
-                TooltipPrefixSource = Text("str-tooltip-prefix-source"),
-                TooltipPrefixDest = Text("str-tooltip-prefix-dest"),
-                TooltipCharSource = Text("str-tooltip-char-source"),
-                TooltipCharDest = Text("str-tooltip-char-dest"),
-                TooltipRegexSource = Text("str-tooltip-regex-source"),
-                TooltipRegexDest = Text("str-tooltip-regex-dest"),
-
-                DialogTitle = Text("str-dialog-title"),
-                DialogConfirmTemplate = Text("str-dialog-confirm-template"),
-                DialogOk = Text("str-dialog-ok"),
-                DialogCancel = Text("str-dialog-cancel"),
-                DialogCompleteTitle = Text("str-dialog-complete-title"),
-                DialogCompleteOk = Text("str-dialog-complete-ok"),
+                DetectSourcePrefix = Text("str-detect-source-prefix"), DetectDestPrefix = Text("str-detect-dest-prefix"),
+                DetectSourceUndetected = Text("str-detect-source-undetected"), DetectDestUndetected = Text("str-detect-dest-undetected"),
+                DetectSourceError = Text("str-detect-source-error"), DetectDestError = Text("str-detect-dest-error"),
+                DetectSourceTransplanted = Text("str-detect-source-transplanted"), DetectSourcePrefab = Text("str-detect-source-prefab"),
+                ModeLive = Text("str-mode-live"), ModePrefab = Text("str-mode-prefab"), ModeHome = Text("str-mode-home"), ModeNone = Text("str-mode-none"),
+                StateNoDest = Text("str-state-no-dest"), StateTransplanted = Text("str-state-transplanted"), StateNoSource = Text("str-state-no-source"),
+                StateBrokenNoManifest = Text("str-state-broken-no-manifest"), StateReady = Text("str-state-ready"),
+                BadgeMergeArmatureText = Text("str-badge-merge-armature"), BadgeMergeArmatureTooltip = Tooltip("str-badge-merge-armature"),
+                BadgePrefabText = Text("str-badge-prefab"), BadgePrefabTooltip = Tooltip("str-badge-prefab"),
+                BadgeAnimatorText = Text("str-badge-animator"), BadgeAnimatorTooltip = Tooltip("str-badge-animator"),
+                BadgeRootText = Text("str-badge-root"), BadgeRootTooltip = Tooltip("str-badge-root"),
+                BadgeNonHumanoidText = Text("str-badge-non-humanoid"), BadgeNonHumanoidTooltip = Tooltip("str-badge-non-humanoid"),
+                ScaleUnavailable = Text("str-scale-unavailable"), ScaleNoSourceScale = Text("str-scale-no-source-scale"),
+                HintPrefixReplace = Text("str-hint-prefix-replace"), HintCharSubstitution = Text("str-hint-char-substitution"), HintRegexReplace = Text("str-hint-regex-replace"),
+                TooltipPrefixSource = Text("str-tooltip-prefix-source"), TooltipPrefixDest = Text("str-tooltip-prefix-dest"),
+                TooltipCharSource = Text("str-tooltip-char-source"), TooltipCharDest = Text("str-tooltip-char-dest"),
+                TooltipRegexSource = Text("str-tooltip-regex-source"), TooltipRegexDest = Text("str-tooltip-regex-dest"),
+                DialogTitle = Text("str-dialog-title"), DialogConfirmTemplate = Text("str-dialog-confirm-template"),
+                DialogOk = Text("str-dialog-ok"), DialogCancel = Text("str-dialog-cancel"),
+                DialogCompleteTitle = Text("str-dialog-complete-title"), DialogCompleteOk = Text("str-dialog-complete-ok"),
             };
         }
 
         public override VisualElement CreateInspectorGUI()
         {
             _root = new VisualElement();
+            var definition = (PBRemap)target;
+            PBRemapper.MigrateLegacyIfNeeded(definition);
+            serializedObject.Update();
 
-            // SerializedPropertyを取得
-            _autoCalculateScaleProp = serializedObject.FindProperty("autoCalculateScale");
-            _scaleFactorProp = serializedObject.FindProperty("scaleFactor");
             _pathRemapRulesProp = serializedObject.FindProperty("pathRemapRules");
-            _serializedBoneRefsProp = serializedObject.FindProperty("serializedBoneReferences");
-            _sourceAvatarScaleProp = serializedObject.FindProperty("sourceAvatarScale");
-            _sourceRootOverrideProp = serializedObject.FindProperty("sourceRootOverride");
-            _destRootOverrideProp = serializedObject.FindProperty("destinationRootOverride");
+            _mappingOverridesProp = serializedObject.FindProperty("mappingOverrides");
 
-            // UXMLをロード
             var visualTree = Resources.Load<VisualTreeAsset>("UXML/PBRemap");
             if (visualTree == null)
             {
                 _root.Add(new HelpBox("PBRemap.uxml が見つかりません", HelpBoxMessageType.Error));
                 return _root;
             }
-
             visualTree.CloneTree(_root);
-
-            // 文字列リソースをロード
             LoadStringResources();
-
-            // USSをロード
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
-            if (styleSheet != null)
-                _root.styleSheets.Add(styleSheet);
+            if (styleSheet != null) _root.styleSheets.Add(styleSheet);
 
-            // 要素を取得 (移植元 → 移植先の順)
             _sourceAvatarLabel = _root.Q<Label>("source-avatar-label");
             _destAvatarLabel = _root.Q<Label>("dest-avatar-label");
             _modeLabel = _root.Q<Label>("mode-label");
@@ -231,49 +135,40 @@ namespace colloid.PBReplacer
             _destRootOverrideField = _root.Q<ObjectField>("dest-root-override");
             _componentsSummary = _root.Q<Label>("components-summary");
             _resolutionSummary = _root.Q<VisualElement>("resolution-summary");
+            _mappingFoldout = _root.Q<Foldout>("mapping-foldout");
+            _mappingTable = _root.Q<VisualElement>("mapping-table");
+            _clearManualButton = _root.Q<Button>("clear-manual-button");
             _rulesListView = _root.Q<ListView>("remap-rules-list");
-            _autoScaleToggle = _root.Q<Toggle>("auto-scale-toggle");
+            _scaleModeField = _root.Q<EnumField>("scale-mode-field");
             _manualScaleContainer = _root.Q<VisualElement>("manual-scale-container");
-            _scaleFactorField = _root.Q<FloatField>("scale-factor-field");
             _calculatedScaleLabel = _root.Q<Label>("calculated-scale-label");
+            _manifestInfo = _root.Q<Label>("manifest-info");
+            _refreshButton = _root.Q<Button>("refresh-manifest-button");
             _previewButton = _root.Q<Button>("preview-button");
             _remapButton = _root.Q<Button>("pbremap-button");
             _statusBox = _root.Q<HelpBox>("status-box");
             var addRuleButton = _root.Q<Button>("add-rule-button");
 
-            // バインド
             _root.Bind(serializedObject);
-
-            // ListView設定
             SetupRemapRulesListView();
 
-            // 手動指定フィールドの型を設定
             if (_sourceRootOverrideField != null)
             {
                 _sourceRootOverrideField.objectType = typeof(GameObject);
-                _sourceRootOverrideField.RegisterValueChangedCallback(_ =>
-                {
-                    RefreshDetection();
-                    UpdateSerializedBoneReferences();
-                });
+                _sourceRootOverrideField.RegisterValueChangedCallback(_ => QueueRefresh());
             }
             if (_destRootOverrideField != null)
             {
                 _destRootOverrideField.objectType = typeof(GameObject);
-                _destRootOverrideField.RegisterValueChangedCallback(_ =>
-                {
-                    RefreshDetection();
-                    UpdateSerializedBoneReferences();
-                });
+                _destRootOverrideField.RegisterValueChangedCallback(_ => QueueRefresh());
             }
+            _scaleModeField?.RegisterValueChangedCallback(evt => { UpdateScaleVisibility(); QueueRefresh(); });
+            if (addRuleButton != null) addRuleButton.clicked += OnAddRuleClicked;
+            if (_refreshButton != null) _refreshButton.clicked += OnRefreshManifestClicked;
+            if (_remapButton != null) _remapButton.clicked += OnRemapClicked;
+            if (_previewButton != null) _previewButton.clicked += OnPreviewClicked;
+            if (_clearManualButton != null) _clearManualButton.clicked += OnClearManualClicked;
 
-            // イベント登録
-            _autoScaleToggle.RegisterValueChangedCallback(evt => OnAutoScaleChanged(evt.newValue));
-            addRuleButton.clicked += OnAddRuleClicked;
-            _remapButton.clicked += OnRemapClicked;
-            _previewButton.clicked += OnPreviewClicked;
-
-            // ルールヒント表示切替ボタン
             var toggleHintsButton = _root.Q<Button>("toggle-hints-button");
             if (toggleHintsButton != null)
             {
@@ -285,78 +180,50 @@ namespace colloid.PBReplacer
                 };
             }
 
-            // 初期状態を設定
-            OnAutoScaleChanged(_autoCalculateScaleProp.boolValue);
-            RefreshDetection();
-            UpdateSerializedBoneReferences();
+            UpdateScaleVisibility();
+            RefreshAll();
 
-            // リマップルール変更時にボーン解決を再評価
-            _root.TrackSerializedObjectValue(serializedObject, _ =>
-            {
-                if (_detection == null)
-                    return;
-                var def = (PBRemap)target;
-                UpdateResolutionSummary(def);
-
-                var previewWindow = FindPreviewWindow();
-                if (previewWindow != null)
-                    previewWindow.RefreshPreview();
-
-                // SceneViewプレビューが有効ならキャッシュを再構築
-                if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
-                {
-                    var previewData = PBRemapPreview.GeneratePreview(def, _detection);
-                    PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
-                }
-            });
-
-            // 階層変更時の自動更新を登録
-            var definition = (PBRemap)target;
-            _cachedParent = definition.transform.parent;
-            _cachedChildCount = definition.transform.childCount;
+            // ルール/スケール/手動指定などの変更で再評価
+            _root.TrackSerializedObjectValue(serializedObject, _ => QueueRefresh());
             EditorApplication.hierarchyChanged += OnHierarchyChanged;
-
+            Undo.undoRedoPerformed += OnUndoRedo;
             return _root;
         }
 
         private void OnDisable()
         {
             EditorApplication.hierarchyChanged -= OnHierarchyChanged;
-
-            // プレビューウィンドウが閉じていればSceneViewプレビューを無効化
+            Undo.undoRedoPerformed -= OnUndoRedo;
             if (FindPreviewWindow() == null)
                 PBRemapScenePreviewState.Instance.Deactivate();
         }
 
-        /// <summary>
-        /// 階層変更を検知してインスペクター表示を更新する。
-        /// </summary>
-        private void OnHierarchyChanged()
+        private void OnHierarchyChanged() => QueueRefresh();
+        private void OnUndoRedo() => QueueRefresh();
+
+        private void QueueRefresh()
         {
-            if (target == null)
-                return;
-
-            var definition = (PBRemap)target;
-            var currentParent = definition.transform.parent;
-            var currentChildCount = definition.transform.childCount;
-
-            if (currentParent == _cachedParent && currentChildCount == _cachedChildCount)
-                return;
-
-            _cachedParent = currentParent;
-            _cachedChildCount = currentChildCount;
-
-            RefreshDetection();
-            UpdateSerializedBoneReferences();
+            if (_refreshQueued) return;
+            _refreshQueued = true;
+            EditorApplication.delayCall += () =>
+            {
+                _refreshQueued = false;
+                if (target == null || _root == null) return;
+                RefreshAll();
+            };
         }
 
-        #region 検出と更新
+        #region refresh
 
-        private void RefreshDetection()
+        private void RefreshAll()
         {
             var definition = (PBRemap)target;
-            var detectResult = SourceDetector.Detect(definition);
+            if (definition == null) return;
 
+            // 移植元にいる間は参照情報を最新化（Undoなし: 派生データ）
+            PBRemapper.RefreshManifestIfLive(definition);
+
+            var detectResult = SourceDetector.Detect(definition);
             if (detectResult.IsFailure)
             {
                 _sourceAvatarLabel.text = _strings.DetectSourceError;
@@ -365,234 +232,147 @@ namespace colloid.PBReplacer
                 _previewButton.SetEnabled(false);
                 return;
             }
-
             _detection = detectResult.Value;
+            var s = _detection.Situation;
 
-            // ソース表示 (移植元を先に更新)
-            if (_detection.IsReferencingDestination)
+            // 移植元/移植先ラベル
+            switch (s.State)
             {
-                _sourceAvatarLabel.text = _strings.DetectSourceTransplanted;
-                _modeLabel.text = "";
+                case PBRemapState.AtHome:
+                    _sourceAvatarLabel.text = _strings.DetectSourceTransplanted;
+                    _modeLabel.text = _strings.ModeHome;
+                    break;
+                case PBRemapState.Displaced:
+                    _sourceAvatarLabel.text = _strings.DetectSourcePrefix + (s.SourceRoot != null ? s.SourceRoot.name : "?");
+                    _modeLabel.text = _strings.ModeLive;
+                    break;
+                case PBRemapState.Broken:
+                    _sourceAvatarLabel.text = s.HasManifest ? string.Format(_strings.DetectSourcePrefab, definition.Manifest.sourceRootName) : _strings.DetectSourceUndetected;
+                    _modeLabel.text = s.HasManifest ? _strings.ModePrefab : "";
+                    break;
+                default:
+                    _sourceAvatarLabel.text = s.HasManifest && s.State == PBRemapState.NoDestination
+                        ? string.Format(_strings.DetectSourcePrefab, definition.Manifest.sourceRootName)
+                        : _strings.DetectSourceUndetected;
+                    _modeLabel.text = s.State == PBRemapState.NoReferences ? _strings.ModeNone : "";
+                    break;
             }
-            else if (_detection.IsLiveMode && _detection.SourceAvatar != null)
-            {
-                _sourceAvatarLabel.text = _strings.DetectSourcePrefix + _detection.SourceAvatar.name;
-                _modeLabel.text = _strings.ModeLive;
-            }
-            else if (!_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
-            {
-                _sourceAvatarLabel.text = _strings.DetectSourcePrefab;
-                _modeLabel.text = _strings.ModePrefab;
-            }
-            else
-            {
-                _sourceAvatarLabel.text = _strings.DetectSourceUndetected;
-                _modeLabel.text = "";
-            }
+            _destAvatarLabel.text = s.DestinationRoot != null ? _strings.DetectDestPrefix + s.DestinationRoot.name : _strings.DetectDestUndetected;
 
-            // デスティネーション表示
-            if (_detection.DestinationAvatar != null)
-                _destAvatarLabel.text = _strings.DetectDestPrefix + _detection.DestinationAvatar.name;
-            else
-                _destAvatarLabel.text = _strings.DetectDestUndetected;
-
-            UpdateStateBox(definition);
-            UpdateDetectionBadges();
-
-            if (_detection.Warnings.Count > 0)
-            {
-                _detectionWarningBox.text = string.Join("\n", _detection.Warnings);
-                _detectionWarningBox.messageType = HelpBoxMessageType.Warning;
-                _detectionWarningBox.style.display = DisplayStyle.Flex;
-            }
-            else
-            {
-                _detectionWarningBox.style.display = DisplayStyle.None;
-            }
-
+            UpdateBadges(s);
+            UpdateStateBox(s, definition);
             UpdateComponentsSummary(definition);
 
-            bool canOperate = !_detection.IsReferencingDestination
-                && _detection.DestinationAvatar != null
-                && (_detection.IsLiveMode && _detection.SourceAvatar != null
-                    || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
-            _remapButton.SetEnabled(canOperate);
-            _previewButton.SetEnabled(canOperate || _detection.IsReferencingDestination);
+            // プレビュー（解決計画）
+            _preview = null;
+            bool canPlan = s.CanResolve;
+            if (canPlan)
+            {
+                _preview = PBRemapPreview.GeneratePreview(definition, _detection);
+            }
+            UpdateResolutionSummary();
+            UpdateMappingTable(definition);
+            UpdateScaleLabel();
+            UpdateManifestInfo(definition);
 
-            UpdateResolutionSummary(definition);
+            var allWarnings = new List<string>(_detection.Warnings);
+            if (_preview != null) { allWarnings.AddRange(_preview.Errors); allWarnings.AddRange(_preview.Warnings); }
+            allWarnings = allWarnings.Distinct().ToList();
+            if (allWarnings.Count > 0)
+            {
+                _detectionWarningBox.text = string.Join("\n", allWarnings);
+                _detectionWarningBox.messageType = _preview != null && _preview.Errors.Count > 0 ? HelpBoxMessageType.Error : HelpBoxMessageType.Warning;
+                _detectionWarningBox.style.display = DisplayStyle.Flex;
+            }
+            else _detectionWarningBox.style.display = DisplayStyle.None;
 
-            // プレビューウィンドウが開いていれば検出結果を更新（フォーカスを奪わない）
+            bool canApply = _preview != null && _preview.Plan != null && _preview.Plan.CanApply;
+            _remapButton.SetEnabled(canApply);
+            _previewButton.SetEnabled(canPlan);
+            _refreshButton.SetEnabled(s.State == PBRemapState.AtHome || s.State == PBRemapState.Displaced);
+
             var previewWindow = FindPreviewWindow();
-            if (previewWindow != null)
-                previewWindow.UpdateDetection(_detection);
-
-            // SceneViewプレビューが有効なら検出結果の変更を反映
-            if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode)
-            {
-                var def = (PBRemap)target;
-                var previewData = PBRemapPreview.GeneratePreview(def, _detection);
-                PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
-            }
-
-            if (_autoCalculateScaleProp.boolValue)
-                UpdateCalculatedScaleLabel();
-
-            _statusBox.style.display = DisplayStyle.None;
+            if (previewWindow != null) previewWindow.UpdateDetection(_detection);
+            if (PBRemapScenePreviewState.Instance.IsActive && _detection.IsLiveMode && _preview != null)
+                PBRemapScenePreviewState.Instance.Activate(_preview, _detection);
         }
 
-        private void UpdateStateBox(PBRemap definition)
+        private void UpdateStateBox(PBRemapSituation s, PBRemap definition)
         {
-            if (_detection.DestinationAvatar == null)
+            string text = null;
+            var type = HelpBoxMessageType.Info;
+            switch (s.State)
             {
-                _stateBox.text = _strings.StateNoDest;
-                _stateBox.messageType = HelpBoxMessageType.Info;
-                _stateBox.style.display = DisplayStyle.Flex;
+                case PBRemapState.NoDestination: text = _strings.StateNoDest; type = HelpBoxMessageType.Warning; break;
+                case PBRemapState.AtHome: text = _strings.StateTransplanted; break;
+                case PBRemapState.NoReferences: text = _strings.StateNoSource; break;
+                case PBRemapState.Broken: if (!s.HasManifest) { text = _strings.StateBrokenNoManifest; type = HelpBoxMessageType.Error; } else text = _strings.StateReady; break;
+                case PBRemapState.Displaced: text = _strings.StateReady; break;
             }
-            else if (_detection.IsReferencingDestination)
-            {
-                _stateBox.text = _strings.StateTransplanted;
-                _stateBox.messageType = HelpBoxMessageType.Info;
-                _stateBox.style.display = DisplayStyle.Flex;
-            }
-            else if (_detection.IsLiveMode && _detection.SourceAvatar != null
-                || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0)
-            {
-                _stateBox.style.display = DisplayStyle.None;
-            }
-            else
-            {
-                _stateBox.text = _strings.StateNoSource;
-                _stateBox.messageType = HelpBoxMessageType.Info;
-                _stateBox.style.display = DisplayStyle.Flex;
-            }
+            if (definition.Applied != null && definition.Applied.isApplied && s.State == PBRemapState.AtHome)
+                text += $"\n（適用済み: {definition.Applied.sourceRootName} → {definition.Applied.destinationRootName}, スケール x{definition.Applied.worldScaleRatio:F3}）";
+            if (text == null) _stateBox.style.display = DisplayStyle.None;
+            else { _stateBox.text = text; _stateBox.messageType = type; _stateBox.style.display = DisplayStyle.Flex; }
         }
 
-        private void UpdateDetectionBadges()
+        private void UpdateBadges(PBRemapSituation s)
         {
-            if (_detection == null) return;
-
-            // 移植元 → 移植先の順で更新
-            UpdateSingleBadge(
-                _sourceBadge,
-                _detection.SourceAvatar,
-                _detection.SourceDetectionMethod,
-                _detection.SourceAvatarData);
-
-            UpdateSingleBadge(
-                _destBadge,
-                _detection.DestinationAvatar,
-                _detection.DestinationDetectionMethod,
-                _detection.DestAvatarData);
+            SetBadge(_sourceBadge, s.Source, _detection.SourceAvatarData);
+            SetBadge(_destBadge, s.Destination, _detection.DestAvatarData);
         }
 
-        private void UpdateSingleBadge(
-            Label badge, GameObject avatar, AvatarDetectionMethod method, AvatarData avatarData)
+        private void SetBadge(Label badge, RootInfo info, AvatarData data)
         {
             if (badge == null) return;
-
-            var tags = new List<string>();
-            var tooltipParts = new List<string>();
-
-            if (avatar != null)
+            var tags = new List<string>(); var tips = new List<string>();
+            if (info != null && info.Root != null)
             {
-                switch (method)
+                switch (info.Method)
                 {
-                    case AvatarDetectionMethod.MergeArmature:
-                        tags.Add(_strings.BadgeMergeArmatureText);
-                        tooltipParts.Add(_strings.BadgeMergeArmatureTooltip);
-                        break;
-                    case AvatarDetectionMethod.PrefabBoundary:
-                        tags.Add(_strings.BadgePrefabText);
-                        tooltipParts.Add(_strings.BadgePrefabTooltip);
-                        break;
-                    case AvatarDetectionMethod.Animator:
-                        tags.Add(_strings.BadgeAnimatorText);
-                        tooltipParts.Add(_strings.BadgeAnimatorTooltip);
-                        break;
-                    case AvatarDetectionMethod.Root:
-                        tags.Add(_strings.BadgeRootText);
-                        tooltipParts.Add(_strings.BadgeRootTooltip);
-                        break;
-                    // VRCAvatarDescriptor / Manual / None は method バッジなし
+                    case AvatarDetectionMethod.MergeArmature: tags.Add(_strings.BadgeMergeArmatureText); tips.Add(_strings.BadgeMergeArmatureTooltip); break;
+                    case AvatarDetectionMethod.PrefabBoundary: tags.Add(_strings.BadgePrefabText); tips.Add(_strings.BadgePrefabTooltip); break;
+                    case AvatarDetectionMethod.Animator: tags.Add(_strings.BadgeAnimatorText); tips.Add(_strings.BadgeAnimatorTooltip); break;
+                    case AvatarDetectionMethod.Root: tags.Add(_strings.BadgeRootText); tips.Add(_strings.BadgeRootTooltip); break;
+                    case AvatarDetectionMethod.Manual: tags.Add("手動"); tips.Add("詳細設定 > 手動指定で指定されています。"); break;
                 }
+                if (data != null && (data.AvatarAnimator == null || !data.AvatarAnimator.isHuman) && info.Kind != RootKind.MACostume)
+                { tags.Add(_strings.BadgeNonHumanoidText); tips.Add(_strings.BadgeNonHumanoidTooltip); }
             }
-
-            if (avatarData != null)
-            {
-                var animator = avatarData.AvatarAnimator;
-                if (animator == null || !animator.isHuman)
-                {
-                    tags.Add(_strings.BadgeNonHumanoidText);
-                    tooltipParts.Add(_strings.BadgeNonHumanoidTooltip);
-                }
-            }
-
-            if (tags.Count > 0)
-            {
-                badge.text = string.Join(" / ", tags);
-                badge.tooltip = string.Join("\n\n", tooltipParts);
-                badge.style.display = DisplayStyle.Flex;
-            }
-            else
-            {
-                badge.style.display = DisplayStyle.None;
-            }
+            if (tags.Count > 0) { badge.text = string.Join(" / ", tags); badge.tooltip = string.Join("\n\n", tips); badge.style.display = DisplayStyle.Flex; }
+            else badge.style.display = DisplayStyle.None;
         }
 
-        private void UpdateResolutionSummary(PBRemap definition)
+        private void UpdateComponentsSummary(PBRemap definition)
         {
-            bool canCheck = _detection.DestinationAvatar != null
-                && _detection.DestAvatarData != null
-                && !_detection.IsReferencingDestination
-                && (_detection.IsLiveMode && _detection.SourceAvatar != null
-                    || !_detection.IsLiveMode && definition.SerializedBoneReferences.Count > 0);
+            var t = definition.transform;
+            int pb = t.GetComponentsInChildren<VRCPhysBone>(true).Length;
+            int pbc = t.GetComponentsInChildren<VRCPhysBoneCollider>(true).Length;
+            int cs = t.GetComponentsInChildren<VRCConstraintBase>(true).Length;
+            int ct = t.GetComponentsInChildren<ContactBase>(true).Length;
+            _componentsSummary.text = $"PhysBone: {pb}  PhysBoneCollider: {pbc}  Constraint: {cs}  Contact: {ct}  (合計: {pb + pbc + cs + ct})";
+        }
 
-            if (!canCheck)
+        private void UpdateResolutionSummary()
+        {
+            if (_preview == null || _preview.Plan == null || _preview.Plan.Resolutions.Count == 0)
             {
                 _resolutionSummary.style.display = DisplayStyle.None;
-                Highlighter.Stop();
                 return;
             }
-
-            var preview = PBRemapPreview.GeneratePreview(definition, _detection);
-            int total = preview.ResolvedBones + preview.UnresolvedBones;
-
-            if (total == 0)
-            {
-                _resolutionSummary.style.display = DisplayStyle.None;
-                Highlighter.Stop();
-                return;
-            }
-
-            _resolutionSummary.style.display = DisplayStyle.Flex;
+            var plan = _preview.Plan;
+            int total = plan.Resolutions.Count;
+            int ext = plan.CountOf(ResolutionStatus.ExternalObject);
+            int unresolved = plan.CountOf(ResolutionStatus.Unresolved);
             _resolutionSummary.Clear();
-
-            int autoCreatable = preview.AutoCreatableBones;
-            int trueUnresolved = preview.UnresolvedBones - autoCreatable;
-
-            // ヘッダーラベル
-            var header = new Label($"ボーン解決: {preview.ResolvedBones}/{total}");
+            var header = new Label($"参照解決: {plan.ResolvedCount + plan.AutoCreateCount}/{total}");
             header.AddToClassList("pbremap-resolution-header");
             _resolutionSummary.Add(header);
-
-            // 解決済みチップ
-            if (preview.ResolvedBones > 0)
-                _resolutionSummary.Add(CreateResolutionChip(preview.ResolvedBones, "解決済み", "resolved"));
-
-            // 作成予定チップ
-            if (autoCreatable > 0)
-                _resolutionSummary.Add(CreateResolutionChip(autoCreatable, "作成予定", "auto-creatable"));
-
-            // 未解決チップ
-            if (trueUnresolved > 0)
-            {
-                _resolutionSummary.Add(CreateResolutionChip(trueUnresolved, "未解決", "unresolved"));
-                Highlighter.Highlight("Inspector", "プレビュー", HighlightSearchMode.Auto);
-            }
-            else
-            {
-                Highlighter.Stop();
-            }
+            _resolutionSummary.Add(CreateResolutionChip(plan.ResolvedCount, "解決済み", "resolved"));
+            if (plan.AutoCreateCount > 0) _resolutionSummary.Add(CreateResolutionChip(plan.AutoCreateCount, "作成予定", "auto-creatable"));
+            if (plan.AmbiguousCount > 0) _resolutionSummary.Add(CreateResolutionChip(plan.AmbiguousCount, "要選択", "unresolved"));
+            if (unresolved > 0) _resolutionSummary.Add(CreateResolutionChip(unresolved, "未解決", "unresolved"));
+            if (ext > 0) _resolutionSummary.Add(CreateResolutionChip(ext, "外部参照", "unresolved"));
+            _resolutionSummary.style.display = DisplayStyle.Flex;
         }
 
         private static VisualElement CreateResolutionChip(int count, string label, string state)
@@ -600,182 +380,186 @@ namespace colloid.PBReplacer
             var chip = new VisualElement();
             chip.AddToClassList("pbremap-resolution-chip");
             chip.AddToClassList($"pbremap-resolution-chip-{state}");
-
             var dot = new VisualElement();
             dot.AddToClassList("pbremap-resolution-dot");
             dot.AddToClassList($"pbremap-resolution-dot-{state}");
             chip.Add(dot);
-
             var text = new Label($"{count} {label}");
             text.AddToClassList("pbremap-resolution-chip-label");
             text.AddToClassList($"pbremap-resolution-chip-label-{state}");
             chip.Add(text);
-
             return chip;
         }
 
-        private void UpdateComponentsSummary(PBRemap definition)
+        /// <summary>
+        /// ボーン対応テーブル。移植元ボーン単位で1行。未解決/曖昧/自動作成の行には手動マッピング用のObjectFieldを出す。
+        /// </summary>
+        private void UpdateMappingTable(PBRemap definition)
         {
-            var root = definition.transform;
-            int pb = root.GetComponentsInChildren<VRCPhysBone>(true).Length;
-            int pbc = root.GetComponentsInChildren<VRCPhysBoneCollider>(true).Length;
-            int constraint = root.GetComponentsInChildren<VRCConstraintBase>(true).Length;
-            int contact = root.GetComponentsInChildren<ContactBase>(true).Length;
-            int total = pb + pbc + constraint + contact;
-
-            _componentsSummary.text =
-                $"PhysBone: {pb}  PhysBoneCollider: {pbc}  " +
-                $"Constraint: {constraint}  Contact: {contact}  " +
-                $"(合計: {total})";
-        }
-
-        private void UpdateSerializedBoneReferences()
-        {
-            if (_detection == null || !_detection.IsLiveMode)
-                return;
-            if (_detection.SourceAvatarData == null)
-                return;
-
-            var definition = (PBRemap)target;
-            var definitionRoot = definition.transform;
-            var sourceData = _detection.SourceAvatarData;
-            var sourceArmature = sourceData.Armature.transform;
-            var sourceAnimator = sourceData.AvatarAnimator;
-
-            var humanoidBoneMap = new Dictionary<Transform, HumanBodyBones>();
-            if (sourceAnimator != null && sourceAnimator.isHuman)
+            _mappingTable.Clear();
+            if (_preview == null || _preview.Plan == null || _preview.Plan.Resolutions.Count == 0)
             {
-                foreach (HumanBodyBones boneId in Enum.GetValues(typeof(HumanBodyBones)))
+                _mappingFoldout.style.display = DisplayStyle.None;
+                return;
+            }
+            _mappingFoldout.style.display = DisplayStyle.Flex;
+            var plan = _preview.Plan;
+            var groups = plan.Resolutions.GroupBy(r => r.SourceKey).ToList();
+            bool anyManual = definition.MappingOverrides != null && definition.MappingOverrides.Count > 0;
+            _clearManualButton.style.display = anyManual ? DisplayStyle.Flex : DisplayStyle.None;
+
+            foreach (var g in groups)
+            {
+                var res = g.First();
+                var row = new VisualElement();
+                row.AddToClassList("preview-bone-item");
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.marginBottom = 2;
+
+                string dotClass;
+                switch (res.Status)
                 {
-                    if (boneId == HumanBodyBones.LastBone) continue;
-                    var bone = sourceAnimator.GetBoneTransform(boneId);
-                    if (bone != null && !humanoidBoneMap.ContainsKey(bone))
-                        humanoidBoneMap[bone] = boneId;
+                    case ResolutionStatus.Resolved: case ResolutionStatus.Manual: dotClass = "resolved"; break;
+                    case ResolutionStatus.AutoCreate: dotClass = "auto-creatable"; break;
+                    default: dotClass = "unresolved"; break;
                 }
-            }
+                var dot = new VisualElement();
+                dot.AddToClassList("pbremap-resolution-dot");
+                dot.AddToClassList($"pbremap-resolution-dot-{dotClass}");
+                row.Add(dot);
 
-            // スケルトンボーン判定用のセットを構築
-            var skinnedBones = BoneMapper.CollectSkinnedBones(_detection.SourceAvatar);
+                var src = new Label(res.SourceDisplayPath);
+                src.AddToClassList("preview-bone-sourcelabel");
+                src.style.flexGrow = 1; src.style.flexBasis = 0; src.style.overflow = Overflow.Hidden;
+                src.tooltip = "参照: " + string.Join("\n", g.Select(x => x.Ref.componentPath + "." + x.Ref.propertyPath));
+                row.Add(src);
 
-            var boneRefs = new List<SerializedBoneReference>();
-            ScanComponentReferences<VRCPhysBone>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
-            ScanComponentReferences<VRCPhysBoneCollider>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
-            ScanComponentReferences<VRCConstraintBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
-            ScanComponentReferences<ContactBase>(definitionRoot, sourceArmature, humanoidBoneMap, skinnedBones, boneRefs);
+                var arrow = new Label("→");
+                arrow.AddToClassList("preview-bone-arrow");
+                row.Add(arrow);
 
-            serializedObject.Update();
-            _serializedBoneRefsProp.ClearArray();
-            for (int i = 0; i < boneRefs.Count; i++)
-            {
-                _serializedBoneRefsProp.InsertArrayElementAtIndex(i);
-                var element = _serializedBoneRefsProp.GetArrayElementAtIndex(i);
-                var br = boneRefs[i];
-                element.FindPropertyRelative("componentObjectPath").stringValue = br.componentObjectPath;
-                element.FindPropertyRelative("componentTypeName").stringValue = br.componentTypeName;
-                element.FindPropertyRelative("propertyPath").stringValue = br.propertyPath;
-                element.FindPropertyRelative("boneRelativePath").stringValue = br.boneRelativePath;
-                element.FindPropertyRelative("humanBodyBone").enumValueIndex = (int)br.humanBodyBone;
-                element.FindPropertyRelative("nearestHumanoidAncestor").enumValueIndex = (int)br.nearestHumanoidAncestor;
-                element.FindPropertyRelative("pathFromHumanoidAncestor").stringValue = br.pathFromHumanoidAncestor ?? "";
-                element.FindPropertyRelative("isSkeletonBone").boolValue = br.isSkeletonBone;
-            }
-
-            float sourceScale = PBRemapper.CalculateAvatarScale(sourceData);
-            _sourceAvatarScaleProp.floatValue = sourceScale;
-
-            serializedObject.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        private void ScanComponentReferences<T>(
-            Transform definitionRoot,
-            Transform sourceArmature,
-            Dictionary<Transform, HumanBodyBones> humanoidBoneMap,
-            HashSet<Transform> skinnedBones,
-            List<SerializedBoneReference> results) where T : Component
-        {
-            foreach (var component in definitionRoot.GetComponentsInChildren<T>(true))
-            {
-                var so = new SerializedObject(component);
-                var prop = so.GetIterator();
-
-                while (prop.Next(true))
+                var destField = new ObjectField { objectType = typeof(Transform), allowSceneObjects = true };
+                destField.style.flexGrow = 1; destField.style.flexBasis = 0;
+                destField.SetValueWithoutNotify(res.Target);
+                string tip;
+                switch (res.Status)
                 {
-                    if (prop.propertyType != SerializedPropertyType.ObjectReference)
-                        continue;
+                    case ResolutionStatus.Resolved: tip = $"解決方法: {res.Method}"; break;
+                    case ResolutionStatus.Manual: tip = "手動マッピング"; break;
+                    case ResolutionStatus.AutoCreate: tip = res.Message + "\n（Transformを指定すると自動作成の代わりにそれを使います）"; break;
+                    case ResolutionStatus.Ambiguous: tip = res.Message; break;
+                    default: tip = res.Message + "\n（Transformをドロップして手動で対応付けできます）"; break;
+                }
+                destField.tooltip = tip;
+                if (res.Status == ResolutionStatus.AutoCreate && res.Target == null)
+                {
+                    var l = destField.Q<Label>();
+                    // ObjectFieldの表示は空のままにし、右側に作成予定を表示
+                }
+                var key = res.SourceKey;
+                var displayPath = res.SourceDisplayPath;
+                destField.RegisterValueChangedCallback(evt => SetManualMapping(definition, key, displayPath, evt.newValue as Transform));
+                row.Add(destField);
 
-                    var objRef = prop.objectReferenceValue as Transform;
-                    if (objRef == null)
-                        continue;
-
-                    if (objRef.IsChildOf(definitionRoot))
-                        continue;
-
-                    string relativePath = BoneMapper.GetRelativePath(objRef, sourceArmature);
-                    if (relativePath == null)
-                        continue;
-
-                    string componentPath = GetRelativePath(component.transform, definitionRoot);
-                    if (componentPath == null)
-                        continue;
-
-                    var boneRef = new SerializedBoneReference
+                if (res.Status == ResolutionStatus.AutoCreate)
+                {
+                    var note = new Label("(作成予定)");
+                    note.AddToClassList("preview-bone-auto-creatable");
+                    row.Add(note);
+                }
+                else if (res.Status == ResolutionStatus.Ambiguous)
+                {
+                    var pick = new Button { text = "候補…" };
+                    pick.tooltip = res.Message;
+                    var candidates = res.Candidates;
+                    pick.clicked += () =>
                     {
-                        componentObjectPath = componentPath,
-                        componentTypeName = component.GetType().Name,
-                        propertyPath = prop.propertyPath,
-                        boneRelativePath = relativePath,
-                        humanBodyBone = HumanBodyBones.LastBone,
-                        nearestHumanoidAncestor = HumanBodyBones.LastBone,
-                        pathFromHumanoidAncestor = ""
-                    };
-
-                    boneRef.isSkeletonBone = BoneMapper.IsSkeletonBone(objRef, skinnedBones);
-
-                    if (humanoidBoneMap.TryGetValue(objRef, out var humanBone))
-                    {
-                        boneRef.humanBodyBone = humanBone;
-                    }
-
-                    var ancestor = objRef.parent;
-                    var pathSegments = new List<string> { objRef.name };
-                    while (ancestor != null && ancestor != sourceArmature.parent)
-                    {
-                        if (humanoidBoneMap.TryGetValue(ancestor, out var ancestorBone))
+                        var menu = new GenericMenu();
+                        foreach (var c in candidates)
                         {
-                            boneRef.nearestHumanoidAncestor = ancestorBone;
-                            pathSegments.Reverse();
-                            boneRef.pathFromHumanoidAncestor = string.Join("/", pathSegments);
-                            break;
+                            var cc = c;
+                            menu.AddItem(new GUIContent(BoneMapper.GetRelativePath(cc, plan.DestinationRoot.transform) ?? cc.name), false,
+                                () => SetManualMapping(definition, key, displayPath, cc));
                         }
-                        pathSegments.Add(ancestor.name);
-                        ancestor = ancestor.parent;
-                    }
-
-                    results.Add(boneRef);
+                        menu.ShowAsContext();
+                    };
+                    row.Add(pick);
                 }
+                else if (res.Status == ResolutionStatus.Unresolved || res.Status == ResolutionStatus.ExternalObject)
+                {
+                    var note = new Label(res.Status == ResolutionStatus.ExternalObject ? "(外部)" : "(未解決)");
+                    note.AddToClassList("preview-bone-unresolved");
+                    note.tooltip = res.Message;
+                    row.Add(note);
+                }
+                _mappingTable.Add(row);
             }
         }
 
-        private static string GetRelativePath(Transform target, Transform root)
+        private void SetManualMapping(PBRemap definition, string sourceKey, string sourcePath, Transform targetTransform)
         {
-            if (target == root) return "";
-
-            var segments = new List<string>();
-            var current = target;
-            while (current != null && current != root)
+            serializedObject.Update();
+            int found = -1;
+            for (int i = 0; i < _mappingOverridesProp.arraySize; i++)
             {
-                segments.Add(current.name);
-                current = current.parent;
+                if (_mappingOverridesProp.GetArrayElementAtIndex(i).FindPropertyRelative("sourceKey").stringValue == sourceKey) { found = i; break; }
             }
-            if (current != root) return null;
+            if (targetTransform == null)
+            {
+                if (found >= 0) _mappingOverridesProp.DeleteArrayElementAtIndex(found);
+            }
+            else
+            {
+                if (found < 0) { found = _mappingOverridesProp.arraySize; _mappingOverridesProp.arraySize = found + 1; }
+                var el = _mappingOverridesProp.GetArrayElementAtIndex(found);
+                el.FindPropertyRelative("sourceKey").stringValue = sourceKey;
+                el.FindPropertyRelative("sourcePath").stringValue = sourcePath;
+                el.FindPropertyRelative("target").objectReferenceValue = targetTransform;
+                var destRoot = _detection?.DestinationAvatar;
+                el.FindPropertyRelative("targetPathFromRoot").stringValue = destRoot != null ? (BoneMapper.GetRelativePath(targetTransform, destRoot.transform) ?? "") : "";
+            }
+            serializedObject.ApplyModifiedProperties();
+            QueueRefresh();
+        }
 
-            segments.Reverse();
-            return string.Join("/", segments);
+        private void OnClearManualClicked()
+        {
+            serializedObject.Update();
+            _mappingOverridesProp.ClearArray();
+            serializedObject.ApplyModifiedProperties();
+            QueueRefresh();
+        }
+
+        private void UpdateScaleVisibility()
+        {
+            var definition = (PBRemap)target;
+            _manualScaleContainer.style.display = definition.ScaleMode == PBRemapScaleMode.Manual ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private void UpdateScaleLabel()
+        {
+            if (_preview == null || _preview.Plan == null)
+            {
+                _calculatedScaleLabel.text = "";
+                return;
+            }
+            var plan = _preview.Plan;
+            _calculatedScaleLabel.text = $"世界寸法比: x{plan.WorldScaleRatio:F4} ({plan.ScaleMethod})  ※ radius等は「元値 × 比 × 移植元/移植先ボーンのlossyScale比」で適用";
+        }
+
+        private void UpdateManifestInfo(PBRemap definition)
+        {
+            if (_manifestInfo == null) return;
+            var m = definition.Manifest;
+            if (m == null || m.IsEmpty) { _manifestInfo.text = "参照情報なし"; return; }
+            var ctxs = string.Join(", ", m.contexts.Where(c => c.id != 0).Select(c => $"{c.kind}:{c.armatureName}{(c.isHumanoid ? "(Humanoid)" : "")}{(string.IsNullOrEmpty(c.maPrefix + c.maSuffix) ? "" : $"[{c.maPrefix}*{c.maSuffix}]")}"));
+            _manifestInfo.text = $"移植元: {m.sourceRootName} ({m.sourceRootKind})\n取得: {m.capturedAtUtc}\n参照: {m.refs.Count} 件 / コンテキスト: {ctxs}\nHips-Head: {m.scaleReference.hipsToHead:F4}";
         }
 
         #endregion
 
-        #region ListView設定
+        #region rules listview
 
         private void SetupRemapRulesListView()
         {
@@ -783,7 +567,6 @@ namespace colloid.PBReplacer
             _rulesListView.showBoundCollectionSize = false;
             _rulesListView.reorderable = true;
             _rulesListView.bindingPath = "pathRemapRules";
-
             _rulesListView.makeItem = MakeRuleItem;
             _rulesListView.bindItem = BindRuleItem;
         }
@@ -791,51 +574,31 @@ namespace colloid.PBReplacer
         private VisualElement MakeRuleItem()
         {
             var root = new VisualElement();
-
-            var row = new VisualElement();
-            row.name = "rule-row";
+            var row = new VisualElement { name = "rule-row" };
             row.AddToClassList("remap-rule-item");
-
-            var enabledToggle = new Toggle();
-            enabledToggle.name = "rule-enabled";
+            var enabledToggle = new Toggle { name = "rule-enabled" };
             row.Add(enabledToggle);
-
-            var modeField = new EnumField(PathRemapRule.RemapMode.CharacterSubstitution);
-            modeField.name = "rule-mode";
+            var modeField = new EnumField(PathRemapRule.RemapMode.CharacterSubstitution) { name = "rule-mode" };
             row.Add(modeField);
-
-            var sourcePatternField = new TextField();
-            sourcePatternField.name = "rule-source-pattern";
+            var sourcePatternField = new TextField { name = "rule-source-pattern" };
             row.Add(sourcePatternField);
-
-            var arrowLabel = new Label("\u2194");
+            var arrowLabel = new Label("↔");
             arrowLabel.AddToClassList("remap-rule-arrow");
             row.Add(arrowLabel);
-
-            var destPatternField = new TextField();
-            destPatternField.name = "rule-dest-pattern";
+            var destPatternField = new TextField { name = "rule-dest-pattern" };
             row.Add(destPatternField);
-
-            var deleteButton = new Button();
-            deleteButton.name = "rule-delete";
-            deleteButton.text = "\u2715";
+            var deleteButton = new Button { name = "rule-delete", text = "✕" };
             deleteButton.AddToClassList("remap-rule-delete-button");
             row.Add(deleteButton);
-
             root.Add(row);
-
-            var hintLabel = new Label();
-            hintLabel.name = "rule-hint";
+            var hintLabel = new Label { name = "rule-hint" };
             hintLabel.AddToClassList("remap-rule-hint");
             root.Add(hintLabel);
-
-            var errorLabel = new Label();
-            errorLabel.name = "rule-error";
+            var errorLabel = new Label { name = "rule-error" };
             errorLabel.AddToClassList("remap-rule-error-label");
             errorLabel.style.display = DisplayStyle.None;
             root.Add(errorLabel);
 
-            // モード変更時にヒントとtooltipを更新（makeItemで1回だけ登録）
             modeField.RegisterValueChangedCallback(evt =>
             {
                 if (evt.newValue is PathRemapRule.RemapMode mode)
@@ -845,24 +608,17 @@ namespace colloid.PBReplacer
                     UpdateRuleErrorDisplay(row, errorLabel, mode, sourcePatternField.value);
                 }
             });
-
-            // 正規表現パターン変更時にもエラー表示を即時更新
             sourcePatternField.RegisterValueChangedCallback(evt =>
             {
-                var mode = modeField.value is PathRemapRule.RemapMode m
-                    ? m
-                    : PathRemapRule.RemapMode.CharacterSubstitution;
+                var mode = modeField.value is PathRemapRule.RemapMode m ? m : PathRemapRule.RemapMode.CharacterSubstitution;
                 UpdateRuleErrorDisplay(row, errorLabel, mode, evt.newValue);
             });
-
             return root;
         }
 
         private void BindRuleItem(VisualElement element, int index)
         {
-            if (index < 0 || index >= _pathRemapRulesProp.arraySize)
-                return;
-
+            if (index < 0 || index >= _pathRemapRulesProp.arraySize) return;
             var ruleProp = _pathRemapRulesProp.GetArrayElementAtIndex(index);
             var enabledProp = ruleProp.FindPropertyRelative("enabled");
             var modeProp = ruleProp.FindPropertyRelative("mode");
@@ -882,115 +638,55 @@ namespace colloid.PBReplacer
             modeField.BindProperty(modeProp);
             sourcePatternField.BindProperty(sourcePatternProp);
             destPatternField.BindProperty(destPatternProp);
-
             deleteButton.clickable = new Clickable(() => OnDeleteRuleClicked(index));
 
             var mode = (PathRemapRule.RemapMode)modeProp.enumValueIndex;
             UpdateRuleHint(hintLabel, mode);
             UpdateFieldTooltips(sourcePatternField, destPatternField, mode);
             hintLabel.style.display = _showRuleHints ? DisplayStyle.Flex : DisplayStyle.None;
-
-            // ListViewの要素再利用に備え、毎回明示的にエラー状態を検証・反映する
             UpdateRuleErrorDisplay(ruleRow, errorLabel, mode, sourcePatternProp.stringValue);
         }
 
-        /// <summary>
-        /// ルールの正規表現バリデーション結果を行の見た目に反映する。
-        /// ListViewの要素再利用があってもクラス/ラベルが確実にリセットされるよう、
-        /// 呼び出しごとに状態を明示的に設定する。
-        /// </summary>
-        private void UpdateRuleErrorDisplay(
-            VisualElement ruleRow, Label errorLabel, PathRemapRule.RemapMode mode, string sourcePattern)
+        private void UpdateRuleErrorDisplay(VisualElement ruleRow, Label errorLabel, PathRemapRule.RemapMode mode, string sourcePattern)
         {
-            if (ruleRow == null || errorLabel == null)
-                return;
-
+            if (ruleRow == null || errorLabel == null) return;
             var tempRule = new PathRemapRule { mode = mode, sourcePattern = sourcePattern };
             bool isValid = tempRule.TryValidate(out string errorMessage);
-
             ruleRow.EnableInClassList("remap-rule-error", !isValid);
-
-            if (isValid)
-            {
-                errorLabel.style.display = DisplayStyle.None;
-                errorLabel.text = "";
-                errorLabel.tooltip = "";
-            }
-            else
-            {
-                errorLabel.style.display = DisplayStyle.Flex;
-                errorLabel.text = errorMessage;
-                errorLabel.tooltip = errorMessage;
-            }
+            if (isValid) { errorLabel.style.display = DisplayStyle.None; errorLabel.text = ""; errorLabel.tooltip = ""; }
+            else { errorLabel.style.display = DisplayStyle.Flex; errorLabel.text = errorMessage; errorLabel.tooltip = errorMessage; }
         }
 
         private void UpdateRuleHint(Label hintLabel, PathRemapRule.RemapMode mode)
         {
             switch (mode)
             {
-                case PathRemapRule.RemapMode.PrefixReplace:
-                    hintLabel.text = _strings.HintPrefixReplace;
-                    break;
-                case PathRemapRule.RemapMode.CharacterSubstitution:
-                    hintLabel.text = _strings.HintCharSubstitution;
-                    break;
-                case PathRemapRule.RemapMode.RegexReplace:
-                    hintLabel.text = _strings.HintRegexReplace;
-                    break;
+                case PathRemapRule.RemapMode.PrefixReplace: hintLabel.text = _strings.HintPrefixReplace; break;
+                case PathRemapRule.RemapMode.CharacterSubstitution: hintLabel.text = _strings.HintCharSubstitution; break;
+                case PathRemapRule.RemapMode.RegexReplace: hintLabel.text = _strings.HintRegexReplace; break;
             }
         }
 
-        private void UpdateFieldTooltips(
-            TextField sourceField, TextField destField, PathRemapRule.RemapMode mode)
+        private void UpdateFieldTooltips(TextField sourceField, TextField destField, PathRemapRule.RemapMode mode)
         {
             switch (mode)
             {
-                case PathRemapRule.RemapMode.PrefixReplace:
-                    sourceField.tooltip = _strings.TooltipPrefixSource;
-                    destField.tooltip = _strings.TooltipPrefixDest;
-                    break;
-                case PathRemapRule.RemapMode.CharacterSubstitution:
-                    sourceField.tooltip = _strings.TooltipCharSource;
-                    destField.tooltip = _strings.TooltipCharDest;
-                    break;
-                case PathRemapRule.RemapMode.RegexReplace:
-                    sourceField.tooltip = _strings.TooltipRegexSource;
-                    destField.tooltip = _strings.TooltipRegexDest;
-                    break;
+                case PathRemapRule.RemapMode.PrefixReplace: sourceField.tooltip = _strings.TooltipPrefixSource; destField.tooltip = _strings.TooltipPrefixDest; break;
+                case PathRemapRule.RemapMode.CharacterSubstitution: sourceField.tooltip = _strings.TooltipCharSource; destField.tooltip = _strings.TooltipCharDest; break;
+                case PathRemapRule.RemapMode.RegexReplace: sourceField.tooltip = _strings.TooltipRegexSource; destField.tooltip = _strings.TooltipRegexDest; break;
             }
-        }
-
-        #endregion
-
-        #region イベントハンドラ
-
-        private void OnAutoScaleChanged(bool autoScale)
-        {
-            _manualScaleContainer.style.display = autoScale
-                ? DisplayStyle.None
-                : DisplayStyle.Flex;
-
-            _calculatedScaleLabel.style.display = autoScale
-                ? DisplayStyle.Flex
-                : DisplayStyle.None;
-
-            if (autoScale)
-                UpdateCalculatedScaleLabel();
         }
 
         private void OnAddRuleClicked()
         {
             serializedObject.Update();
             int newIndex = _pathRemapRulesProp.arraySize;
-            _pathRemapRulesProp.InsertArrayElementAtIndex(newIndex);
-
+            _pathRemapRulesProp.arraySize = newIndex + 1;
             var newRule = _pathRemapRulesProp.GetArrayElementAtIndex(newIndex);
-            newRule.FindPropertyRelative("enabled").boolValue = true;
-            newRule.FindPropertyRelative("mode").enumValueIndex =
-                (int)PathRemapRule.RemapMode.CharacterSubstitution;
+            newRule.FindPropertyRelative("mode").enumValueIndex = (int)PathRemapRule.RemapMode.CharacterSubstitution;
             newRule.FindPropertyRelative("sourcePattern").stringValue = "";
             newRule.FindPropertyRelative("destinationPattern").stringValue = "";
-
+            newRule.FindPropertyRelative("enabled").boolValue = true;
             serializedObject.ApplyModifiedProperties();
             _rulesListView.Rebuild();
         }
@@ -1006,19 +702,29 @@ namespace colloid.PBReplacer
             }
         }
 
+        #endregion
+
+        #region actions
+
+        private void OnRefreshManifestClicked()
+        {
+            var definition = (PBRemap)target;
+            bool changed = PBRemapper.RefreshManifestIfLive(definition, null, registerUndo: true);
+            _statusBox.text = changed ? $"参照情報を更新しました（{definition.Manifest.refs.Count} 件）" : "参照情報は最新です（または参照が生きていません）";
+            _statusBox.messageType = HelpBoxMessageType.Info;
+            _statusBox.style.display = DisplayStyle.Flex;
+            QueueRefresh();
+        }
+
         private void OnPreviewClicked()
         {
             var definition = (PBRemap)target;
-            if (_detection != null)
+            if (_detection == null) return;
+            PBRemapPreviewWindow.Open(definition, _detection);
+            if (_detection.IsLiveMode)
             {
-                PBRemapPreviewWindow.Open(definition, _detection);
-
-                // SceneViewプレビューを有効化（Live Modeのみ）
-                if (_detection.IsLiveMode)
-                {
-                    var previewData = PBRemapPreview.GeneratePreview(definition, _detection);
-                    PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
-                }
+                var previewData = PBRemapPreview.GeneratePreview(definition, _detection);
+                PBRemapScenePreviewState.Instance.Activate(previewData, _detection);
             }
         }
 
@@ -1026,57 +732,31 @@ namespace colloid.PBReplacer
         {
             serializedObject.Update();
             var definition = (PBRemap)target;
-
             var settings = PBReplacerSettings.Load();
             if (settings.ShowConfirmDialog)
             {
-                string sourceName = _detection?.IsLiveMode == true
-                    ? _detection.SourceAvatar?.name ?? "(不明)"
-                    : "(Prefab)";
+                string sourceName = _detection?.Situation?.SourceRoot != null ? _detection.Situation.SourceRoot.name
+                    : (definition.Manifest != null && !definition.Manifest.IsEmpty ? definition.Manifest.sourceRootName + " (参照情報)" : "(不明)");
                 string destName = _detection?.DestinationAvatar?.name ?? "(不明)";
-
-                bool confirmed = EditorUtility.DisplayDialog(
-                    _strings.DialogTitle,
-                    string.Format(_strings.DialogConfirmTemplate, sourceName, destName),
-                    _strings.DialogOk, _strings.DialogCancel);
-
-                if (!confirmed)
+                if (!EditorUtility.DisplayDialog(_strings.DialogTitle, string.Format(_strings.DialogConfirmTemplate, sourceName, destName), _strings.DialogOk, _strings.DialogCancel))
                     return;
             }
 
             var result = PBRemapper.Remap(definition);
-
             result.Match(
                 onSuccess: success =>
                 {
-                    string message =
-                        $"移植（リマップ）が完了しました\n\n" +
-                        $"リマップ済みコンポーネント: {success.RemappedComponentCount}\n" +
-                        $"リマップ済み参照: {success.RemappedReferenceCount}";
-
-                    if (success.AutoCreatedObjectCount > 0)
-                        message += $"\n自動作成オブジェクト: {success.AutoCreatedObjectCount}";
-
-                    if (success.UnresolvedReferenceCount > 0)
-                        message += $"\n未解決参照: {success.UnresolvedReferenceCount}";
-
-                    if (success.Warnings.Count > 0)
-                        message += $"\n\n警告 ({success.Warnings.Count}):\n" +
-                                   string.Join("\n", success.Warnings);
-
-                    EditorUtility.DisplayDialog(
-                        _strings.DialogCompleteTitle, message, _strings.DialogCompleteOk);
-
-                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ" +
-                        (success.AutoCreatedObjectCount > 0
-                            ? $", {success.AutoCreatedObjectCount} オブジェクトを自動作成"
-                            : "");
-                    _statusBox.messageType = success.UnresolvedReferenceCount > 0
-                        ? HelpBoxMessageType.Warning
-                        : HelpBoxMessageType.Info;
+                    string message = $"移植（リマップ）が完了しました\n\nリマップ済みコンポーネント: {success.RemappedComponentCount}\nリマップ済み参照: {success.RemappedReferenceCount}\nスケール: x{success.WorldScaleRatio:F3}";
+                    if (success.AutoCreatedObjectCount > 0) message += $"\n自動作成オブジェクト: {success.AutoCreatedObjectCount}";
+                    if (success.AmbiguousReferenceCount > 0) message += $"\n要選択（曖昧）: {success.AmbiguousReferenceCount}";
+                    if (success.UnresolvedReferenceCount > 0) message += $"\n未解決参照: {success.UnresolvedReferenceCount}";
+                    if (success.Warnings.Count > 0) message += $"\n\n警告 ({success.Warnings.Count}):\n" + string.Join("\n", success.Warnings.Take(12)) + (success.Warnings.Count > 12 ? "\n…" : "");
+                    EditorUtility.DisplayDialog(_strings.DialogCompleteTitle, message, _strings.DialogCompleteOk);
+                    _statusBox.text = $"移植完了: {success.RemappedReferenceCount} 参照をリマップ" + (success.AutoCreatedObjectCount > 0 ? $", {success.AutoCreatedObjectCount} オブジェクトを自動作成" : "")
+                        + (success.UnresolvedReferenceCount + success.AmbiguousReferenceCount > 0 ? $", {success.UnresolvedReferenceCount + success.AmbiguousReferenceCount} 件は未解決" : "");
+                    _statusBox.messageType = success.UnresolvedReferenceCount + success.AmbiguousReferenceCount > 0 ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
                     _statusBox.style.display = DisplayStyle.Flex;
-
-                    RefreshDetection();
+                    QueueRefresh();
                 },
                 onFailure: error =>
                 {
@@ -1086,64 +766,10 @@ namespace colloid.PBReplacer
                 });
         }
 
-        /// <summary>
-        /// プレビューウィンドウをフォーカスせずに取得する。
-        /// </summary>
         private static PBRemapPreviewWindow FindPreviewWindow()
         {
             var windows = Resources.FindObjectsOfTypeAll<PBRemapPreviewWindow>();
             return windows.Length > 0 ? windows[0] : null;
-        }
-
-        #endregion
-
-        #region スケール
-
-        private void UpdateCalculatedScaleLabel()
-        {
-            if (_detection == null)
-            {
-                _calculatedScaleLabel.text = "";
-                return;
-            }
-
-            try
-            {
-                if (_detection.IsLiveMode
-                    && _detection.SourceAvatarData != null
-                    && _detection.DestAvatarData != null)
-                {
-                    float scale = ScaleCalculator.CalculateScaleFactor(
-                        _detection.SourceAvatarData.Armature.transform,
-                        _detection.DestAvatarData.Armature.transform,
-                        _detection.SourceAvatarData.AvatarAnimator,
-                        _detection.DestAvatarData.AvatarAnimator);
-                    _calculatedScaleLabel.text = $"算出値: {scale:F4}";
-                }
-                else if (!_detection.IsLiveMode
-                    && _detection.DestAvatarData != null)
-                {
-                    var definition = (PBRemap)target;
-                    if (definition.SourceAvatarScale > 0)
-                    {
-                        float destScale = PBRemapper.CalculateAvatarScale(_detection.DestAvatarData);
-                        float scale = destScale / definition.SourceAvatarScale;
-                        _calculatedScaleLabel.text = $"算出値: {scale:F4} (Prefab)";
-                    }
-                    else
-                    {
-                        _calculatedScaleLabel.text = _strings.ScaleNoSourceScale;
-                    }
-                }
-                else
-                {
-                    _calculatedScaleLabel.text = _strings.ScaleUnavailable;
-                }
-            }
-            catch
-            {
-                _calculatedScaleLabel.text = _strings.ScaleUnavailable;
-            }
         }
 
         #endregion

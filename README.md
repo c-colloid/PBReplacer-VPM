@@ -47,19 +47,26 @@
 
 ### PBRemap（移植機能）
 
-あるアバターのAvatarDynamics配下（PhysBone等）を、別アバターへボーン構成の違いを吸収しながら移植する機能です。
+あるアバター/衣装/小物のAvatarDynamics配下（PhysBone等）を、別のアバター/衣装/小物へボーン構成の違いを吸収しながら移植する機能です。
+**AvatarDynamicsのGameObjectを移植先へドラッグ＆ドロップするだけ**で移植できます。
 
-1. 以下のいずれかの方法で移植先アバターの子オブジェクトにPBRemapコンポーネントを追加
-   （PBRemapはアバタールート自身ではなく、その子オブジェクトに配置する必要があります。
-   　自動検出はPBRemap自身を除外して祖先を走査するため）
+1. 移植元でPBReplacerのApplyを実行し、AvatarDynamics階層を作ります
+2. PBReplacerメインウィンドウ右上の「⋮」→「他のアバターへ移植 (PBRemap)...」を選ぶと、AvatarDynamicsにPBRemapコンポーネントが付き、移植元のボーン参照情報（マニフェスト）が自動保存されます
+   （Add Component から「PBReplacer/PB Remap」を付けても同じです。Inspectorを開かなくても参照情報はバックグラウンドで保存されます）
+3. AvatarDynamics（PBRemap付き）を移植先アバターの子階層へドラッグ＆ドロップします
+   - 既定（ドロップ時の動作=Confirm）ではプレビューが開くので、対応を確認して「移植実行」を押します
+   - 「AutoOnDrop」にすると、全ての参照が一意に解決できる場合はドロップ時に自動で移植します
+   - 「BuildOnly」にすると編集時には何もせず、NDMFビルド時に非破壊で移植します
+4. Prefab化して別シーン・別プロジェクトへ持ち出した場合も、保存済みの参照情報から解決できます
 
-   * PBReplacerメインウィンドウ右上の「⋮」メニュー→「他のアバターへ移植 (PBRemap)...」（アバター読込済み時のみ選択可。"PBRemap"という子オブジェクトを自動生成して追加）
-   * Hierarchyでアバターの子オブジェクトを右クリック→「PBRemapを追加」（GameObjectメニューからも可）
-   * Add Componentから「PBReplacer/PB Remap」を検索して追加（アバタールートではなく子オブジェクトに追加してください）
+対応している移植元/移植先:
 
-2. InspectorでPBRemapコンポーネントを開き、移植元/移植先アバターが自動検出されていることを確認（検出できない場合は手動指定も可能）
-3. 「プレビュー」でボーンのマッピング結果を確認
-4. 「移植実行」を押して移植を反映
+* VRCAvatarDescriptor付きアバター（Humanoidボーンで対応付け）
+* Modular Avatar の MergeArmature 付き衣装（prefix/suffixを考慮。着せ替え済みアバターでは本体・衣装それぞれのボーンを別コンテキストとして扱います）
+* Animator/Descriptorの無い小物（SkinnedMeshRendererを持つオブジェクト。パス/名前で対応付け）
+
+解決できないボーンは Inspector の「ボーン対応」で手動指定（Transformをドロップ、または同名候補から選択）できます。
+PhysBone等のradius/height等は「移植元の元値 × 世界寸法比 × 移植元/移植先ボーンのlossyScale比」で補正されるため、何度実行しても（NDMFビルドで再実行されても）二重に補正されません。
 
 # 注意
 

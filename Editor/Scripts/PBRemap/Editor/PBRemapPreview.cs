@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -22,434 +21,132 @@ namespace colloid.PBReplacer
         public int ResolvedBones { get; set; }
         public int UnresolvedBones { get; set; }
         public int AutoCreatableBones { get; set; }
+        public int AmbiguousBones { get; set; }
         public float CalculatedScaleFactor { get; set; } = 1.0f;
+        public string ScaleMethod { get; set; } = "";
         public List<string> Warnings { get; set; } = new List<string>();
+        public List<string> Errors { get; set; } = new List<string>();
+        /// <summary>解決計画（副作用なし）。UIの手動マッピング等に使う</summary>
+        public ResolutionPlan Plan { get; set; }
     }
 
     /// <summary>
     /// 移植プレビュー生成ロジック。
-    /// コンポーネントを一切作成せず、読み取りのみでボーンマッピング結果と
-    /// コンポーネント数を算出する。
+    /// 解決計画（<see cref="PBRemapResolver"/>）を読み取り専用で作り、表示用データに変換する。
     /// </summary>
     public static class PBRemapPreview
     {
         /// <summary>
-        /// PBRemapとDetectionResultに基づき移植プレビューを生成する。
-        /// 副作用は一切ない。
+        /// PBRemapとDetectionResultに基づき移植プレビューを生成する。副作用は一切ない。
         /// </summary>
-        /// <param name="definition">移植定義</param>
-        /// <param name="detection">SourceDetectorの検出結果</param>
-        /// <returns>プレビューデータ</returns>
-        public static PBRemapPreviewData GeneratePreview(
-            PBRemap definition,
-            SourceDetector.DetectionResult detection)
+        public static PBRemapPreviewData GeneratePreview(PBRemap definition, SourceDetector.DetectionResult detection)
         {
             var preview = new PBRemapPreviewData();
+            if (definition == null) { preview.Warnings.Add("PBRemapがnullです"); return preview; }
+            if (detection == null) { preview.Warnings.Add("検出結果がnullです"); return preview; }
 
-            if (definition == null)
-            {
-                preview.Warnings.Add("PBRemapがnullです");
-                return preview;
-            }
+            var definitionRoot = definition.transform;
+            preview.TotalPhysBones = definitionRoot.GetComponentsInChildren<VRCPhysBone>(true).Length;
+            preview.TotalPhysBoneColliders = definitionRoot.GetComponentsInChildren<VRCPhysBoneCollider>(true).Length;
+            preview.TotalConstraints = definitionRoot.GetComponentsInChildren<VRCConstraintBase>(true).Length;
+            preview.TotalContacts = definitionRoot.GetComponentsInChildren<ContactBase>(true).Length;
 
-            if (detection == null)
-            {
-                preview.Warnings.Add("検出結果がnullです");
-                return preview;
-            }
-
-            if (detection.DestinationAvatar == null || detection.DestAvatarData == null)
+            if (detection.DestinationAvatar == null)
             {
                 preview.Warnings.Add("デスティネーションアバターが検出できません");
                 return preview;
             }
 
-            var definitionRoot = definition.transform;
-            var remapRules = definition.PathRemapRules?.ToList();
+            var plan = PBRemapper.Plan(definition, detection.Situation);
+            preview.Plan = plan;
+            preview.CalculatedScaleFactor = plan.WorldScaleRatio;
+            preview.ScaleMethod = plan.ScaleMethod;
+            preview.Warnings.AddRange(plan.Warnings);
+            preview.Errors.AddRange(plan.Errors);
 
-            // コンポーネント収集
-            var physBones = definitionRoot.GetComponentsInChildren<VRCPhysBone>(true);
-            var physBoneColliders = definitionRoot.GetComponentsInChildren<VRCPhysBoneCollider>(true);
-            var constraints = definitionRoot.GetComponentsInChildren<VRCConstraintBase>(true);
-            var contacts = definitionRoot.GetComponentsInChildren<ContactBase>(true);
+            var destRoot = detection.DestinationAvatar.transform;
+            var destArmature = detection.DestAvatarData != null ? detection.DestAvatarData.Armature.transform : destRoot;
+            var sourceRoot = detection.SourceAvatar != null ? detection.SourceAvatar.transform : null;
+            var sourceArmature = detection.SourceAvatarData != null ? detection.SourceAvatarData.Armature.transform : sourceRoot;
 
-            preview.TotalPhysBones = physBones.Length;
-            preview.TotalPhysBoneColliders = physBoneColliders.Length;
-            preview.TotalConstraints = constraints.Length;
-            preview.TotalContacts = contacts.Length;
-
-            if (detection.IsLiveMode)
+            // 表示は「移植元ボーン」単位でまとめる（同じボーンを複数コンポーネントが参照していても1行）
+            var seen = new Dictionary<string, BoneMapping>();
+            foreach (var res in plan.Resolutions)
             {
-                GenerateLiveModePreview(preview, definition, detection, definitionRoot, remapRules);
-            }
-            else
-            {
-                GeneratePrefabModePreview(preview, definition, detection);
+                string key = res.SourceKey;
+                if (seen.TryGetValue(key, out var existing))
+                {
+                    existing.referenceKey += ", " + res.Ref.componentPath + "." + res.Ref.propertyPath;
+                    continue;
+                }
+
+                var m = new BoneMapping
+                {
+                    sourceBonePath = res.SourceDisplayPath,
+                    referenceKey = res.Ref.componentPath + "." + res.Ref.propertyPath,
+                    method = res.Method.ToString(),
+                    destinationTransform = res.Target,
+                    autoCreateParentTransform = res.AutoCreateParent,
+                };
+                // Live なら移植元Transformを引く（SceneView描画用）
+                if (sourceRoot != null)
+                {
+                    var srcCtx = plan.Manifest?.GetContext(res.Ref.contextId);
+                    Transform ctxArmature = srcCtx != null && !string.IsNullOrEmpty(srcCtx.armaturePathFromRoot) ? sourceRoot.Find(srcCtx.armaturePathFromRoot) : sourceRoot;
+                    if (srcCtx != null && string.IsNullOrEmpty(srcCtx.armaturePathFromRoot)) ctxArmature = sourceRoot;
+                    m.sourceTransform = ctxArmature != null && !string.IsNullOrEmpty(res.Ref.relPath) ? ctxArmature.Find(res.Ref.relPath) : null;
+                    if (m.sourceTransform == null && !string.IsNullOrEmpty(res.Ref.pathFromRoot)) m.sourceTransform = sourceRoot.Find(res.Ref.pathFromRoot);
+                }
+
+                switch (res.Status)
+                {
+                    case ResolutionStatus.Resolved:
+                    case ResolutionStatus.Manual:
+                        m.resolved = true;
+                        m.destinationBonePath = DisplayPath(res.Target, destArmature, destRoot);
+                        preview.ResolvedBones++;
+                        break;
+                    case ResolutionStatus.AutoCreate:
+                        m.resolved = false;
+                        m.autoCreatable = true;
+                        m.autoCreateDestPath = (res.AutoCreateParent != null ? DisplayPath(res.AutoCreateParent, destArmature, destRoot) + "/" : "") + res.Ref.boneName;
+                        m.errorMessage = res.Message;
+                        preview.AutoCreatableBones++;
+                        preview.UnresolvedBones++;
+                        break;
+                    case ResolutionStatus.Ambiguous:
+                        m.resolved = false;
+                        m.ambiguous = true;
+                        m.errorMessage = res.Message + ": " + string.Join(", ", res.Candidates.Select(c => DisplayPath(c, destArmature, destRoot)));
+                        m.destinationBonePath = "";
+                        preview.AmbiguousBones++;
+                        preview.UnresolvedBones++;
+                        break;
+                    default:
+                        m.resolved = false;
+                        m.errorMessage = res.Message;
+                        m.destinationBonePath = "";
+                        preview.UnresolvedBones++;
+                        break;
+                }
+                seen[key] = m;
+                preview.BoneMappings.Add(m);
             }
 
-            // 未解決ボーンの警告（autoCreatableは除外）
             int trueUnresolved = preview.UnresolvedBones - preview.AutoCreatableBones;
             if (trueUnresolved > 0)
-            {
-                preview.Warnings.Add(
-                    $"{trueUnresolved} 個のボーンが解決できませんでした。" +
-                    "パスリマップルールの追加を検討してください。");
-            }
+                preview.Warnings.Add($"{trueUnresolved} 個のボーンが解決できませんでした。パスリマップルールの追加、または手動マッピングで解決してください。");
 
             return preview;
         }
 
-        /// <summary>
-        /// 同一シーンモードのプレビュー。Transform参照が生きている状態で解決を試みる。
-        /// </summary>
-        private static void GenerateLiveModePreview(
-            PBRemapPreviewData preview,
-            PBRemap definition,
-            SourceDetector.DetectionResult detection,
-            Transform definitionRoot,
-            List<PathRemapRule> remapRules)
+        private static string DisplayPath(Transform t, Transform armature, Transform root)
         {
-            if (detection.SourceAvatarData == null)
-            {
-                preview.Warnings.Add("ソースアバターのデータを取得できません");
-                return;
-            }
-
-            var sourceData = detection.SourceAvatarData;
-            var destData = detection.DestAvatarData;
-
-            Transform sourceArmature = sourceData.Armature.transform;
-            Transform destArmature = destData.Armature.transform;
-            Animator sourceAnimator = sourceData.AvatarAnimator;
-            Animator destAnimator = destData.AvatarAnimator;
-
-            // スケールファクター算出
-            if (definition.AutoCalculateScale)
-            {
-                preview.CalculatedScaleFactor = ScaleCalculator.CalculateScaleFactor(
-                    sourceArmature, destArmature, sourceAnimator, destAnimator);
-            }
-            else
-            {
-                preview.CalculatedScaleFactor = definition.ScaleFactor;
-            }
-
-            // スケール差異の警告
-            if (preview.CalculatedScaleFactor > 3.0f || preview.CalculatedScaleFactor < 0.33f)
-            {
-                preview.Warnings.Add(
-                    $"スケール差異が大きいです (x{preview.CalculatedScaleFactor:F2})。" +
-                    "移植後のパラメータを確認してください。");
-            }
-
-            // スケルトンボーン判定用のセットを構築
-            var skinnedBones = BoneMapper.CollectSkinnedBones(detection.SourceAvatar);
-
-            // 外部Transform参照を収集してボーン解決を試みる
-            var processedPaths = new HashSet<string>();
-            var externalRefs = SourceDetector.CollectExternalTransformReferences(definition);
-
-            foreach (var bone in externalRefs)
-            {
-                string sourcePath = BoneMapper.GetRelativePath(bone, sourceArmature);
-                string pathKey = sourcePath ?? bone.name;
-
-                if (!processedPaths.Add(pathKey))
-                    continue;
-
-                var mapping = new BoneMapping
-                {
-                    sourceBonePath = sourcePath ?? bone.name
-                };
-
-                var resolveResult = (remapRules != null && remapRules.Count > 0)
-                    ? BoneMapper.ResolveBoneWithRemap(
-                        bone, sourceArmature, destArmature,
-                        remapRules, sourceAnimator, destAnimator)
-                    : BoneMapper.ResolveBone(
-                        bone, sourceArmature, destArmature,
-                        sourceAnimator, destAnimator);
-
-                if (resolveResult.IsSuccess)
-                {
-                    mapping.resolved = true;
-                    mapping.destinationBonePath = BoneMapper.GetRelativePath(
-                        resolveResult.Value, destArmature) ?? resolveResult.Value.name;
-                    preview.ResolvedBones++;
-                }
-                else
-                {
-                    mapping.resolved = false;
-                    mapping.errorMessage = resolveResult.Error;
-                    mapping.destinationBonePath = "";
-
-                    // autoCreatable判定: スケルトンボーンでなく、親が解決可能な場合
-                    if (!BoneMapper.IsSkeletonBone(bone, skinnedBones)
-                        && bone.parent != null
-                        && bone.parent.IsChildOf(sourceArmature))
-                    {
-                        var parentResult = (remapRules != null && remapRules.Count > 0)
-                            ? BoneMapper.ResolveBoneWithRemap(
-                                bone.parent, sourceArmature, destArmature,
-                                remapRules, sourceAnimator, destAnimator)
-                            : BoneMapper.ResolveBone(
-                                bone.parent, sourceArmature, destArmature,
-                                sourceAnimator, destAnimator);
-
-                        if (parentResult.IsSuccess)
-                        {
-                            string parentDestPath = BoneMapper.GetRelativePath(
-                                parentResult.Value, destArmature) ?? parentResult.Value.name;
-                            mapping.autoCreatable = true;
-                            mapping.autoCreateDestPath = string.IsNullOrEmpty(parentDestPath)
-                                ? bone.name
-                                : parentDestPath + "/" + bone.name;
-                            preview.AutoCreatableBones++;
-                        }
-                    }
-
-                    preview.UnresolvedBones++;
-                }
-
-                preview.BoneMappings.Add(mapping);
-            }
-        }
-
-        /// <summary>
-        /// Prefabモードのプレビュー。シリアライズ済みボーンデータから解決を試みる。
-        /// </summary>
-        private static void GeneratePrefabModePreview(
-            PBRemapPreviewData preview,
-            PBRemap definition,
-            SourceDetector.DetectionResult detection)
-        {
-            if (definition.SerializedBoneReferences.Count == 0)
-            {
-                preview.Warnings.Add("シリアライズ済みボーン参照データがありません");
-                return;
-            }
-
-            var destData = detection.DestAvatarData;
-            var destArmature = destData.Armature.transform;
-            var destAnimator = destData.AvatarAnimator;
-            var remapRules = definition.PathRemapRules?.ToList();
-
-            // スケールファクター算出
-            if (definition.AutoCalculateScale && definition.SourceAvatarScale > 0)
-            {
-                float destScale = PBRemapper.CalculateAvatarScale(destData);
-                preview.CalculatedScaleFactor = destScale / definition.SourceAvatarScale;
-            }
-            else
-            {
-                preview.CalculatedScaleFactor = definition.ScaleFactor;
-            }
-
-            // 重複排除してボーン解決を試みる
-            var processedPaths = new HashSet<string>();
-
-            foreach (var boneRef in definition.SerializedBoneReferences)
-            {
-                if (!processedPaths.Add(boneRef.boneRelativePath))
-                    continue;
-
-                var mapping = new BoneMapping
-                {
-                    sourceBonePath = boneRef.boneRelativePath
-                };
-
-                // 4段階解決戦略を試す
-                Transform resolved = ResolveBoneFromSerialized(
-                    boneRef, destArmature, destAnimator, remapRules);
-
-                if (resolved != null)
-                {
-                    mapping.resolved = true;
-                    mapping.destinationBonePath = BoneMapper.GetRelativePath(
-                        resolved, destArmature) ?? resolved.name;
-                    preview.ResolvedBones++;
-                }
-                else
-                {
-                    mapping.resolved = false;
-                    mapping.errorMessage = $"ボーン '{boneRef.boneRelativePath}' を解決できません";
-                    mapping.destinationBonePath = "";
-
-                    // autoCreatable判定: スケルトンボーンでなく、親パスが解決可能な場合
-                    if (!boneRef.isSkeletonBone
-                        && !string.IsNullOrEmpty(boneRef.boneRelativePath)
-                        && boneRef.boneRelativePath.Contains("/"))
-                    {
-                        int lastSlash = boneRef.boneRelativePath.LastIndexOf('/');
-                        string parentPath = boneRef.boneRelativePath.Substring(0, lastSlash);
-                        string boneName = boneRef.boneRelativePath.Substring(lastSlash + 1);
-
-                        Transform parentDest = ResolveParentFromSerialized(
-                            parentPath, destArmature, destAnimator, remapRules);
-
-                        if (parentDest != null)
-                        {
-                            string parentDestPath = BoneMapper.GetRelativePath(
-                                parentDest, destArmature) ?? parentDest.name;
-                            mapping.autoCreatable = true;
-                            mapping.autoCreateDestPath = string.IsNullOrEmpty(parentDestPath)
-                                ? boneName
-                                : parentDestPath + "/" + boneName;
-                            preview.AutoCreatableBones++;
-                        }
-                    }
-
-                    preview.UnresolvedBones++;
-                }
-
-                preview.BoneMappings.Add(mapping);
-            }
-        }
-
-        /// <summary>
-        /// シリアライズデータからボーンを解決する（PBRemapperと同一ロジック）。
-        /// </summary>
-        private static Transform ResolveBoneFromSerialized(
-            SerializedBoneReference boneRef,
-            Transform destArmature,
-            Animator destAnimator,
-            List<PathRemapRule> remapRules)
-        {
-            // 戦略1: 直接Humanoidマッピング
-            if (boneRef.humanBodyBone != HumanBodyBones.LastBone
-                && destAnimator != null && destAnimator.isHuman)
-            {
-                var bone = destAnimator.GetBoneTransform(boneRef.humanBodyBone);
-                if (bone != null)
-                    return bone;
-            }
-
-            // 戦略2: Humanoid祖先 + 相対パス
-            if (boneRef.nearestHumanoidAncestor != HumanBodyBones.LastBone
-                && !string.IsNullOrEmpty(boneRef.pathFromHumanoidAncestor)
-                && destAnimator != null && destAnimator.isHuman)
-            {
-                var ancestorBone = destAnimator.GetBoneTransform(boneRef.nearestHumanoidAncestor);
-                if (ancestorBone != null)
-                {
-                    var resolved = ancestorBone.Find(boneRef.pathFromHumanoidAncestor);
-                    if (resolved != null)
-                        return resolved;
-                }
-            }
-
-            // 戦略3: フルパスマッチ + PathRemapRules（順方向）
-            if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
-            {
-                var directMatch = BoneMapper.FindBoneByRelativePath(boneRef.boneRelativePath, destArmature);
-                if (directMatch != null)
-                    return directMatch;
-
-                if (remapRules != null && remapRules.Count > 0)
-                {
-                    // 順方向リマップ
-                    string remappedPath = BoneMapper.ApplyRemapRules(boneRef.boneRelativePath, remapRules);
-                    var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
-                    if (remappedMatch != null)
-                        return remappedMatch;
-
-                    // 逆方向リマップ（双方向対応）
-                    string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(boneRef.boneRelativePath, remapRules);
-                    if (reverseRemappedPath != remappedPath)
-                    {
-                        var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
-                        if (reverseMatch != null)
-                            return reverseMatch;
-                    }
-                }
-            }
-
-            // 戦略4: 名前マッチ（フォールバック、双方向リマップ対応）
-            if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
-            {
-                string[] segments = boneRef.boneRelativePath.Split('/');
-                string boneName = segments[segments.Length - 1];
-                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-
-                if (remapRules != null && remapRules.Count > 0)
-                {
-                    // 順方向リマップ後の名前でマッチ
-                    string forwardName = boneName;
-                    foreach (var rule in remapRules)
-                        forwardName = rule.Apply(forwardName);
-                    var forwardMatch = allDestBones.FirstOrDefault(t => t.name == forwardName);
-                    if (forwardMatch != null)
-                        return forwardMatch;
-
-                    // 逆方向リマップ後の名前でマッチ
-                    string reverseName = boneName;
-                    foreach (var rule in remapRules)
-                        reverseName = rule.ApplyReverse(reverseName);
-                    if (reverseName != forwardName)
-                    {
-                        var reverseMatch = allDestBones.FirstOrDefault(t => t.name == reverseName);
-                        if (reverseMatch != null)
-                            return reverseMatch;
-                    }
-                }
-                else
-                {
-                    var nameMatch = allDestBones.FirstOrDefault(t => t.name == boneName);
-                    if (nameMatch != null)
-                        return nameMatch;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Prefabモードで親パスをデスティネーション側で解決する。
-        /// 直接パスマッチ → リマップルール適用後のパスマッチを試みる。
-        /// </summary>
-        private static Transform ResolveParentFromSerialized(
-            string parentPath,
-            Transform destArmature,
-            Animator destAnimator,
-            List<PathRemapRule> remapRules)
-        {
-            if (string.IsNullOrEmpty(parentPath))
-                return destArmature;
-
-            // 直接パスマッチ
-            var directMatch = BoneMapper.FindBoneByRelativePath(parentPath, destArmature);
-            if (directMatch != null)
-                return directMatch;
-
-            // リマップルール適用後のパスマッチ
-            if (remapRules != null && remapRules.Count > 0)
-            {
-                string remappedPath = BoneMapper.ApplyRemapRules(parentPath, remapRules);
-                var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
-                if (remappedMatch != null)
-                    return remappedMatch;
-
-                string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(parentPath, remapRules);
-                if (reverseRemappedPath != remappedPath)
-                {
-                    var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
-                    if (reverseMatch != null)
-                        return reverseMatch;
-                }
-            }
-
-            // Humanoidボーン名マッチ（親パスの末尾セグメント）
-            if (destAnimator != null && destAnimator.isHuman)
-            {
-                string[] segments = parentPath.Split('/');
-                string parentBoneName = segments[segments.Length - 1];
-                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-                var nameMatch = allDestBones.FirstOrDefault(t => t.name == parentBoneName);
-                if (nameMatch != null)
-                    return nameMatch;
-            }
-
-            return null;
+            if (t == null) return "";
+            var p = armature != null ? BoneMapper.GetRelativePath(t, armature) : null;
+            if (p != null) return p;
+            p = root != null ? BoneMapper.GetRelativePath(t, root) : null;
+            return p ?? t.name;
         }
     }
 }

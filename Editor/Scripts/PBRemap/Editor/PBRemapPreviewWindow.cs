@@ -304,7 +304,8 @@ namespace colloid.PBReplacer
 		{
 			if (_detection?.DestAvatarData == null) return;
 
-			var destArmature = _detection.DestAvatarData.Armature.transform;
+			var destArmature = _detection.DestAvatarData != null ? _detection.DestAvatarData.Armature.transform : _detection.DestinationAvatar?.transform;
+			if (destArmature == null) return;
 			string[] segments = sourceBonePath.Split('/');
 
 			// プレビューデータから最寄りの解決済み祖先を探す
@@ -355,7 +356,8 @@ namespace colloid.PBReplacer
 			if (_preview == null || _detection?.DestAvatarData == null)
 				return sourceBonePath;
 
-			var destArmature = _detection.DestAvatarData.Armature.transform;
+			var destArmature = _detection.DestAvatarData != null ? _detection.DestAvatarData.Armature.transform : _detection.DestinationAvatar?.transform;
+			if (destArmature == null) return null;
 			string[] segments = sourceBonePath.Split('/');
 
 			// 最も深い解決済み祖先プレフィックスを探す
@@ -403,7 +405,8 @@ namespace colloid.PBReplacer
 		{
 			if (_preview == null || _detection?.DestAvatarData == null) return null;
 
-			var destArmature = _detection.DestAvatarData.Armature.transform;
+			var destArmature = _detection.DestAvatarData != null ? _detection.DestAvatarData.Armature.transform : _detection.DestinationAvatar?.transform;
+			if (destArmature == null) return null;
 			int prefixDepth = sourcePrefix.Split('/').Length;
 
 			foreach (var m in _preview.BoneMappings)

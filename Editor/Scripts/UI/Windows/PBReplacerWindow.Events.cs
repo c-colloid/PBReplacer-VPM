@@ -197,14 +197,14 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// アバターの子オブジェクトにPBRemapを追加し、Inspectorへ誘導する。
-		/// SourceDetectorのDestination検出はPBRemap自身を除外して祖先を走査するため、
-		/// アバタールート自身にPBRemapを付けると自動検出が機能しない。
-		/// そのため専用の子オブジェクト（"PBRemap"）を用意し、そこに付与する。
+		/// アバターのAvatarDynamics（PBReplacerが生成した階層）にPBRemapを追加し、Inspectorへ誘導する。
+		/// AvatarDynamicsが無い場合は専用の子オブジェクト（"PBRemap"）を作成する。
+		/// PBRemapは「移植したい階層のルート」に付け、そのオブジェクトごと移植先へD&amp;Dする。
 		/// </summary>
 		private void AddPBRemapToAvatar(GameObject avatar)
 		{
-			Transform container = avatar.transform.Find(PBREMAP_CONTAINER_NAME);
+			string dynamicsName = _settings?.RootObjectName ?? "AvatarDynamics";
+			Transform container = avatar.transform.Find(dynamicsName) ?? avatar.transform.Find(PBREMAP_CONTAINER_NAME);
 			GameObject containerObject;
 			if (container != null)
 			{
@@ -217,7 +217,6 @@ namespace colloid.PBReplacer
 				containerObject.transform.localPosition = Vector3.zero;
 				containerObject.transform.localRotation = Quaternion.identity;
 				containerObject.transform.localScale = Vector3.one;
-
 				Undo.RegisterCreatedObjectUndo(containerObject, $"Create {PBREMAP_CONTAINER_NAME}");
 			}
 
@@ -225,6 +224,8 @@ namespace colloid.PBReplacer
 			if (remap == null)
 			{
 				remap = Undo.AddComponent<PBRemap>(containerObject);
+				// 移植元にいる今のうちに参照情報を確定する
+				PBRemapper.RefreshManifestIfLive(remap);
 			}
 
 			EditorGUIUtility.PingObject(containerObject);

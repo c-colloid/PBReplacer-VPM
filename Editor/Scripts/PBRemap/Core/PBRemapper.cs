@@ -3,817 +3,286 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
-using VRC.SDK3.Dynamics.PhysBone.Components;
-using VRC.SDK3.Dynamics.Constraint.Components;
-using VRC.SDK3.Dynamics.Contact.Components;
-using VRC.Dynamics;
 
 namespace colloid.PBReplacer
 {
     /// <summary>
-    /// 移植リマップ結果データ
+    /// 移植リマップ結果データ（互換API）
     /// </summary>
     public class RemapResult
     {
         public int RemappedComponentCount { get; set; }
         public int RemappedReferenceCount { get; set; }
         public int UnresolvedReferenceCount { get; set; }
+        public int AmbiguousReferenceCount { get; set; }
         public int AutoCreatedObjectCount { get; set; }
-        public List<string> Warnings { get; set; } = new();
+        public float WorldScaleRatio { get; set; } = 1f;
+        public List<string> Warnings { get; set; } = new List<string>();
+    }
+
+    /// <summary>PBRemapの状態</summary>
+    public enum PBRemapState
+    {
+        /// <summary>配下にVRCコンポーネントの外部参照が無い</summary>
+        NoReferences,
+        /// <summary>参照が自分を含むルート内に解決している（移植元にいる／適用済み）</summary>
+        AtHome,
+        /// <summary>参照がルート外を指している（別ルートへドロップされた）</summary>
+        Displaced,
+        /// <summary>参照が失われている（Prefab化/別シーン）。マニフェストがあれば解決可能</summary>
+        Broken,
+        /// <summary>移植先が特定できない</summary>
+        NoDestination,
+    }
+
+    /// <summary>PBRemapの現在の状況（UI/NDMF共通）</summary>
+    public class PBRemapSituation
+    {
+        public PBRemapState State;
+        public RootInfo Destination;
+        public RootInfo Source;             // Live のときのみ
+        public PBRemapManifestBuilder.ScanResult Scan;
+        public bool HasManifest;
+        public bool ManifestMatchesDestination; // マニフェストの移植元 == 移植先（適用済み/ホーム）
+        public List<string> Warnings = new List<string>();
+
+        public GameObject DestinationRoot => Destination?.Root;
+        public GameObject SourceRoot => Source?.Root;
+        public bool CanResolve => State == PBRemapState.Displaced || (State == PBRemapState.Broken && HasManifest);
     }
 
     /// <summary>
-    /// 既にHierarchy上に存在するコンポーネントのTransform参照をリマップする。
-    /// 既存コンポーネントの参照書き換えに特化しており、
-    /// Live（同一シーン）モードとPrefab（シリアライズデータ）モードの両方に対応する。
+    /// PBRemapのファサード。状況判定 → マニフェスト確保 → 解決計画 → 適用。
     /// </summary>
     public static class PBRemapper
     {
         /// <summary>
-        /// PBRemap配下のコンポーネントの外部Transform参照を
-        /// デスティネーションアバターのボーンにリマップする。
+        /// 現在の状況を判定する（副作用なし）。
         /// </summary>
-        /// <param name="definition">PBRemap</param>
-        /// <returns>リマップ結果またはエラーメッセージ</returns>
-        public static Result<RemapResult, string> Remap(PBRemap definition)
+        public static PBRemapSituation Inspect(PBRemap definition)
         {
-            // 検出
-            var detectResult = SourceDetector.Detect(definition);
-            if (detectResult.IsFailure)
-                return Result<RemapResult, string>.Failure(detectResult.Error);
+            var s = new PBRemapSituation();
+            if (definition == null) { s.State = PBRemapState.NoReferences; return s; }
 
-            var detection = detectResult.Value;
-
-            if (detection.DestinationAvatar == null)
-                return Result<RemapResult, string>.Failure(
-                    "デスティネーションアバターが検出できません。" +
-                    "PBRemapをアバターの子階層に配置してください。");
-
-            if (detection.DestAvatarData == null)
-                return Result<RemapResult, string>.Failure(
-                    "デスティネーションアバターのArmatureを検出できません。");
-
-            // モード分岐
-            if (detection.IsLiveMode)
-                return RemapLiveMode(definition, detection, detection.SourceAvatar);
-            else
-                return RemapPrefabMode(definition, detection);
-        }
-
-        /// <summary>
-        /// 同一シーンモード: 子コンポーネントのTransform参照が生きている場合。
-        /// ソースアバターのAnimator/Armatureを直接利用してボーンマップを構築する。
-        /// </summary>
-        private static Result<RemapResult, string> RemapLiveMode(
-            PBRemap definition,
-            SourceDetector.DetectionResult detection,
-            GameObject sourceAvatar)
-        {
-            if (detection.SourceAvatarData == null)
-                return Result<RemapResult, string>.Failure("ソースアバターのデータを取得できません。");
-
-            var sourceData = detection.SourceAvatarData;
-            var destData = detection.DestAvatarData;
-            var remapRules = definition.PathRemapRules?.ToList();
-
-            // スケールファクター算出
-            float scaleFactor = CalculateScaleFactor(definition, sourceData, destData);
-
-            // ボーンマップ構築（既存BoneMapperを利用）
-            var boneMap = BuildBoneMap(sourceData, destData, remapRules);
-
-            // ヘルパーオブジェクトの自動作成
-            int autoCreated = AutoCreateHelperObjects(
-                definition, sourceAvatar, sourceData, destData, boneMap, remapRules);
-
-            // リマップ実行
-            var result = ExecuteRemap(definition, boneMap, scaleFactor);
-            if (result.IsSuccess)
-                result.Value.AutoCreatedObjectCount = autoCreated;
-            return result;
-        }
-
-        /// <summary>
-        /// Prefabモード: SerializedBoneReferenceからリマップする。
-        /// Transform参照がnullのため、シリアライズ済みボーンパスとHumanoid情報から解決する。
-        /// </summary>
-        private static Result<RemapResult, string> RemapPrefabMode(
-            PBRemap definition,
-            SourceDetector.DetectionResult detection)
-        {
-            if (definition.SerializedBoneReferences.Count == 0)
-                return Result<RemapResult, string>.Failure(
-                    "シリアライズされたボーン参照データがありません。" +
-                    "ソースアバターのシーンでInspectorを開いてからPrefab化してください。");
-
-            var destData = detection.DestAvatarData;
-
-            // スケールファクター算出（Prefab: ソース側はシリアライズ値を使用）
-            float scaleFactor;
-            if (definition.AutoCalculateScale && definition.SourceAvatarScale > 0)
+            // 移植先
+            if (definition.DestinationRootOverride != null)
             {
-                float destScale = CalculateAvatarScale(destData);
-                scaleFactor = destScale / definition.SourceAvatarScale;
+                s.Destination = new RootInfo
+                {
+                    Root = definition.DestinationRootOverride,
+                    Kind = PBRemapContextResolver.ClassifyRootCandidate(definition.DestinationRootOverride.transform) is var k && k != RootKind.None ? k : RootKind.Generic,
+                    Method = AvatarDetectionMethod.Manual,
+                };
             }
             else
             {
-                scaleFactor = definition.ScaleFactor;
+                s.Destination = PBRemapContextResolver.FindRoot(definition.transform, excludeSelf: true);
             }
 
-            // シリアライズデータからのリマップ
-            return ExecuteRemapFromSerialized(definition, destData, scaleFactor);
-        }
+            // 参照の状態
+            s.Scan = PBRemapManifestBuilder.Scan(definition);
+            s.HasManifest = definition.Manifest != null && !definition.Manifest.IsEmpty;
+            s.Warnings.AddRange(s.Scan.Warnings);
 
-        #region ボーンマップ構築
-
-        /// <summary>
-        /// ソースとデスティネーション間の完全なボーンマップを構築する。
-        /// </summary>
-        private static Dictionary<Transform, Transform> BuildBoneMap(
-            AvatarData sourceData, AvatarData destData, List<PathRemapRule> remapRules)
-        {
-            var boneMap = new Dictionary<Transform, Transform>();
-            Transform sourceArmature = sourceData.Armature.transform;
-            Transform destArmature = destData.Armature.transform;
-            Animator sourceAnimator = sourceData.AvatarAnimator;
-            Animator destAnimator = destData.AvatarAnimator;
-
-            // Humanoidボーンマップを先に構築
-            if (sourceAnimator != null && destAnimator != null
-                && sourceAnimator.isHuman && destAnimator.isHuman)
+            if (definition.SourceRootOverride != null && s.Scan.State == PBRemapManifestBuilder.ReferenceState.Live)
             {
-                var humanoidMap = BoneMapper.BuildHumanoidBoneMap(sourceAnimator, destAnimator);
-                foreach (var kvp in humanoidMap)
-                    boneMap[kvp.Key] = kvp.Value;
+                s.Source = new RootInfo { Root = definition.SourceRootOverride, Kind = RootKind.Generic, Method = AvatarDetectionMethod.Manual };
+                var k = PBRemapContextResolver.ClassifyRootCandidate(definition.SourceRootOverride.transform);
+                if (k != RootKind.None) s.Source.Kind = k;
+            }
+            else
+            {
+                s.Source = s.Scan.SourceRoot;
             }
 
-            // ソースArmature配下の全Transformをリマップ付きで解決
-            var allSourceBones = sourceArmature.GetComponentsInChildren<Transform>(true);
-            foreach (var srcBone in allSourceBones)
+            if (s.Destination == null || !s.Destination.IsFound)
             {
-                if (boneMap.ContainsKey(srcBone))
-                    continue;
-
-                var resolveResult = (remapRules != null && remapRules.Count > 0)
-                    ? BoneMapper.ResolveBoneWithRemap(
-                        srcBone, sourceArmature, destArmature,
-                        remapRules, sourceAnimator, destAnimator)
-                    : BoneMapper.ResolveBone(
-                        srcBone, sourceArmature, destArmature,
-                        sourceAnimator, destAnimator);
-
-                if (resolveResult.IsSuccess)
-                    boneMap[srcBone] = resolveResult.Value;
+                s.State = PBRemapState.NoDestination;
+                if (s.Destination != null && s.Destination.Candidates.Count > 0)
+                    s.Warnings.Add("移植先の候補: " + string.Join(", ", s.Destination.Candidates.Select(c => c.name)));
+                return s;
             }
 
-            return boneMap;
-        }
-
-        /// <summary>
-        /// 未解決のヘルパーオブジェクト（スケルトンボーンでないもの）を
-        /// デスティネーション側に自動作成し、ボーンマップに追加する。
-        /// </summary>
-        /// <returns>自動作成したオブジェクト数</returns>
-        private static int AutoCreateHelperObjects(
-            PBRemap definition,
-            GameObject sourceAvatar,
-            AvatarData sourceData,
-            AvatarData destData,
-            Dictionary<Transform, Transform> boneMap,
-            List<PathRemapRule> remapRules)
-        {
-            var sourceArmature = sourceData.Armature.transform;
-            var destArmature = destData.Armature.transform;
-            var skinnedBones = BoneMapper.CollectSkinnedBones(sourceAvatar);
-
-            // 外部参照を収集し、深さ順（浅い方から）にソートして親子関係を保持
-            var externalRefs = SourceDetector.CollectExternalTransformReferences(definition);
-            var unresolvedBones = new List<Transform>();
-            var processed = new HashSet<Transform>();
-
-            foreach (var bone in externalRefs)
+            switch (s.Scan.State)
             {
-                if (processed.Contains(bone))
-                    continue;
-                processed.Add(bone);
-
-                // 既にboneMapで解決済みならスキップ
-                if (boneMap.ContainsKey(bone))
-                    continue;
-
-                // スケルトンボーンは自動作成対象外
-                if (BoneMapper.IsSkeletonBone(bone, skinnedBones))
-                    continue;
-
-                unresolvedBones.Add(bone);
-            }
-
-            // 深さ順にソート（浅い方から処理し、作成した親を後続で参照可能にする）
-            unresolvedBones.Sort((a, b) => GetDepth(a, sourceArmature) - GetDepth(b, sourceArmature));
-
-            int autoCreated = 0;
-
-            foreach (var bone in unresolvedBones)
-            {
-                // 前のイテレーションで作成された親により、既にboneMapに入っている場合
-                if (boneMap.ContainsKey(bone))
-                    continue;
-
-                // 親がソースArmature配下であること
-                if (bone.parent == null || !bone.parent.IsChildOf(sourceArmature))
-                    continue;
-
-                // 親がboneMapで解決可能か
-                if (!boneMap.TryGetValue(bone.parent, out Transform destParent))
-                    continue;
-
-                // destParent配下に既に同名の子がある場合はそれを使う
-                Transform existing = destParent.Find(bone.name);
-                if (existing != null)
-                {
-                    boneMap[bone] = existing;
-                    continue;
-                }
-
-                // 新規GameObjectを作成
-                var newObj = new GameObject(bone.name);
-                newObj.transform.SetParent(destParent, false);
-                Undo.RegisterCreatedObjectUndo(newObj, "Auto-create helper object");
-
-                boneMap[bone] = newObj.transform;
-                autoCreated++;
-            }
-
-            return autoCreated;
-        }
-
-        /// <summary>
-        /// armatureRootからの深さを返す。
-        /// </summary>
-        private static int GetDepth(Transform bone, Transform armatureRoot)
-        {
-            int depth = 0;
-            Transform current = bone;
-            while (current != null && current != armatureRoot)
-            {
-                depth++;
-                current = current.parent;
-            }
-            return depth;
-        }
-
-        #endregion
-
-        #region リマップ実行（同一シーンモード）
-
-        /// <summary>
-        /// ボーンマップを使って全コンポーネントの外部Transform参照をリマップする。
-        /// </summary>
-        private static Result<RemapResult, string> ExecuteRemap(
-            PBRemap definition,
-            Dictionary<Transform, Transform> boneMap,
-            float scaleFactor)
-        {
-            var result = new RemapResult();
-            var definitionRoot = definition.transform;
-
-            Undo.IncrementCurrentGroup();
-            int undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName("PBRemap");
-
-            try
-            {
-                // 全VRCコンポーネントをリマップ
-                var allComponents = CollectVRCComponents(definitionRoot);
-                foreach (var component in allComponents)
-                {
-                    int remapped = RemapComponentReferences(component, boneMap, definitionRoot);
-                    if (remapped > 0)
-                    {
-                        result.RemappedComponentCount++;
-                        result.RemappedReferenceCount += remapped;
-                    }
-
-                    // rootTransformがnull && 親が外部参照の場合、明示的に設定
-                    ResolveNullRootTransform(component, boneMap, definitionRoot);
-
-                    // スケール適用
-                    ApplyScaleFactor(component, scaleFactor);
-                }
-
-                // Constraint Sources: RemapComponentReferences の汎用走査で基本的にリマップ済みだが、
-                // VRC SDK固有のシリアライズ形式のフォールバックとして明示的にも実行する。
-                foreach (var constraint in definitionRoot.GetComponentsInChildren<VRCConstraintBase>(true))
-                {
-                    RemapConstraintSources(constraint, boneMap);
-                }
-            }
-            catch (Exception ex)
-            {
-                Undo.RevertAllDownToGroup(undoGroup);
-                return Result<RemapResult, string>.Failure($"リマップ中にエラーが発生しました: {ex.Message}");
-            }
-
-            Undo.CollapseUndoOperations(undoGroup);
-            return Result<RemapResult, string>.Success(result);
-        }
-
-        /// <summary>
-        /// 単一コンポーネントの外部Transform参照をリマップする。
-        /// 内部参照（PBRemapの子孫への参照）はスキップする。
-        /// </summary>
-        /// <returns>リマップした参照数</returns>
-        private static int RemapComponentReferences(
-            Component component,
-            Dictionary<Transform, Transform> boneMap,
-            Transform definitionRoot)
-        {
-            var so = new SerializedObject(component);
-            SerializedProperty prop = so.GetIterator();
-            int remapCount = 0;
-
-            while (prop.Next(true))
-            {
-                if (prop.propertyType != SerializedPropertyType.ObjectReference)
-                    continue;
-
-                var objRef = prop.objectReferenceValue as Transform;
-                if (objRef == null)
-                    continue;
-
-                // 内部参照はスキップ
-                if (objRef.IsChildOf(definitionRoot))
-                    continue;
-
-                if (boneMap.TryGetValue(objRef, out Transform mapped))
-                {
-                    Undo.RecordObject(component, "Remap Transform Reference");
-                    prop.objectReferenceValue = mapped;
-                    remapCount++;
-                }
-            }
-
-            if (remapCount > 0)
-                so.ApplyModifiedProperties();
-
-            return remapCount;
-        }
-
-        #endregion
-
-        #region リマップ実行（Prefabモード）
-
-        /// <summary>
-        /// シリアライズデータからリマップを実行する。
-        /// Humanoid祖先 + 相対パス → フルパス + リマップルール → 名前マッチの4段階で解決する。
-        /// </summary>
-        private static Result<RemapResult, string> ExecuteRemapFromSerialized(
-            PBRemap definition,
-            AvatarData destData,
-            float scaleFactor)
-        {
-            var result = new RemapResult();
-            var definitionRoot = definition.transform;
-            var destArmature = destData.Armature.transform;
-            var destAnimator = destData.AvatarAnimator;
-            var remapRules = definition.PathRemapRules?.ToList();
-
-            Undo.IncrementCurrentGroup();
-            int undoGroup = Undo.GetCurrentGroup();
-            Undo.SetCurrentGroupName("PBRemap (Prefab)");
-
-            try
-            {
-                foreach (var boneRef in definition.SerializedBoneReferences)
-                {
-                    // コンポーネントを特定
-                    var targetTransform = definitionRoot.Find(boneRef.componentObjectPath);
-                    if (targetTransform == null)
-                    {
-                        result.Warnings.Add($"オブジェクト '{boneRef.componentObjectPath}' が見つかりません");
-                        result.UnresolvedReferenceCount++;
-                        continue;
-                    }
-
-                    var component = FindComponentByTypeName(targetTransform.gameObject, boneRef.componentTypeName);
-                    if (component == null)
-                    {
-                        result.Warnings.Add($"コンポーネント '{boneRef.componentTypeName}' が " +
-                            $"'{boneRef.componentObjectPath}' に見つかりません");
-                        result.UnresolvedReferenceCount++;
-                        continue;
-                    }
-
-                    // ボーン解決（4段階戦略）
-                    Transform resolvedBone = ResolveBoneFromSerialized(
-                        boneRef, destArmature, destAnimator, remapRules);
-
-                    if (resolvedBone != null)
-                    {
-                        // SerializedPropertyで該当フィールドに設定
-                        var so = new SerializedObject(component);
-                        var prop = so.FindProperty(boneRef.propertyPath);
-                        if (prop != null && prop.propertyType == SerializedPropertyType.ObjectReference)
-                        {
-                            Undo.RecordObject(component, "Remap Bone Reference");
-                            prop.objectReferenceValue = resolvedBone;
-                            so.ApplyModifiedProperties();
-                            result.RemappedReferenceCount++;
-                            result.RemappedComponentCount++;
-                        }
-                    }
-                    else
-                    {
-                        // 自動作成を試みる
-                        Transform autoCreated = TryAutoCreateFromSerialized(
-                            boneRef, destArmature, destAnimator, remapRules);
-
-                        if (autoCreated != null)
-                        {
-                            var so = new SerializedObject(component);
-                            var prop = so.FindProperty(boneRef.propertyPath);
-                            if (prop != null && prop.propertyType == SerializedPropertyType.ObjectReference)
-                            {
-                                Undo.RecordObject(component, "Remap Bone Reference (Auto-created)");
-                                prop.objectReferenceValue = autoCreated;
-                                so.ApplyModifiedProperties();
-                                result.RemappedReferenceCount++;
-                                result.RemappedComponentCount++;
-                                result.AutoCreatedObjectCount++;
-                            }
-                        }
-                        else
-                        {
-                            result.Warnings.Add($"ボーン '{boneRef.boneRelativePath}' を解決できません " +
-                                $"({boneRef.componentObjectPath}/{boneRef.componentTypeName}.{boneRef.propertyPath})");
-                            result.UnresolvedReferenceCount++;
-                        }
-                    }
-                }
-
-                // スケール適用
-                var allComponents = CollectVRCComponents(definitionRoot);
-                foreach (var component in allComponents)
-                {
-                    ApplyScaleFactor(component, scaleFactor);
-                }
-
-                // Constraint Sources (TargetTransform, Sources[i].SourceTransform) は
-                // ScanComponentReferences の汎用プロパティ走査で既にシリアライズされており、
-                // 上記の SerializedBoneReference ループ内で自動的にリマップされる。
-            }
-            catch (Exception ex)
-            {
-                Undo.RevertAllDownToGroup(undoGroup);
-                return Result<RemapResult, string>.Failure($"リマップ中にエラーが発生しました: {ex.Message}");
-            }
-
-            Undo.CollapseUndoOperations(undoGroup);
-            return Result<RemapResult, string>.Success(result);
-        }
-
-        /// <summary>
-        /// シリアライズされたボーン情報からデスティネーションのボーンを解決する。
-        /// 4段階戦略: 直接Humanoid → Humanoid祖先+相対パス → フルパス+リマップ → 名前マッチ
-        /// </summary>
-        private static Transform ResolveBoneFromSerialized(
-            SerializedBoneReference boneRef,
-            Transform destArmature,
-            Animator destAnimator,
-            List<PathRemapRule> remapRules)
-        {
-            // 戦略1: 直接Humanoidマッピング
-            if (boneRef.humanBodyBone != HumanBodyBones.LastBone
-                && destAnimator != null && destAnimator.isHuman)
-            {
-                var bone = destAnimator.GetBoneTransform(boneRef.humanBodyBone);
-                if (bone != null)
-                    return bone;
-            }
-
-            // 戦略2: Humanoid祖先 + 相対パス
-            if (boneRef.nearestHumanoidAncestor != HumanBodyBones.LastBone
-                && !string.IsNullOrEmpty(boneRef.pathFromHumanoidAncestor)
-                && destAnimator != null && destAnimator.isHuman)
-            {
-                var ancestorBone = destAnimator.GetBoneTransform(boneRef.nearestHumanoidAncestor);
-                if (ancestorBone != null)
-                {
-                    var resolved = ancestorBone.Find(boneRef.pathFromHumanoidAncestor);
-                    if (resolved != null)
-                        return resolved;
-                }
-            }
-
-            // 戦略3: フルパスマッチ + PathRemapRules（順方向）
-            if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
-            {
-                // まず直接パスマッチ
-                var directMatch = BoneMapper.FindBoneByRelativePath(boneRef.boneRelativePath, destArmature);
-                if (directMatch != null)
-                    return directMatch;
-
-                if (remapRules != null && remapRules.Count > 0)
-                {
-                    // 順方向リマップ
-                    string remappedPath = BoneMapper.ApplyRemapRules(boneRef.boneRelativePath, remapRules);
-                    var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
-                    if (remappedMatch != null)
-                        return remappedMatch;
-
-                    // 逆方向リマップ（双方向対応）
-                    string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(boneRef.boneRelativePath, remapRules);
-                    if (reverseRemappedPath != remappedPath)
-                    {
-                        var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
-                        if (reverseMatch != null)
-                            return reverseMatch;
-                    }
-                }
-            }
-
-            // 戦略4: 名前マッチ（フォールバック、双方向リマップ対応）
-            if (!string.IsNullOrEmpty(boneRef.boneRelativePath))
-            {
-                string[] segments = boneRef.boneRelativePath.Split('/');
-                string boneName = segments[segments.Length - 1];
-                var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-
-                if (remapRules != null && remapRules.Count > 0)
-                {
-                    // 順方向リマップ後の名前でマッチ
-                    string forwardName = boneName;
-                    foreach (var rule in remapRules)
-                        forwardName = rule.Apply(forwardName);
-                    var forwardMatch = allDestBones.FirstOrDefault(t => t.name == forwardName);
-                    if (forwardMatch != null)
-                        return forwardMatch;
-
-                    // 逆方向リマップ後の名前でマッチ
-                    string reverseName = boneName;
-                    foreach (var rule in remapRules)
-                        reverseName = rule.ApplyReverse(reverseName);
-                    if (reverseName != forwardName)
-                    {
-                        var reverseMatch = allDestBones.FirstOrDefault(t => t.name == reverseName);
-                        if (reverseMatch != null)
-                            return reverseMatch;
-                    }
-                }
-                else
-                {
-                    var nameMatch = allDestBones.FirstOrDefault(t => t.name == boneName);
-                    if (nameMatch != null)
-                        return nameMatch;
-                }
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// 型名からコンポーネントを検索する。
-        /// </summary>
-        private static Component FindComponentByTypeName(GameObject obj, string typeName)
-        {
-            foreach (var component in obj.GetComponents<Component>())
-            {
-                if (component != null && component.GetType().Name == typeName)
-                    return component;
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// シリアライズデータからヘルパーオブジェクトの自動作成を試みる。
-        /// スケルトンボーンの場合や親が解決できない場合はnullを返す。
-        /// </summary>
-        private static Transform TryAutoCreateFromSerialized(
-            SerializedBoneReference boneRef,
-            Transform destArmature,
-            Animator destAnimator,
-            List<PathRemapRule> remapRules)
-        {
-            // スケルトンボーンは自動作成対象外
-            if (boneRef.isSkeletonBone)
-                return null;
-
-            // パスが必要
-            if (string.IsNullOrEmpty(boneRef.boneRelativePath) || !boneRef.boneRelativePath.Contains("/"))
-                return null;
-
-            int lastSlash = boneRef.boneRelativePath.LastIndexOf('/');
-            string parentPath = boneRef.boneRelativePath.Substring(0, lastSlash);
-            string boneName = boneRef.boneRelativePath.Substring(lastSlash + 1);
-
-            // 親を解決
-            Transform destParent = ResolveParentForAutoCreate(
-                parentPath, destArmature, destAnimator, remapRules);
-            if (destParent == null)
-                return null;
-
-            // destParent配下に既に同名の子がある場合はそれを使う
-            Transform existing = destParent.Find(boneName);
-            if (existing != null)
-                return existing;
-
-            // 新規GameObjectを作成
-            var newObj = new GameObject(boneName);
-            newObj.transform.SetParent(destParent, false);
-            Undo.RegisterCreatedObjectUndo(newObj, "Auto-create helper object");
-
-            return newObj.transform;
-        }
-
-        /// <summary>
-        /// 親パスをデスティネーション側で解決する。
-        /// 直接パスマッチ → リマップルール → 名前マッチの順で試行する。
-        /// </summary>
-        private static Transform ResolveParentForAutoCreate(
-            string parentPath,
-            Transform destArmature,
-            Animator destAnimator,
-            List<PathRemapRule> remapRules)
-        {
-            if (string.IsNullOrEmpty(parentPath))
-                return destArmature;
-
-            // 直接パスマッチ
-            var directMatch = BoneMapper.FindBoneByRelativePath(parentPath, destArmature);
-            if (directMatch != null)
-                return directMatch;
-
-            // リマップルール適用
-            if (remapRules != null && remapRules.Count > 0)
-            {
-                string remappedPath = BoneMapper.ApplyRemapRules(parentPath, remapRules);
-                var remappedMatch = BoneMapper.FindBoneByRelativePath(remappedPath, destArmature);
-                if (remappedMatch != null)
-                    return remappedMatch;
-
-                string reverseRemappedPath = BoneMapper.ApplyRemapRulesReverse(parentPath, remapRules);
-                if (reverseRemappedPath != remappedPath)
-                {
-                    var reverseMatch = BoneMapper.FindBoneByRelativePath(reverseRemappedPath, destArmature);
-                    if (reverseMatch != null)
-                        return reverseMatch;
-                }
-            }
-
-            // 名前マッチ（親パスの末尾セグメント）
-            string[] segments = parentPath.Split('/');
-            string parentBoneName = segments[segments.Length - 1];
-            var allDestBones = destArmature.GetComponentsInChildren<Transform>(true);
-            var nameMatch = allDestBones.FirstOrDefault(t => t.name == parentBoneName);
-            if (nameMatch != null)
-                return nameMatch;
-
-            return null;
-        }
-
-        #endregion
-
-        #region 共通ヘルパー
-
-        /// <summary>
-        /// PBRemap配下の全VRCコンポーネントを収集する。
-        /// </summary>
-        private static List<Component> CollectVRCComponents(Transform root)
-        {
-            var components = new List<Component>();
-            components.AddRange(root.GetComponentsInChildren<VRCPhysBone>(true));
-            components.AddRange(root.GetComponentsInChildren<VRCPhysBoneCollider>(true));
-            components.AddRange(root.GetComponentsInChildren<VRCConstraintBase>(true));
-            components.AddRange(root.GetComponentsInChildren<ContactBase>(true));
-            return components;
-        }
-
-        /// <summary>
-        /// rootTransformがnullのコンポーネントに対し、ボーンマップから適切なボーンを設定する。
-        /// VRC SDKではrootTransformがnullの場合、コンポーネントの親がrootとして扱われるが、
-        /// 移植後はAvatarDynamics配下に配置されるため明示的な設定が必要。
-        /// </summary>
-        private static void ResolveNullRootTransform(
-            Component component, Dictionary<Transform, Transform> boneMap, Transform definitionRoot)
-        {
-            Transform parentBone = component.transform.parent;
-            // 親がdefinitionRoot配下（= AvatarDynamicsフォルダ内）の場合は
-            // 元々のソースでもフォルダ内だったので、外部参照の解決は不要
-            if (parentBone == null || parentBone.IsChildOf(definitionRoot))
-                return;
-
-            if (!boneMap.TryGetValue(parentBone, out Transform destBone))
-                return;
-
-            switch (component)
-            {
-                case VRCPhysBone pb when pb.rootTransform == null:
-                    Undo.RecordObject(pb, "Set rootTransform");
-                    pb.rootTransform = destBone;
+                case PBRemapManifestBuilder.ReferenceState.NoExternalReferences:
+                    s.State = PBRemapState.NoReferences;
                     break;
-                case VRCPhysBoneCollider pbc when pbc.rootTransform == null:
-                    Undo.RecordObject(pbc, "Set rootTransform");
-                    pbc.rootTransform = destBone;
+                case PBRemapManifestBuilder.ReferenceState.Live:
+                    s.State = s.Source != null && s.Source.Root == s.Destination.Root ? PBRemapState.AtHome : PBRemapState.Displaced;
                     break;
-                case ContactBase contact when contact.rootTransform == null:
-                    Undo.RecordObject(contact, "Set rootTransform");
-                    contact.rootTransform = destBone;
+                default:
+                    s.State = PBRemapState.Broken;
                     break;
             }
+            s.ManifestMatchesDestination = s.HasManifest && definition.Manifest.sourceRootInstanceId == s.Destination.Root.GetInstanceID();
+            if (s.State == PBRemapState.Broken && !s.HasManifest)
+                s.Warnings.Add("参照が失われており、移植元の参照情報（マニフェスト）もありません。移植元のシーンでPBRemapを選択して参照情報を更新してください。");
+            return s;
         }
 
         /// <summary>
-        /// VRCConstraintBaseのSources内のSourceTransformとTargetTransformをリマップする。
+        /// 移植元にいる（AtHome/Displaced）ならマニフェストを取り直して保存する。
+        /// 移植元にいるときに常に最新の情報を持つための処理（P1）。
         /// </summary>
-        private static void RemapConstraintSources(
-            VRCConstraintBase constraint,
-            Dictionary<Transform, Transform> boneMap)
+        /// <returns>更新した場合 true</returns>
+        public static bool RefreshManifestIfLive(PBRemap definition, PBRemapSituation situation = null, bool registerUndo = false)
         {
-            if (constraint == null) return;
+            situation ??= Inspect(definition);
+            if (situation.Scan == null || situation.Scan.State != PBRemapManifestBuilder.ReferenceState.Live) return false;
 
-            Undo.RecordObject(constraint, "Remap Constraint Sources");
-
-            // TargetTransformの置換
-            if (constraint.TargetTransform != null
-                && boneMap.TryGetValue(constraint.TargetTransform, out Transform newTarget))
+            // 手動指定の移植元がある場合はそれをルートとして扱う
+            var scan = situation.Scan;
+            if (definition.SourceRootOverride != null)
             {
-                constraint.TargetTransform = newTarget;
+                scan.SourceRoot = new RootInfo { Root = definition.SourceRootOverride, Kind = RootKind.Generic, Method = AvatarDetectionMethod.Manual };
+                var k = PBRemapContextResolver.ClassifyRootCandidate(definition.SourceRootOverride.transform);
+                if (k != RootKind.None) scan.SourceRoot.Kind = k;
+                scan.Contexts = PBRemapContextResolver.BuildContexts(definition.SourceRootOverride);
             }
 
-            // Sources内のSourceTransformを置換
-            var so = new SerializedObject(constraint);
-            var sourcesProp = so.FindProperty("Sources");
-            if (sourcesProp != null && sourcesProp.isArray)
-            {
-                bool changed = false;
-                for (int i = 0; i < sourcesProp.arraySize; i++)
-                {
-                    var element = sourcesProp.GetArrayElementAtIndex(i);
-                    var srcTransformProp = element.FindPropertyRelative("SourceTransform");
-                    if (srcTransformProp != null
-                        && srcTransformProp.propertyType == SerializedPropertyType.ObjectReference)
-                    {
-                        var srcTransform = srcTransformProp.objectReferenceValue as Transform;
-                        if (srcTransform != null && boneMap.TryGetValue(srcTransform, out Transform mapped))
-                        {
-                            srcTransformProp.objectReferenceValue = mapped;
-                            changed = true;
-                        }
-                    }
-                }
+            var manifest = PBRemapManifestBuilder.Build(definition, scan);
+            if (manifest == null) return false;
+            if (ManifestEquivalent(definition.Manifest, manifest)) return false;
 
-                if (changed)
-                    so.ApplyModifiedProperties();
+            if (registerUndo) Undo.RecordObject(definition, "PBRemap 参照情報更新");
+            definition.SetManifest(manifest);
+            EditorUtility.SetDirty(definition);
+            return true;
+        }
+
+        private static bool ManifestEquivalent(PBRemapManifest a, PBRemapManifest b)
+        {
+            if (a == null || b == null) return false;
+            if (a.sourceRootName != b.sourceRootName || a.refs.Count != b.refs.Count || a.contexts.Count != b.contexts.Count || a.originals.Count != b.originals.Count) return false;
+            for (int i = 0; i < a.refs.Count; i++)
+            {
+                var x = a.refs[i]; var y = b.refs[i];
+                if (x.Key != y.Key || x.contextId != y.contextId || x.relPath != y.relPath || x.humanBone != y.humanBone || x.isSkeletonBone != y.isSkeletonBone
+                    || x.targetComponentType != y.targetComponentType || x.pathFromRoot != y.pathFromRoot || (x.lossyScale - y.lossyScale).sqrMagnitude > 1e-8f)
+                    return false;
             }
+            for (int i = 0; i < a.originals.Count; i++)
+            {
+                var x = a.originals[i]; var y = b.originals[i];
+                if (x.componentPath != y.componentPath || !Mathf.Approximately(x.radius, y.radius) || !Mathf.Approximately(x.height, y.height)
+                    || (x.position - y.position).sqrMagnitude > 1e-10f || (x.endpointPosition - y.endpointPosition).sqrMagnitude > 1e-10f)
+                    return false;
+            }
+            if (Mathf.Abs(a.scaleReference.hipsToHead - b.scaleReference.hipsToHead) > 1e-5f) return false;
+            return true;
         }
 
         /// <summary>
-        /// スケールファクターをコンポーネントのパラメータに適用する。
+        /// 旧形式データがあればマニフェストへ移行する。
         /// </summary>
-        private static void ApplyScaleFactor(Component component, float scaleFactor)
+        public static bool MigrateLegacyIfNeeded(PBRemap definition)
         {
-            if (Mathf.Approximately(scaleFactor, 1.0f))
-                return;
-
-            Undo.RecordObject(component, "Apply Scale Factor");
-
-            switch (component)
+            if (definition == null) return false;
+            bool changed = false;
+            if ((definition.Manifest == null || definition.Manifest.IsEmpty) && definition.SerializedBoneReferences.Count > 0)
             {
-                case VRCPhysBone pb:
-                    pb.radius = ScaleCalculator.ScaleValue(pb.radius, scaleFactor);
-                    pb.endpointPosition = ScaleCalculator.ScaleVector3(pb.endpointPosition, scaleFactor);
-                    break;
-                case VRCPhysBoneCollider pbc:
-                    pbc.radius = ScaleCalculator.ScaleValue(pbc.radius, scaleFactor);
-                    pbc.height = ScaleCalculator.ScaleValue(pbc.height, scaleFactor);
-                    pbc.position = ScaleCalculator.ScaleVector3(pbc.position, scaleFactor);
-                    break;
-                case ContactBase contact:
-                    contact.radius = ScaleCalculator.ScaleValue(contact.radius, scaleFactor);
-                    contact.height = ScaleCalculator.ScaleValue(contact.height, scaleFactor);
-                    contact.position = ScaleCalculator.ScaleVector3(contact.position, scaleFactor);
-                    break;
+                var m = PBRemapManifestBuilder.MigrateLegacy(definition.SerializedBoneReferences, definition.SourceAvatarScale);
+                if (m != null) { definition.SetManifest(m); definition.ClearLegacyData(); changed = true; }
             }
-        }
-
-        /// <summary>
-        /// PBRemapの設定に基づいてスケールファクターを算出する。
-        /// </summary>
-        private static float CalculateScaleFactor(
-            PBRemap definition, AvatarData sourceData, AvatarData destData)
-        {
             if (!definition.AutoCalculateScale)
-                return definition.ScaleFactor;
-
-            return ScaleCalculator.CalculateScaleFactor(
-                sourceData.Armature.transform,
-                destData.Armature.transform,
-                sourceData.AvatarAnimator,
-                destData.AvatarAnimator);
+            {
+                definition.MigrateLegacyScaleSettings();
+                changed = true;
+            }
+            if (changed) EditorUtility.SetDirty(definition);
+            return changed;
         }
 
         /// <summary>
-        /// AvatarDataからスケール基準値（Hips→Head距離 or lossyScale.y）を算出する。
+        /// 解決計画を作る（副作用なし）。マニフェストが無くLiveなら一時的に生成して使う。
+        /// </summary>
+        public static ResolutionPlan Plan(PBRemap definition, PBRemapSituation situation = null)
+        {
+            situation ??= Inspect(definition);
+            var plan = new ResolutionPlan();
+            if (situation.State == PBRemapState.NoDestination || situation.DestinationRoot == null)
+            {
+                plan.Errors.Add("移植先が特定できません。" + (situation.Destination != null && situation.Destination.Candidates.Count > 0
+                    ? "候補: " + string.Join(", ", situation.Destination.Candidates.Select(c => c.name)) + "。PBRemapをその子階層に移動するか、詳細設定で手動指定してください。"
+                    : "PBRemapをアバター/衣装/小物の子階層に配置するか、詳細設定で手動指定してください。"));
+                return plan;
+            }
+            if (situation.State == PBRemapState.NoReferences)
+            {
+                plan.Errors.Add("移植対象の参照がありません。PBRemapの子階層にPhysBone等のコンポーネントを配置してください。");
+                return plan;
+            }
+            if (situation.State == PBRemapState.AtHome)
+            {
+                plan.Errors.Add($"参照は既に '{situation.DestinationRoot.name}' に接続されています（移植の必要はありません）。");
+                return plan;
+            }
+
+            // Live なら最新のマニフェストで解決（保存はしない）
+            PBRemapManifest manifest = definition.Manifest;
+            if (situation.Scan.State == PBRemapManifestBuilder.ReferenceState.Live)
+            {
+                var fresh = PBRemapManifestBuilder.Build(definition, situation.Scan);
+                if (fresh != null) manifest = fresh;
+            }
+            if (manifest == null || manifest.IsEmpty)
+            {
+                plan.Errors.Add("移植元の参照情報（マニフェスト）がありません。移植元のシーンでPBRemapを選択して「参照情報を更新」してください。");
+                return plan;
+            }
+
+            using (new ManifestScope(definition, manifest))
+            {
+                plan = PBRemapResolver.Resolve(definition, situation.DestinationRoot, situation.Destination);
+            }
+            plan.Warnings.InsertRange(0, situation.Warnings);
+            return plan;
+        }
+
+        /// <summary>一時的にマニフェストを差し替えるスコープ（保存しない）</summary>
+        private class ManifestScope : IDisposable
+        {
+            private readonly PBRemap _def;
+            private readonly PBRemapManifest _orig;
+            public ManifestScope(PBRemap def, PBRemapManifest temp) { _def = def; _orig = def.Manifest; if (!ReferenceEquals(_orig, temp)) def.SetManifest(temp); }
+            public void Dispose() { if (!ReferenceEquals(_def.Manifest, _orig)) _def.SetManifest(_orig); }
+        }
+
+        /// <summary>
+        /// 状況判定 → マニフェスト確保 → 解決 → 適用 を一括で行う（互換API）。
+        /// </summary>
+        public static Result<RemapResult, string> Remap(PBRemap definition, bool registerUndo = true)
+        {
+            if (definition == null) return Result<RemapResult, string>.Failure("PBRemapがnullです");
+            MigrateLegacyIfNeeded(definition);
+            var situation = Inspect(definition);
+
+            // Live なら適用前にマニフェストを保存（持ち出しに備える）
+            RefreshManifestIfLive(definition, situation, registerUndo);
+
+            var plan = Plan(definition, situation);
+            if (plan.Errors.Count > 0)
+                return Result<RemapResult, string>.Failure(string.Join("\n", plan.Errors));
+
+            var apply = PBRemapApplier.Apply(definition, plan, registerUndo);
+            if (apply.IsFailure) return Result<RemapResult, string>.Failure(apply.Error);
+
+            var a = apply.Value;
+            return Result<RemapResult, string>.Success(new RemapResult
+            {
+                RemappedComponentCount = a.RemappedComponents,
+                RemappedReferenceCount = a.RemappedReferences,
+                UnresolvedReferenceCount = a.Unresolved,
+                AmbiguousReferenceCount = a.Ambiguous,
+                AutoCreatedObjectCount = a.AutoCreated,
+                WorldScaleRatio = a.WorldScaleRatio,
+                Warnings = a.Warnings,
+            });
+        }
+
+        /// <summary>
+        /// AvatarDataからスケール基準値（Hips→Head距離 or lossyScale.y）を算出する（互換）。
         /// </summary>
         public static float CalculateAvatarScale(AvatarData avatarData)
         {
@@ -825,14 +294,10 @@ namespace colloid.PBReplacer
                 if (hips != null && head != null)
                 {
                     float distance = Vector3.Distance(hips.position, head.position);
-                    if (distance > 1e-6f)
-                        return distance;
+                    if (distance > 1e-6f) return distance;
                 }
             }
-
             return avatarData.Armature.transform.lossyScale.y;
         }
-
-        #endregion
     }
 }

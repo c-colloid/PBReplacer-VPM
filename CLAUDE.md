@@ -86,7 +86,7 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
 
 `#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
-PBRemapコンポーネントを`BuildPhase.Generating`で自動処理し、ランタイムでは除去する。
+PBRemapコンポーネントを`BuildPhase.Resolving`で自動処理し、ランタイムでは除去する。
 
 ## リリースプロセス
 
