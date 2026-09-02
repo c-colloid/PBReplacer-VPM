@@ -90,6 +90,8 @@ namespace colloid.PBReplacer
                 return _root;
             }
             visualTree.CloneTree(_root);
+            var commonSheet = Resources.Load<StyleSheet>("USS/PBReplacerCommon");
+            if (commonSheet != null) _root.styleSheets.Add(commonSheet);
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null) _root.styleSheets.Add(styleSheet);
             LoadStringResources();

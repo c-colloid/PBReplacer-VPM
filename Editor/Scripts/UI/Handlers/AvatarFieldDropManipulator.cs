@@ -120,33 +120,43 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			// 判定はAvatarValidatorに共通化。判定後の挙動（受け入れ方・警告ダイアログ）はここで維持
-			var validation = AvatarValidator.Validate(_targetObject);
-			switch (validation.Method)
+			var accepted = ResolveAvatarComponent(_targetObject);
+			if (accepted != null)
 			{
-			case AvatarDetectionMethod.VRCAvatarDescriptor:
-				// AvatarDescriptorがある場合は直接受け入れ
-				AcceptObject(_targetObject.GetComponent<VRC.SDKBase.VRC_AvatarDescriptor>());
-				break;
-
-			case AvatarDetectionMethod.MergeArmature:
-				AcceptObject(_targetObject.transform);
-				break;
-
-			case AvatarDetectionMethod.Animator:
-				AcceptObject(_targetObject.GetComponent<Animator>());
-				break;
-
-			default:
-				// 警告ダイアログを表示
-				if (EditorUtility.DisplayDialog(DIALOG_TITLE, DIALOG_MESSAGE, "OK", "Cancel"))
-				{
-					AcceptObject(_targetObject.transform);
-				}
-				break;
+				AcceptObject(accepted);
 			}
 
 			evt.StopPropagation();
+		}
+
+		/// <summary>
+		/// ドロップ／ピッカーで指定された GameObject を「アバターとして受け入れるコンポーネント」に解決する。
+		/// 判定は AvatarValidator に共通化。AvatarDescriptor / MA MergeArmature / Animator は直接受け入れ、
+		/// それ以外は衣装用オプションの警告ダイアログを出し、了承されたときだけ受け入れる（キャンセルは null）。
+		/// </summary>
+		public static Component ResolveAvatarComponent(GameObject obj)
+		{
+			if (obj == null) return null;
+
+			var validation = AvatarValidator.Validate(obj);
+			switch (validation.Method)
+			{
+			case AvatarDetectionMethod.VRCAvatarDescriptor:
+				return obj.GetComponent<VRC.SDKBase.VRC_AvatarDescriptor>();
+
+			case AvatarDetectionMethod.MergeArmature:
+				return obj.transform;
+
+			case AvatarDetectionMethod.Animator:
+				return obj.GetComponent<Animator>();
+
+			default:
+				if (EditorUtility.DisplayDialog(DIALOG_TITLE, DIALOG_MESSAGE, "OK", "Cancel"))
+				{
+					return obj.transform;
+				}
+				return null;
+			}
 		}
         #endregion
 

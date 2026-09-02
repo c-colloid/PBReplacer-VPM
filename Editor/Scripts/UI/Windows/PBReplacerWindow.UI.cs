@@ -1,6 +1,4 @@
 using System;
-using System.Linq;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
@@ -9,19 +7,17 @@ using UnityEditor.UIElements;
 namespace colloid.PBReplacer
 {
 	/// <summary>
-	/// PBReplacerWindow - UI初期化部分
+	/// PBReplacerWindow - UI 構築（ツール行 / 流れ / 詳細設定 / レール）
 	/// </summary>
 	public partial class PBReplacerWindow
 	{
-		#region UXML/USS Loading
-		/// <summary>
-		/// UXMLレイアウトを読み込み
-		/// </summary>
+		#region UXML Loading
 		private void LoadUXMLLayout()
 		{
 			if (_windowLayout == null)
 			{
-				_windowLayout = Resources.Load<VisualTreeAsset>("PBReplacer");
+				_windowLayout = Resources.Load<VisualTreeAsset>("UXML/PBReplacer")
+					?? Resources.Load<VisualTreeAsset>("PBReplacer");
 			}
 
 			if (_windowLayout == null)
@@ -30,165 +26,318 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			// ルート要素を作成
 			_root = _windowLayout.CloneTree();
-			_root.StretchToParentSize();
+			_root.style.flexGrow = 1;
 			rootVisualElement.Add(_root);
 		}
 
-		/// <summary>
-		/// UI要素への参照を取得
-		/// </summary>
 		private void GetUIReferences()
 		{
-			_statusLabel = _root.Query<Label>("ToolBarLabel").First();
-			_avatarField = _root.Query<ObjectField>("AvatarFiled").First();
-			_applyButton = _root.Query<Button>("ApplyButton").First();
-			_reloadButton = _root.Query<Button>("ReloadButton").First();
-			_tabContainer = _root.Query<VerticalTabContainer>().First();
-			_physBoneBox = _root.Query<Box>("PhysBoneBox").First();
-			_constraintBox = _root.Query<Box>("ConstraintBox").First();
-			_contactBox = _root.Query<Box>("ContactBox").First();
-			_pbListView = _root.Query<ListView>("PBListField").First();
-			_pbcListView = _root.Query<ListView>("PBCListField").First();
+			_tools = _root.Q<VisualElement>("tools");
 
-			_constraintListViewList = _constraintBox.Query<ListView>().ToList();
+			_strip = _root.Q<VisualElement>("strip");
+			_nodeAvatar = _root.Q<VisualElement>("node-avatar");
+			_nodeDynamics = _root.Q<VisualElement>("node-dynamics");
+			_lineLeft = _root.Q<VisualElement>("line-left");
+			_lineRight = _root.Q<VisualElement>("line-right");
+			_nodeAvatarIcon = _root.Q<Image>("node-avatar-icon");
+			_nodeAvatarBadge = _root.Q<Image>("node-avatar-badge");
+			_nodeDynamicsIcon = _root.Q<Image>("node-dynamics-icon");
+			_connectorState = _root.Q<Image>("connector-state");
+			_applyIcon = _root.Q<Image>("apply-icon");
+			_nodeAvatarName = _root.Q<Label>("node-avatar-name");
+			_nodeAvatarSub = _root.Q<Label>("node-avatar-sub");
+			_nodeDynamicsName = _root.Q<Label>("node-dynamics-name");
+			_nodeDynamicsSub = _root.Q<Label>("node-dynamics-sub");
+			_applyLabel = _root.Q<Label>("apply-label");
+			_applyButton = _root.Q<Button>("apply-button");
 
-			_contactSenderListView = _contactBox.Q<ListView>(nameof(_contactSenderListView).Replace("_contact", ""));
-			_contactReciverListView = _contactBox.Q<ListView>(nameof(_contactReciverListView).Replace("_contact", ""));
+			_advanced = _root.Q<VisualElement>("advanced");
+
+			_rail = _root.Q<VisualElement>("rail");
+			_columns = _root.Q<VisualElement>("columns");
 		}
 		#endregion
 
 		#region UI Initialization
-		/// <summary>
-		/// UI全体の初期化
-		/// </summary>
 		private void InitializeUI()
 		{
-			// オブジェクトフィールドの初期化
-			InitializeAvatarField();
+			InitializeTools();
+			InitializeStrip();
+			InitializeAdvanced();
+			InitializeRail();
+			InitializeColumns();
 
-			// リストビューの初期化
-			InitializeListViews();
-
-			// タブの初期化
-			InitializeTabs();
-
-			// ボタンの初期化
-			InitializeButtons();
-
-			// ステータスラベルの初期化
-			_statusLabel.text = STATUS_SET_AVATAR;
-
-			// Undoイベントハンドラの登録
-			UnityEditor.Undo.undoRedoPerformed += OnUndoRedo;
+			bool adv = EditorPrefs.GetBool(PrefAdvanced, false);
+			SetAdvancedVisible(adv);
 		}
 
 		/// <summary>
-		/// アバターフィールドの初期化
+		/// ツール行: PBRemap と同じ右寄せのアイコンボタン（説明はツールチップ）
 		/// </summary>
-		private void InitializeAvatarField()
+		private void InitializeTools()
 		{
-			// アバターフィールドへのドラッグ&ドロップ処理を追加
-			var fieldDisplay = _avatarField.Q<VisualElement>("", "unity-object-field-display");
-			fieldDisplay.AddManipulator(new AvatarFieldDropManipulator(OnAvatarDrop));
+			_reloadButton = PBRemapIcons.IconButton(PBRemapIcons.Refresh, "再読み込み", OnReloadButtonClicked);
+			_undoButton = PBRemapIcons.IconButton(PBRemapIcons.Undo, "直前の再配置を元に戻す (Ctrl+Z)", OnUndoButtonClicked);
+			_gearButton = PBRemapIcons.IconButton(PBRemapIcons.Settings, "詳細設定", OnGearButtonClicked);
+			_menuButton = PBRemapIcons.IconButton("_Menu", "その他", OnOverflowMenuButtonClicked);
 
-			InitializeAvatarFieldLabel();
-			var fieldLabel = _avatarField.Q<Label>("", "unity-object-field-display__label");
-			fieldLabel.RegisterValueChangedCallback(OnAvatarFieldLabelChanged);
+			_tools.Add(_reloadButton);
+			_tools.Add(_undoButton);
+			_tools.Add(_gearButton);
+			_tools.Add(_menuButton);
 
-			// 値変更イベントの登録
-			_avatarField.RegisterValueChangedCallback(OnAvatarFieldValueChanged);
+			UpdateTools();
+		}
+
+		private void UpdateTools()
+		{
+			bool hasAvatar = AvatarFieldHelper.CurrentAvatar?.AvatarObject != null;
+			_reloadButton?.SetEnabled(hasAvatar);
+			_undoButton?.SetEnabled(_undoAvailable);
 		}
 
 		/// <summary>
-		/// アバターフィールドのラベルを初期化
+		/// 流れ: 左ノード = アバター（ドロップ先 / クリックでピッカー）、中央 = 再配置ピル、右ノード = AvatarDynamics
 		/// </summary>
-		private void InitializeAvatarFieldLabel()
+		private void InitializeStrip()
 		{
-			// デフォルトラベル設定
-			var fieldLabel = _avatarField.Q<Label>("", "unity-object-field-display__label");
-#if MODULAR_AVATAR
-			fieldLabel.text = AVATAR_FIELD_LABEL_MA;
-#else
-			fieldLabel.text = AVATAR_FIELD_LABEL_DEFAULT;
-#endif
-		}
+			// 左ノードへのドロップ = アバターの選択（ObjectField は使わず、ノードそのものが受け皿）
+			_nodeAvatar.AddManipulator(new AvatarFieldDropManipulator(OnAvatarDrop));
+			_nodeAvatar.RegisterCallback<ClickEvent>(OnAvatarNodeClicked);
+			_nodeAvatar.AddManipulator(new ContextualMenuManipulator(evt =>
+			{
+				var avatar = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+				evt.menu.AppendAction("Hierarchy で表示", _ => { if (avatar != null) EditorGUIUtility.PingObject(avatar); },
+					avatar != null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+				evt.menu.AppendAction("アバターを解除", _ => SetAvatar(null),
+					avatar != null ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled);
+			}));
 
-		/// <summary>
-		/// タブの初期化
-		/// </summary>
-		private void InitializeTabs()
-		{
-			// 初期値を設定
-			_tabContainer.value = 0;
+			// 右ノードのクリック = AvatarDynamics を Hierarchy で Ping
+			_nodeDynamics.RegisterCallback<ClickEvent>(_ =>
+			{
+				var dynamics = FindAvatarDynamics();
+				if (dynamics != null) EditorGUIUtility.PingObject(dynamics);
+			});
 
-			// タブ切り替えイベントの登録
-			_tabContainer.RegisterValueChangedCallback(OnTabChanged);
-		}
-
-		/// <summary>
-		/// ボタンの初期化
-		/// </summary>
-		private void InitializeButtons()
-		{
-			// Applyボタンのイベント登録
+			PBRemapIcons.Set(_applyIcon, PBRemapIcons.Apply);
 			_applyButton.clicked += OnApplyButtonClicked;
 
-			// Reloadボタンのイベント登録
-			_reloadButton.clicked += OnReloadButtonClicked;
-			SetButtonIcon(_reloadButton, "Refresh");
-
-			// 設定ボタンの作成と登録（存在する場合）
-			var settingsButton = _root.Query<Button>("SettingsButton").First();
-			if (settingsButton != null)
-			{
-				_settingsButton = settingsButton;
-				_settingsButton.clicked += OnSettingsButtonClicked;
-				SetButtonIcon(_settingsButton, "_Popup");
-			}
-
-			// オーバーフローメニューボタンの作成と登録（存在する場合）
-			var overflowMenuButton = _root.Query<Button>("OverflowMenuButton").First();
-			if (overflowMenuButton != null)
-			{
-				_overflowMenuButton = overflowMenuButton;
-				_overflowMenuButton.clicked += OnOverflowMenuButtonClicked;
-				SetButtonIcon(_overflowMenuButton, "_Menu");
-			}
+			UpdateStrip();
 		}
 
-		/// <summary>
-		/// 絵文字フォントの代わりにUnity組み込みアイコンをボタンに設定する
-		/// </summary>
-		/// <param name="button">対象のボタン</param>
-		/// <param name="iconName">EditorGUIUtility.IconContentに渡すアイコン名（テーマ非依存の名前）</param>
-		private static void SetButtonIcon(Button button, string iconName)
+		private void OnAvatarNodeClicked(ClickEvent evt)
 		{
-			var iconContent = EditorGUIUtility.IconContent(iconName);
-			if (iconContent?.image is Texture2D iconTexture)
-			{
-				button.style.backgroundImage = new StyleBackground(iconTexture);
-				button.text = string.Empty;
-			}
+			if (evt.button != 0) return;
+			var current = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+			_avatarPickerControlId = AvatarPickerControlId;
+			EditorGUIUtility.ShowObjectPicker<GameObject>(current, true, "", _avatarPickerControlId);
 		}
 
 		/// <summary>
-		/// 前回のアバターを読み込み
+		/// 詳細設定（⚙ で開閉）。値は変更と同時に保存する（Unity の設定と同じ挙動）。
 		/// </summary>
+		private void InitializeAdvanced()
+		{
+			var find = _root.Q<EnumField>("setting-find-component");
+			var destroyUnused = _root.Q<Toggle>("setting-destroy-unused");
+			var unpack = _root.Q<Toggle>("setting-unpack-prefab");
+			var autoLoad = _root.Q<Toggle>("setting-auto-load");
+			var confirm = _root.Q<Toggle>("setting-confirm");
+			var skipSmall = _root.Q<Toggle>("setting-skip-small");
+			var threshold = _root.Q<IntegerField>("setting-skip-threshold");
+			var reset = _root.Q<Button>("setting-reset");
+			var version = _root.Q<Label>("version-label");
+
+			find?.Init(_settings.FindComponent);
+			find?.RegisterValueChangedCallback(evt =>
+			{
+				if (evt.newValue is FindComponent fc) { _settings.FindComponent = fc; SaveSettings(); DataManagerHelper.ReloadData(); }
+			});
+			destroyUnused?.RegisterValueChangedCallback(evt => { _settings.DestroyUnusedObject = evt.newValue; SaveSettings(); });
+			unpack?.RegisterValueChangedCallback(evt => { _settings.UnpackPrefab = evt.newValue; SaveSettings(); });
+			autoLoad?.RegisterValueChangedCallback(evt => { _settings.AutoLoadLastAvatar = evt.newValue; SaveSettings(); });
+			confirm?.RegisterValueChangedCallback(evt => { _settings.ShowConfirmDialog = evt.newValue; SaveSettings(); });
+			skipSmall?.RegisterValueChangedCallback(evt => { _settings.SkipConfirmForSmallBatches = evt.newValue; SaveSettings(); });
+			threshold?.RegisterValueChangedCallback(evt => { _settings.SkipConfirmThreshold = Mathf.Max(0, evt.newValue); SaveSettings(); });
+
+			if (reset != null)
+			{
+				reset.clicked += () =>
+				{
+					if (!EditorUtility.DisplayDialog("設定を初期値に戻す", "PBReplacer の設定をすべて初期値に戻します。", "初期値に戻す", "やめる")) return;
+					var fresh = new PBReplacerSettings { LastAvatarGUID = _settings.LastAvatarGUID };
+					_settings = fresh;
+					SaveSettings();
+				};
+			}
+
+			if (version != null)
+			{
+				version.text = $"PBReplacer {GetVersionString()}";
+			}
+
+			RefreshAdvancedValues();
+		}
+
+		/// <summary>設定値をパネルに反映（通知なし）</summary>
+		private void RefreshAdvancedValues()
+		{
+			if (_root == null || _settings == null) return;
+
+			_root.Q<EnumField>("setting-find-component")?.SetValueWithoutNotify(_settings.FindComponent);
+			_root.Q<Toggle>("setting-destroy-unused")?.SetValueWithoutNotify(_settings.DestroyUnusedObject);
+			_root.Q<Toggle>("setting-unpack-prefab")?.SetValueWithoutNotify(_settings.UnpackPrefab);
+			_root.Q<Toggle>("setting-auto-load")?.SetValueWithoutNotify(_settings.AutoLoadLastAvatar);
+			_root.Q<Toggle>("setting-confirm")?.SetValueWithoutNotify(_settings.ShowConfirmDialog);
+			_root.Q<Toggle>("setting-skip-small")?.SetValueWithoutNotify(_settings.SkipConfirmForSmallBatches);
+			_root.Q<IntegerField>("setting-skip-threshold")?.SetValueWithoutNotify(_settings.SkipConfirmThreshold);
+
+			// 確認しない設定のときは「n件以下なら省略」は意味を持たないので薄くする
+			_root.Q<VisualElement>("setting-skip-row")?.SetEnabled(_settings.ShowConfirmDialog);
+		}
+
+		private void SaveSettings()
+		{
+			_settings.Save();
+		}
+
+		private void SetAdvancedVisible(bool visible)
+		{
+			if (_advanced == null) return;
+			_advanced.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+			_gearButton?.EnableInClassList("pbremap-icon-button--on", visible);
+			EditorPrefs.SetBool(PrefAdvanced, visible);
+		}
+
+		private bool IsAdvancedVisible => _advanced != null && _advanced.resolvedStyle.display != DisplayStyle.None;
+
+		/// <summary>
+		/// レール: カテゴリのアイコンチップ。文字は持たず、名前と件数はツールチップと列見出しに任せる。
+		/// SDK の型アイコンが無いカテゴリが 1 つでもあればレール全体を「アイコン＋件数の 2 段」にする（案 ii）。
+		/// </summary>
+		private void InitializeRail()
+		{
+			_rail.Clear();
+			_chips.Clear();
+
+			bool anyFallback = false;
+			foreach (var category in ComponentCategoryInfo.All)
+			{
+				var icon = ComponentIconUtility.GetCategoryIcon(category, out bool isFallback);
+				anyFallback |= isFallback;
+
+				var chip = new RailChip(category, icon, isFallback);
+				chip.Root.RegisterCallback<ClickEvent>(evt => OnRailChipClicked(category, evt.altKey));
+				_chips[category] = chip;
+				_rail.Add(chip.Root);
+			}
+
+			_rail.EnableInClassList("pbr-rail--fallback", anyFallback);
+			if (anyFallback)
+			{
+				foreach (var chip in _chips.Values) chip.Root.AddToClassList("pbr-rail-chip--fallback");
+			}
+		}
+
+		private void OnRailChipClicked(ComponentCategory category, bool solo)
+		{
+			int bit = 1 << (int)category;
+			if (solo)
+			{
+				_visibleMask = bit;
+			}
+			else
+			{
+				// 最後の 1 つは消せない（列が 0 になると何も見えなくなる）
+				int next = _visibleMask ^ bit;
+				if ((next & AllCategoriesMask) == 0) return;
+				_visibleMask = next;
+			}
+
+			EditorPrefs.SetInt(PrefVisibleCategories, _visibleMask);
+			ApplyVisibility();
+			UpdateStrip();
+		}
+
+		private bool IsCategoryVisible(ComponentCategory category) => (_visibleMask & (1 << (int)category)) != 0;
+
 		private void TryLoadLastAvatar()
 		{
+			if (_settings == null) return;
 			GameObject lastAvatar = _settings.LoadLastAvatar();
-			if (lastAvatar != null && _avatarField != null)
+			if (lastAvatar != null && AvatarFieldHelper.CurrentAvatar?.AvatarObject == null)
 			{
-				_avatarField.value = lastAvatar;
+				SetAvatar(lastAvatar);
 			}
 		}
 
-		private void SaveAvatarData()
+		private static string GetVersionString()
 		{
-			// 設定に保存(最新の設定を読み込む必要があるので一旦保留)
-			//_settings.SaveLastAvatarGUID((_avatarField?.value as Component)?.gameObject);
+			try
+			{
+				var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssembly(typeof(PBReplacerWindow).Assembly);
+				if (packageInfo != null) return packageInfo.version;
+			}
+			catch (Exception) { }
+			return "";
+		}
+		#endregion
+
+		#region Rail Chip
+		/// <summary>
+		/// レールのチップ 1 つ（28px 正方形 + 右下バッジ）。PBRemap のノード（アイコン + 右下バッジ）と同じ構図。
+		/// </summary>
+		private class RailChip
+		{
+			public readonly ComponentCategory Category;
+			public readonly VisualElement Root;
+			public readonly Image Icon;
+			public readonly Label Badge;
+
+			public RailChip(ComponentCategory category, Texture2D icon, bool isFallback)
+			{
+				Category = category;
+				Root = new VisualElement { name = $"chip-{category}" };
+				Root.AddToClassList("pbr-rail-chip");
+				Root.tooltip = ComponentCategoryInfo.DisplayName(category);
+
+				Icon = new Image { image = icon, scaleMode = ScaleMode.ScaleToFit };
+				Icon.AddToClassList("pbr-rail-chip-icon");
+				Root.Add(Icon);
+
+				Badge = new Label();
+				Badge.AddToClassList("pbr-rail-badge");
+				Badge.pickingMode = PickingMode.Ignore;
+				Root.Add(Badge);
+			}
+
+			public void Update(int pending, int total, bool visible)
+			{
+				string name = ComponentCategoryInfo.DisplayName(Category);
+				Root.EnableInClassList("pbr-rail-chip--off", !visible);
+				Root.EnableInClassList("pbr-rail-chip--pending", pending > 0);
+				Root.EnableInClassList("pbr-rail-chip--done", pending == 0 && total > 0);
+				Badge.EnableInClassList("pbr-rail-badge--pending", pending > 0);
+				Badge.EnableInClassList("pbr-rail-badge--done", pending == 0 && total > 0);
+
+				if (total == 0)
+				{
+					Badge.text = "0";
+					Root.tooltip = $"{name} — 対象なし\nクリックで列の表示切替、Alt+クリックでこの列だけ表示";
+				}
+				else if (pending == 0)
+				{
+					Badge.text = "✔";
+					Root.tooltip = $"{name} — すべて配置済み ({total})\nクリックで列の表示切替、Alt+クリックでこの列だけ表示";
+				}
+				else
+				{
+					Badge.text = pending.ToString();
+					Root.tooltip = $"{name} — 未処理 {pending} / 全 {total}\nクリックで列の表示切替、Alt+クリックでこの列だけ表示";
+				}
+			}
 		}
 		#endregion
 	}

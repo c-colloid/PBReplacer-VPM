@@ -40,7 +40,7 @@ namespace colloid.PBReplacer
 		public bool AutoLoadLastAvatar = true;
         
 		// コンポーネント処理時に確認ダイアログを表示するかどうか
-		public bool ShowConfirmDialog = true;
+		public bool ShowConfirmDialog = false;
         
 		// 処理進捗を表示するかどうか
 		public bool ShowProgressBar = true;

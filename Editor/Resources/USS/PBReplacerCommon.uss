@@ -1,0 +1,276 @@
+/* ============================================================
+   PBReplacer 共通 UI 語彙（メインウィンドウ / PBRemap Inspector で共用）
+   ツール行のアイコンボタン / 流れ（strip・node・connector・apply）/ チップ / 詳細設定パネル
+   同じ規則を .pbremap-* と .pbr-* の両方の名前で提供する（PBRemap 側は既存名のまま）
+   ============================================================ */
+
+.pbremap-icon, .pbr-icon {
+    flex-shrink: 0;
+}
+
+.pbremap-tools, .pbr-tools {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 2px 2px 0 2px;
+}
+
+.pbremap-icon-button, .pbr-icon-button {
+    width: 24px;
+    height: 22px;
+    padding: 0;
+    margin: 0 1px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+}
+
+.pbremap-icon-button--on, .pbr-icon-button--on {
+    background-color: rgba(90, 160, 255, 0.35);
+}
+
+.pbremap-icon-button:disabled, .pbr-icon-button:disabled {
+    opacity: 0.35;
+}
+
+.pbremap-strip, .pbr-strip {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 4px;
+    margin: 2px 2px 4px 2px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.12);
+    transition-property: background-color;
+    transition-duration: 0.35s;
+}
+
+.pbremap-strip--home, .pbr-strip--home {
+    background-color: rgba(90, 200, 120, 0.08);
+}
+
+.pbremap-strip--displaced, .pbr-strip--displaced {
+    background-color: rgba(255, 190, 60, 0.10);
+}
+
+.pbremap-strip--broken, .pbr-strip--broken {
+    background-color: rgba(255, 140, 60, 0.10);
+}
+
+.pbremap-strip--error, .pbr-strip--error {
+    background-color: rgba(230, 70, 70, 0.14);
+}
+
+.pbremap-strip--flash, .pbr-strip--flash {
+    background-color: rgba(90, 200, 120, 0.40);
+}
+
+.pbremap-node, .pbr-node {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    padding: 3px 4px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.pbremap-node--drop-hover, .pbr-node--drop-hover {
+    background-color: rgba(90, 160, 255, 0.25);
+    border-color: rgba(90, 160, 255, 0.9);
+}
+
+.pbremap-node--empty, .pbr-node--empty {
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.pbremap-node--ghost .pbremap-node-icon, .pbr-node--ghost .pbr-node-icon {
+    opacity: 0.45;
+}
+
+.pbremap-node--ghost .pbremap-node-name, .pbr-node--ghost .pbr-node-name {
+    opacity: 0.65;
+    -unity-font-style: italic;
+}
+
+.pbremap-node-iconwrap, .pbr-node-iconwrap {
+    width: 22px;
+    height: 22px;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.pbremap-node-icon, .pbr-node-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.pbremap-node-badge, .pbr-node-badge {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 12px;
+    height: 12px;
+}
+
+.pbremap-node-text, .pbr-node-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+    justify-content: center;
+}
+
+.pbremap-node-name, .pbr-node-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+    font-size: 12px;
+}
+
+.pbremap-node-sub, .pbr-node-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+    font-size: 9px;
+    opacity: 0.6;
+    margin-top: -2px;
+}
+
+.pbremap-connector, .pbr-connector {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    flex-shrink: 0;
+}
+
+.pbremap-line, .pbr-line {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.18);
+    border-radius: 1px;
+}
+
+.pbremap-line--active, .pbr-line--active {
+    background-color: rgba(255, 190, 60, 0.7);
+}
+
+.pbremap-line--home, .pbr-line--home {
+    background-color: rgba(90, 200, 120, 0.55);
+}
+
+.pbremap-apply, .pbr-apply {
+    height: 24px;
+    padding: 0 8px 0 10px;
+    margin: 0 2px;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 12px;
+    border-width: 0;
+    background-color: rgba(120, 120, 120, 0.35);
+}
+
+.pbremap-apply-label, .pbr-apply-label {
+    font-size: 12px;
+    -unity-font-style: bold;
+    margin-right: 2px;
+}
+
+.pbremap-apply-icon, .pbr-apply-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.pbremap-apply--ready, .pbr-apply--ready {
+    background-color: rgb(52, 140, 92);
+    color: white;
+}
+
+.pbremap-apply--ready:hover, .pbr-apply--ready:hover {
+    background-color: rgb(64, 168, 110);
+}
+
+.pbremap-apply--partial, .pbr-apply--partial {
+    background-color: rgb(190, 140, 40);
+    color: white;
+}
+
+.pbremap-apply--partial:hover, .pbr-apply--partial:hover {
+    background-color: rgb(215, 160, 50);
+}
+
+.pbremap-apply:disabled, .pbr-apply:disabled {
+    opacity: 0.4;
+}
+
+.pbremap-connector-state, .pbr-connector-state {
+    width: 16px;
+    height: 16px;
+    margin: 0 2px;
+}
+
+.pbremap-chips, .pbr-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0 4px 2px 4px;
+}
+
+.pbremap-chip, .pbr-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px 0 4px;
+    margin: 1px 4px 1px 0;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.pbremap-chip:hover, .pbr-chip:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+.pbremap-chip--off, .pbr-chip--off {
+    opacity: 0.4;
+}
+
+.pbremap-chip-count, .pbr-chip-count {
+    margin-left: 4px;
+    font-size: 11px;
+    -unity-text-align: middle-left;
+}
+
+.pbremap-chip--resolved, .pbr-chip--resolved {
+    border-color: rgba(100, 200, 100, 0.5);
+}
+
+.pbremap-chip--auto, .pbr-chip--auto {
+    border-color: rgba(220, 180, 50, 0.6);
+}
+
+.pbremap-chip--ambiguous, .pbr-chip--ambiguous {
+    border-color: rgba(220, 180, 50, 0.6);
+}
+
+.pbremap-chip--unresolved, .pbr-chip--unresolved {
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.pbremap-chip--manual, .pbr-chip--manual {
+    border-color: rgba(90, 160, 255, 0.6);
+}
+
+.pbremap-advanced, .pbr-advanced {
+    margin: 2px 2px 4px 2px;
+    padding: 4px 4px 2px 4px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
+}

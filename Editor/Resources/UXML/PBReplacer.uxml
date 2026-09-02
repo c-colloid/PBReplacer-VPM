@@ -1,49 +1,75 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <ui:Template name="SideBar" src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/UXML/SideBar.uxml?fileID=9197481963319205126&amp;guid=d1667dacf4aa9b14d856b7c8a497f282&amp;type=3#SideBar" />
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
-    <uie:ObjectField label="Avater" name="AvatarFiled" binding-path="avatarfiledbind" tooltip="アバターを指定してください" type="VRC.SDKBase.VRC_AvatarDescriptor, VRCSDKBase" style="flex-direction: column; align-items: flex-start; justify-content: space-between; margin-left: 3px; margin-right: 3px; padding-top: 4px;" />
-    <ui:GroupBox style="flex-direction: row; flex-grow: 1; margin-top: 1px; padding-left: 0; flex-shrink: 1;">
-        <ui:Instance template="SideBar" name="SideBar" />
-        <ui:Box name="PhysBoneBox" style="display: flex; opacity: 1; flex-direction: row; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
-            <ui:ListView focusable="true" name="PBListField" show-foldout-header="true" show-add-remove-footer="false" header-title="PBList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
-            <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-            <ui:ListView focusable="true" name="PBCListField" show-foldout-header="true" header-title="PBCList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
-            <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
-        </ui:Box>
-        <ui:Box name="ConstraintBox" style="display: none; opacity: 1; flex-direction: column; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
-            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; height: 100%; flex-shrink: 1;">
-                <ui:ListView focusable="true" name="PositionListField" show-foldout-header="true" show-add-remove-footer="false" header-title="PositionList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-                <ui:ListView focusable="true" name="RotationListField" show-foldout-header="true" header-title="RotationList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
-            </ui:GroupBox>
-            <ui:VisualElement name="Separator" style="border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0); height: 0;" />
-            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; flex-shrink: 1; height: 100%;">
-                <ui:ListView focusable="true" name="ScaleListField" show-foldout-header="true" show-add-remove-footer="false" header-title="ScaleList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-                <ui:ListView focusable="true" name="ParentListField" show-foldout-header="true" header-title="ParentList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
-            </ui:GroupBox>
-            <ui:VisualElement name="Separator" style="border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-            <ui:GroupBox style="flex-direction: row; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 0; padding-right: 0; padding-bottom: 0; padding-left: 0; height: 100%; flex-shrink: 1;">
-                <ui:ListView focusable="true" name="LookAtListField" show-foldout-header="true" show-add-remove-footer="false" header-title="LookAtList" reorder-mode="Animated" item-height="20" style="border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-                <ui:ListView focusable="true" name="AimListField" show-foldout-header="true" header-title="AimList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 50%;" />
-                <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
-            </ui:GroupBox>
-        </ui:Box>
-        <ui:Box name="ContactBox" style="display: none; opacity: 1; flex-direction: row; border-left-color: rgb(85, 85, 85); border-right-color: rgb(85, 85, 85); border-top-color: rgb(85, 85, 85); border-bottom-color: rgb(85, 85, 85); border-left-width: 2px; border-right-width: 2px; border-top-width: 2px; border-bottom-width: 2px; flex-grow: 1;">
-            <ui:ListView focusable="true" name="SenderListView" show-foldout-header="true" show-add-remove-footer="false" header-title="SenderList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-right-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
-            <ui:VisualElement name="Separator" style="width: 0; border-left-width: 0.5px; border-right-width: 0.5px; border-top-width: 0.5px; border-bottom-width: 0.5px; border-left-color: rgb(0, 0, 0); border-right-color: rgb(0, 0, 0); border-top-color: rgb(0, 0, 0); border-bottom-color: rgb(0, 0, 0);" />
-            <ui:ListView focusable="true" name="ReciverListView" show-foldout-header="true" header-title="ReciverList" reorder-mode="Animated" item-height="20" style="justify-content: space-around; border-left-color: rgba(0, 0, 0, 0.24); flex-grow: 1; width: 100%;" />
-            <ui:VisualElement name="DropAreaContainer" picking-mode="Ignore" style="position: absolute; width: 100%; height: 100%; flex-direction: row;" />
-        </ui:Box>
-    </ui:GroupBox>
-    <uie:Toolbar style="min-height: 15px; overflow: hidden;">
-        <ui:Label text="アバターをセットしてください" name="ToolBarLabel" />
-    </uie:Toolbar>
-    <ui:Button name="ReloadButton" tooltip="リロード" text="↻" style="white-space: normal; position: absolute; bottom: 4px; height: 22px; left: 5px; width: 22px; -unity-font-style: bold; font-size: 20px; -unity-font-definition: resource(&apos;Font/Noto_Emoji/static/NotoEmoji-Light&apos;);" />
-    <ui:Button text="Apply" name="ApplyButton" tooltip="適用" style="width: 74px; margin-left: auto; margin-right: auto; margin-bottom: 5px; margin-top: 5px; align-items: auto;" />
-    <ui:Button name="SettingsButton" tooltip="設定" text="⚙" style="position: absolute; height: 22px; width: 22px; top: 1px; right: 0; -unity-font-definition: resource(&apos;Font/Noto_Emoji/static/NotoEmoji-Light&apos;);" />
-    <ui:Button name="OverflowMenuButton" tooltip="その他のメニュー" text="⋮" style="position: absolute; height: 22px; width: 22px; top: 1px; right: 23px; -unity-font-definition: resource(&apos;Font/Noto_Emoji/static/NotoEmoji-Light&apos;);" />
+
+    <ui:VisualElement name="window" class="pbr-window">
+
+        <!-- ツール行（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）: C# で生成 -->
+        <ui:VisualElement name="tools" class="pbr-tools" />
+
+        <!-- 流れ: [アバター] ──(再配置 n →)── [AvatarDynamics]  左→右 = 再配置の向き -->
+        <ui:VisualElement name="strip" class="pbr-strip">
+            <ui:VisualElement name="node-avatar" class="pbr-node pbr-node--clickable" tooltip="アバターをドロップ、またはクリックで選択">
+                <ui:VisualElement class="pbr-node-iconwrap">
+                    <ui:Image name="node-avatar-icon" class="pbr-node-icon" />
+                    <ui:Image name="node-avatar-badge" class="pbr-node-badge" />
+                </ui:VisualElement>
+                <ui:VisualElement class="pbr-node-text">
+                    <ui:Label name="node-avatar-name" class="pbr-node-name" />
+                    <ui:Label name="node-avatar-sub" class="pbr-node-sub" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="connector" class="pbr-connector">
+                <ui:VisualElement name="line-left" class="pbr-line" />
+                <ui:Button name="apply-button" class="pbr-apply">
+                    <ui:Label name="apply-label" text="再配置" class="pbr-apply-label" />
+                    <ui:Image name="apply-icon" class="pbr-apply-icon" />
+                </ui:Button>
+                <ui:Image name="connector-state" class="pbr-connector-state" style="display: none;" />
+                <ui:VisualElement name="line-right" class="pbr-line" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="node-dynamics" class="pbr-node pbr-node--clickable">
+                <ui:VisualElement class="pbr-node-iconwrap">
+                    <ui:Image name="node-dynamics-icon" class="pbr-node-icon" />
+                </ui:VisualElement>
+                <ui:VisualElement class="pbr-node-text">
+                    <ui:Label name="node-dynamics-name" class="pbr-node-name" text="AvatarDynamics" />
+                    <ui:Label name="node-dynamics-sub" class="pbr-node-sub" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- 詳細設定（⚙ で開閉。保存先ごとに見出し） -->
+        <ui:VisualElement name="advanced" class="pbr-advanced" style="display: none;">
+            <ui:Label text="プロジェクト設定 — チームで共有 (ProjectSettings/)" class="pbr-advanced-section" />
+            <uie:EnumField name="setting-find-component" label="検索範囲" type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" tooltip="再配置の対象を探す階層" />
+            <ui:Toggle name="setting-destroy-unused" label="再配置後、空になったフォルダを削除" />
+            <ui:VisualElement class="pbr-advanced-row">
+                <ui:Toggle name="setting-unpack-prefab" label="再配置前に Prefab を完全に Unpack" />
+                <ui:Label text="元に戻せません" class="pbr-advanced-note" />
+            </ui:VisualElement>
+
+            <ui:Label text="個人設定 — この PC のみ (EditorPrefs)" class="pbr-advanced-section" />
+            <ui:Toggle name="setting-auto-load" label="前回のアバターを自動で読み込む" />
+            <ui:Toggle name="setting-confirm" label="再配置の前に確認する" tooltip="再配置は Ctrl+Z で元に戻せるため既定はオフ" />
+            <ui:VisualElement name="setting-skip-row" class="pbr-advanced-row">
+                <ui:Toggle name="setting-skip-small" label="　未処理が" />
+                <uie:IntegerField name="setting-skip-threshold" value="5" />
+                <ui:Label text="件以下なら確認を省略" />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="pbr-advanced-footer">
+                <ui:Label name="version-label" class="pbr-advanced-version" />
+                <ui:Button name="setting-reset" text="初期値に戻す…" class="pbr-link-button" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- レール（カテゴリのアイコンチップ）+ 列（カテゴリごとの一覧）: C# で生成 -->
+        <ui:VisualElement name="body" class="pbr-body">
+            <ui:VisualElement name="rail" class="pbr-rail" />
+            <ui:VisualElement name="columns" class="pbr-columns" />
+        </ui:VisualElement>
+    </ui:VisualElement>
 </ui:UXML>

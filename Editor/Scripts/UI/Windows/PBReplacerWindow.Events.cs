@@ -1,184 +1,104 @@
 using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
-using UnityEditor.UIElements;
 using VRC.SDK3.Dynamics.PhysBone.Components;
-using VRC.SDK3.Dynamics.Constraint.Components;
-using VRC.SDK3.Dynamics.Contact.Components;
 using VRC.Dynamics;
 using colloid.PBReplacer.StateMachine;
 
 namespace colloid.PBReplacer
 {
 	/// <summary>
-	/// PBReplacerWindow - イベントハンドラ部分
+	/// PBReplacerWindow - イベント（アバター設定 / 再配置 / Undo / マネージャー通知 / 状態 → 流れ）
 	/// </summary>
 	public partial class PBReplacerWindow
 	{
 		#region Event Registration
 		private void RegisterEvents()
 		{
+			UnregisterEvents();
 			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
+			Undo.undoRedoPerformed += OnUndoRedo;
+			EditorApplication.hierarchyChanged += OnHierarchyChanged;
 		}
 
 		private void UnregisterEvents()
 		{
 			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
+			Undo.undoRedoPerformed -= OnUndoRedo;
+			EditorApplication.hierarchyChanged -= OnHierarchyChanged;
 		}
 
 		private void OnSettingsChanged()
 		{
 			_settings = PBReplacerSettings.GetLatestSettings();
+			RefreshAdvancedValues();
 			Repaint();
 		}
 		#endregion
 
-		#region Avatar Field Events
-		/// <summary>
-		/// アバターがドロップされた時の処理
-		/// </summary>
+		#region Avatar
+		/// <summary>左ノードへのドロップ（AvatarFieldDropManipulator 経由。判定済みのコンポーネントが来る）</summary>
 		private void OnAvatarDrop(Component avatar)
 		{
-			// 既に_avatarFieldの値変更イベントで処理されるため、
-			// ここでは追加処理が必要な場合のみ実装
+			SetAvatar(avatar != null ? avatar.gameObject : null);
 		}
 
-		/// <summary>
-		/// アバターフィールドの値変更時の処理
-		/// </summary>
-		private void OnAvatarFieldValueChanged(ChangeEvent<UnityEngine.Object> evt)
+		/// <summary>ピッカー / メニューから来た GameObject を判定して受け入れる</summary>
+		private void AcceptAvatarObject(GameObject obj)
 		{
-			var avatarObject = evt.newValue as Component;
+			if (obj == null) return;
+			var accepted = AvatarFieldDropManipulator.ResolveAvatarComponent(obj);
+			if (accepted != null) SetAvatar(accepted.gameObject);
+		}
 
-			// 先にステートマシンに通知（Loading状態に遷移）
-			// これにより、データ読み込みイベント発火時にはLoading状態になっている
+		private void SetAvatar(GameObject avatarObject)
+		{
+			// 先に Loading へ遷移させ、データ読み込みイベントが Loading 中に届くようにする
 			_stateMachine?.SetAvatar(avatarObject != null);
-
-			// その後でデータ読み込み（イベント発火時にはLoading状態）
-			AvatarFieldHelper.SetAvatar(avatarObject?.gameObject);
-
-			// 設定に保存
-			_settings.SaveLastAvatarGUID(avatarObject?.gameObject);
-
-			if (avatarObject != null) return;
-			InitializeAvatarFieldLabel();
+			AvatarFieldHelper.SetAvatar(avatarObject);
+			_settings?.SaveLastAvatarGUID(avatarObject);
+			_undoAvailable = false;
+			UpdateStrip();
+			UpdateTools();
 		}
 
-		private void OnAvatarFieldLabelChanged(ChangeEvent<string> evt)
+		/// <summary>AvatarFieldHelper からの通知（解除も含む）</summary>
+		private void OnAvatarDataChanged(AvatarData avatarData)
 		{
-			if (_avatarField.value != null) return;
-			InitializeAvatarFieldLabel();
+			ScheduleRefresh();
+		}
+
+		/// <summary>アバター直下の AvatarDynamics（設定の RootObjectName）</summary>
+		private GameObject FindAvatarDynamics()
+		{
+			var avatar = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+			if (avatar == null) return null;
+			string name = _settings?.RootObjectName ?? "AvatarDynamics";
+			return avatar.transform.Find(name)?.gameObject;
 		}
 		#endregion
 
-		#region Tab Events
-		/// <summary>
-		/// タブ変更時の処理
-		/// </summary>
-		private void OnTabChanged(ChangeEvent<int> evt)
-		{
-			// すべてのBoxを非表示に
-			_physBoneBox.style.display = DisplayStyle.None;
-			_constraintBox.style.display = DisplayStyle.None;
-			_contactBox.style.display = DisplayStyle.None;
-
-			// 選択されたタブに応じてBoxを表示
-			switch (evt.newValue)
-			{
-			case 0: // PhysBone
-				_physBoneBox.style.display = DisplayStyle.Flex;
-				break;
-			case 1: // Constraint
-				_constraintBox.style.display = DisplayStyle.Flex;
-				break;
-			case 2: // Contact
-				_contactBox.style.display = DisplayStyle.Flex;
-				break;
-			}
-
-			if (_avatarField.value == null) return;
-			SetComponentCountStatus();
-		}
-		#endregion
-
-		#region Button Events
-		/// <summary>
-		/// Applyボタンクリック時の処理
-		/// </summary>
-		private void OnApplyButtonClicked()
-		{
-			// アバターが設定されているか確認
-			if (AvatarFieldHelper.CurrentAvatar == null)
-			{
-				EditorUtility.DisplayDialog("エラー", "アバターが設定されていません", "OK");
-				return;
-			}
-
-			// 確認ダイアログを表示（設定で無効化可能。少件数オプトイン時は閾値以下で省略）
-			if (_settings.ShowConfirmDialog)
-			{
-				bool skipConfirm = _settings.SkipConfirmForSmallBatches
-					&& GetUnprocessedComponentCount() <= _settings.SkipConfirmThreshold;
-
-				if (!skipConfirm)
-				{
-					string componentname = null;
-					switch (_tabContainer.value)
-					{
-					case 0: // PhysBone
-						componentname = "PhysBone";
-						break;
-					case 1: // Constraint
-						componentname = "Constraint";
-						break;
-					case 2: // Contact
-						componentname = "Contact";
-						break;
-					}
-
-					bool proceed = EditorUtility.DisplayDialog(
-						componentname + APPLY_DIALOG_TITLE,
-						componentname + APPLY_DIALOG_MESSAGE,
-						APPLY_DIALOG_OK,
-						APPLY_DIALOG_CANCEL);
-
-					if (!proceed) return;
-				}
-			}
-
-			// 処理中のプログレスバーを表示（設定で無効化可能）
-			if (_settings.ShowProgressBar)
-			{
-				EditorUtility.DisplayProgressBar("処理中", "コンポーネントを処理しています...", 0.5f);
-			}
-
-			// Commandパターンを使用して処理を実行
-			ExecuteCommand(_tabContainer.value);
-		}
-
-		/// <summary>
-		/// Reloadボタンクリック時の処理
-		/// </summary>
+		#region Buttons
 		private void OnReloadButtonClicked()
 		{
+			ComponentIconUtility.ClearCache();
 			DataManagerHelper.ReloadData();
 		}
 
-		/// <summary>
-		/// 設定ボタンクリック時の処理
-		/// </summary>
-		private void OnSettingsButtonClicked()
+		private void OnUndoButtonClicked()
 		{
-			// 設定ウィンドウを表示
-			PBReplacerSettingsWindow.ShowWindow();
+			if (!_undoAvailable) return;
+			Undo.PerformUndo();
 		}
 
-		/// <summary>
-		/// オーバーフローメニューボタンクリック時の処理
-		/// </summary>
+		private void OnGearButtonClicked()
+		{
+			SetAdvancedVisible(!IsAdvancedVisible);
+		}
+
 		private void OnOverflowMenuButtonClicked()
 		{
 			var menu = new GenericMenu();
@@ -193,7 +113,7 @@ namespace colloid.PBReplacer
 				menu.AddDisabledItem(new GUIContent(MENU_ITEM_PBREMAP));
 			}
 
-			menu.DropDown(_overflowMenuButton.worldBound);
+			menu.DropDown(_menuButton.worldBound);
 		}
 
 		/// <summary>
@@ -232,104 +152,117 @@ namespace colloid.PBReplacer
 			Selection.activeObject = containerObject;
 		}
 
-		/// <summary>
-		/// Undo/Redo時の処理
-		/// </summary>
 		private void OnUndoRedo()
 		{
-			// データの再読み込み
-			_pbDataManager.ReloadData();
+			_undoAvailable = false;
+			DataManagerHelper.ReloadData();
+			ScheduleRefresh();
+		}
+
+		private void OnHierarchyChanged()
+		{
+			// 再配置直後の階層変更は自分のものなので無視。それ以外の変更があったら ↶ は対象外になる
+			if (!_undoAvailable) return;
+			if (EditorApplication.timeSinceStartup < _ignoreHierarchyChangesUntil) return;
+			_undoAvailable = false;
+			UpdateTools();
 		}
 		#endregion
 
-		#region Command Execution
+		#region Apply
 		/// <summary>
-		/// Commandパターンを使用してコンポーネント処理を実行
+		/// 再配置（主操作）。対象は「表示中のカテゴリが属する処理グループ」の未処理コンポーネント。
+		/// PhysBone と PhysBoneCollider は参照解決のため常に同時に処理する。
 		/// </summary>
-		/// <param name="tabIndex">タブインデックス（0: PhysBone, 1: Constraint, 2: Contact）</param>
-		private void ExecuteCommand(int tabIndex)
+		private void OnApplyButtonClicked()
 		{
-			// タブに応じたコマンドを作成
-			ICommand command = CreateCommand(tabIndex);
-			if (command == null) return;
+			if (AvatarFieldHelper.CurrentAvatar?.AvatarObject == null) return;
 
-			// 処理開始をステートマシンに通知
+			var groups = VisibleProcessGroups().Where(g => PendingCount(g) > 0).ToList();
+			if (groups.Count == 0) return;
+
+			int count = groups.Sum(PendingCount);
+
+			if (_settings.ShowConfirmDialog)
+			{
+				bool skipConfirm = _settings.SkipConfirmForSmallBatches && count <= _settings.SkipConfirmThreshold;
+				if (!skipConfirm)
+				{
+					string targets = string.Join(" / ", groups.Select(ComponentCategoryInfo.ProcessGroupName));
+					bool proceed = EditorUtility.DisplayDialog(
+						$"{targets} {count}件を再配置します",
+						$"各コンポーネントを 1オブジェクト＝1コンポーネント に分けて {(_settings.RootObjectName ?? "AvatarDynamics")} 配下へ移動します。\n元の設定値は保持されます。Ctrl+Z で元に戻せます。",
+						"再配置する",
+						"やめる");
+					if (!proceed) return;
+				}
+			}
+
+			ExecuteApply(groups, count);
+		}
+
+		private void ExecuteApply(List<int> groups, int expectedCount)
+		{
+			// 処理開始時にコンテキストをリセット（グループをまたいで 1 回だけ）
+			ProcessingContext.Instance.BeginProcessing();
+
+			var composite = new CompositeCommand("再配置");
+			foreach (var group in groups.OrderBy(g => g))
+			{
+				var command = CreateCommand(group);
+				if (command != null) composite.Add(command);
+			}
+
 			_stateMachine?.StartProcessing();
+			_undoAvailable = false;
 
 			try
 			{
-				// コマンドを実行してResult型で結果を受け取る
-				var result = command.Execute();
+				var result = composite.Execute();
 
-				// Result型のMatchで成功/失敗を処理
 				result.Match(
 					onSuccess: data =>
 					{
-						// 成功時の処理
 						if (data.AffectedCount > 0)
 						{
-							Debug.Log($"{command.Description}完了: {data.AffectedCount}件処理");
+							Debug.Log($"[PBReplacer] 再配置完了: {data.AffectedCount}件処理");
 						}
 
-						// ステートマシンに処理完了を通知
 						_stateMachine?.Complete(data.AffectedCount);
 
-						// データを再読み込みしてUIを更新
-						ReloadDataForTab(tabIndex);
+						// ↶ を有効化。直後に届く自分自身の階層変更通知は無視する
+						_undoAvailable = data.AffectedCount > 0;
+						_ignoreHierarchyChangesUntil = EditorApplication.timeSinceStartup + 1.0;
 
-						// Undo可能であることをトーストで案内
-						if (data.AffectedCount > 0)
-						{
-							ShowNotification(new GUIContent(APPLY_SUCCESS_NOTIFICATION));
-						}
-
+						Managers.ReloadAll();
+						FlashStrip();
 						return data;
 					},
 					onFailure: error =>
 					{
-						// 失敗時の処理
-						Debug.LogError($"{command.Description}エラー: {error.Message}");
+						Debug.LogError($"[PBReplacer] 再配置エラー: {error.Message}");
 						_stateMachine?.Fail(error.Message);
-						EditorUtility.DisplayDialog("エラー", $"処理中にエラーが発生しました: {error.Message}", "OK");
+						Managers.ReloadAll();
 						return null;
 					});
 			}
 			finally
 			{
-				// プログレスバーをクリア
-				if (_settings.ShowProgressBar)
-				{
-					EditorUtility.ClearProgressBar();
-				}
+				EditorUtility.ClearProgressBar();
+				ScheduleRefresh();
 			}
 		}
 
 		/// <summary>
-		/// タブに応じたデータマネージャーを再読み込み
-		/// </summary>
-		private void ReloadDataForTab(int tabIndex)
-		{
-			Managers.ReloadForTab(tabIndex);
-
-			// 処理済みコンポーネントリストを更新してUIを再描画
-			GetProcessedComponents();
-			RepaintAllListViews();
-		}
-
-		/// <summary>
-		/// タブインデックスに応じたコマンドを作成
+		/// 処理グループに応じたコマンドを作成
 		/// CompositeCommandを使用してPB+PBCを一括処理
 		/// FinalizeCommandで参照解決と旧コンポーネント削除を実行
 		/// </summary>
-		private ICommand CreateCommand(int tabIndex)
+		private ICommand CreateCommand(int group)
 		{
-			// 処理開始時にコンテキストをリセット
-			ProcessingContext.Instance.BeginProcessing();
-
-			switch (tabIndex)
+			switch (group)
 			{
-			case 0: // PhysBone
-				// CompositeCommandでPBCとPBを順番に処理し、最後にFinalizeで削除
+			case 0: // PhysBone（PBC → PB の順に処理し、最後に Finalize で削除）
 				var pbComposite = new CompositeCommand("PhysBone一括処理");
 				pbComposite.Add(new ProcessPhysBoneColliderCommand());
 				pbComposite.Add(new ProcessPhysBoneCommand());
@@ -358,281 +291,250 @@ namespace colloid.PBReplacer
 		#endregion
 
 		#region Data Manager Events
-		/// <summary>
-		/// データマネージャーのイベントを登録
-		/// </summary>
 		private void RegisterDataManagerEvents()
 		{
 			if (_pbDataManager == null) return;
-
-			UnregisterDataManagerEvents(); // 重複登録を防止
+			UnregisterDataManagerEvents();
 
 			AvatarFieldHelper.OnAvatarChanged += OnAvatarDataChanged;
-			_pbDataManager.OnPhysBonesChanged += OnPhysBonesDataChanged;
-			_pbcDataManager.OnCollidersChanged += OnPhysBoneCollidersDataChanged;
-			_pbDataManager.OnPhysBonesChanged += SetPBTabNotification;
-			_pbcDataManager.OnCollidersChanged += SetPBCTabNotification;
-			_pbDataManager.OnPhysBonesChanged += ScheduleComponentCountStatusUpdate;
-			_pbcDataManager.OnCollidersChanged += ScheduleComponentCountStatusUpdate;
-
-			// データ読み込み完了時にステートマシンに通知
-			_pbDataManager.OnPhysBonesChanged += OnDataLoadedFromManager;
-			_pbcDataManager.OnCollidersChanged += OnDataLoadedFromManager;
+			_pbDataManager.OnPhysBonesChanged += OnPhysBonesChanged;
+			_pbcDataManager.OnCollidersChanged += OnCollidersChanged;
+			_constraintDataManager.OnConstraintsChanged += OnConstraintsChanged;
+			_contactDataManager.OnContactsChanged += OnContactsChanged;
 
 			_pbDataManager.OnProcessingComplete += OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete += OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete += OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete += OnProcessingComplete;
-
-			_constraintDataManager.OnConstraintsChanged += OnVRCConstraintsDataChanged;
-			_constraintDataManager.OnComponentsChanged += SetConstraintTabNotification;
-			_constraintDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
-
-			// データ読み込み完了時にステートマシンに通知
-			_constraintDataManager.OnConstraintsChanged += OnDataLoadedFromManager;
-
-			_contactDataManager.OnContactsChanged += OnVRCContactsDataChanged;
-			_contactDataManager.OnContactsChanged += SetContactTabNotification;
-			_contactDataManager.OnComponentsChanged += ScheduleComponentCountStatusUpdate;
-
-			// データ読み込み完了時にステートマシンに通知
-			_contactDataManager.OnContactsChanged += OnDataLoadedFromManager;
 		}
 
-		/// <summary>
-		/// データマネージャーのイベント登録を解除
-		/// </summary>
 		private void UnregisterDataManagerEvents()
 		{
 			if (_pbDataManager == null) return;
 
 			AvatarFieldHelper.OnAvatarChanged -= OnAvatarDataChanged;
-			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesDataChanged;
-			_pbcDataManager.OnCollidersChanged -= OnPhysBoneCollidersDataChanged;
-			_pbDataManager.OnPhysBonesChanged -= SetPBTabNotification;
-			_pbcDataManager.OnCollidersChanged -= SetPBCTabNotification;
-			_pbDataManager.OnPhysBonesChanged -= ScheduleComponentCountStatusUpdate;
-			_pbcDataManager.OnCollidersChanged -= ScheduleComponentCountStatusUpdate;
-
-			// データ読み込み完了通知の購読解除
-			_pbDataManager.OnPhysBonesChanged -= OnDataLoadedFromManager;
-			_pbcDataManager.OnCollidersChanged -= OnDataLoadedFromManager;
+			_pbDataManager.OnPhysBonesChanged -= OnPhysBonesChanged;
+			_pbcDataManager.OnCollidersChanged -= OnCollidersChanged;
+			_constraintDataManager.OnConstraintsChanged -= OnConstraintsChanged;
+			_contactDataManager.OnContactsChanged -= OnContactsChanged;
 
 			_pbDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_pbcDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_constraintDataManager.OnProcessingComplete -= OnProcessingComplete;
 			_contactDataManager.OnProcessingComplete -= OnProcessingComplete;
+		}
 
-			_constraintDataManager.OnConstraintsChanged -= OnVRCConstraintsDataChanged;
-			_constraintDataManager.OnComponentsChanged -= SetConstraintTabNotification;
-			_constraintDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
+		private void OnPhysBonesChanged(List<VRCPhysBone> _) => OnCategoryDataChanged();
+		private void OnCollidersChanged(List<VRCPhysBoneCollider> _) => OnCategoryDataChanged();
+		private void OnConstraintsChanged(List<VRCConstraintBase> _) => OnCategoryDataChanged();
+		private void OnContactsChanged(List<Component> _) => OnCategoryDataChanged();
 
-			// データ読み込み完了通知の購読解除
-			_constraintDataManager.OnConstraintsChanged -= OnDataLoadedFromManager;
+		private void OnCategoryDataChanged()
+		{
+			_stateMachine?.OnDataLoaded();
+			ScheduleRefresh();
+		}
 
-			_contactDataManager.OnContactsChanged -= OnVRCContactsDataChanged;
-			_contactDataManager.OnContactsChanged -= SetContactTabNotification;
-			_contactDataManager.OnComponentsChanged -= ScheduleComponentCountStatusUpdate;
+		private void OnProcessingComplete()
+		{
+			ScheduleRefresh();
+		}
+		#endregion
 
-			// データ読み込み完了通知の購読解除
-			_contactDataManager.OnContactsChanged -= OnDataLoadedFromManager;
+		#region Status → Strip
+		private void OnStateMachineStateChanged(StatusStateContext context)
+		{
+			EditorApplication.delayCall += UpdateStrip;
+		}
+
+		private void UpdateIdleStateFromComponents()
+		{
+			if (_stateMachine == null) return;
+			IdleStateKind kind;
+			if (TotalPending() > 0) kind = IdleStateKind.HasUnprocessed;
+			else if (TotalComponents() > 0 || TotalProcessed() > 0) kind = IdleStateKind.AllProcessed;
+			else kind = IdleStateKind.NoComponents;
+			_stateMachine.UpdateIdleState(kind);
 		}
 
 		/// <summary>
-		/// アバターデータ変更時の処理
+		/// 流れの見た目をデータと状態機械から決める。
+		/// 未設定: 左が空枠、ピル無効 / 未処理あり: 線が琥珀、ピル緑 / すべて配置済み: 線が緑、中央 ✔ /
+		/// 処理中: ピル無効 / エラー: 背景赤、中央にエラー記号（ツールチップに内容）
 		/// </summary>
-		private void OnAvatarDataChanged(AvatarData avatarData)
+		private void UpdateStrip()
 		{
-			if (_avatarField == null) return;
+			if (_strip == null) return;
 
-			if (avatarData != null)
+			var avatarData = AvatarFieldHelper.CurrentAvatar;
+			var avatar = avatarData?.AvatarObject;
+			var state = _stateMachine?.CurrentStateType ?? StatusStateType.None;
+			string rootName = _settings?.RootObjectName ?? "AvatarDynamics";
+
+			int totalComponents = TotalComponents();
+			int totalProcessed = TotalProcessed();
+			var groups = VisibleProcessGroups();
+			int visiblePending = groups.Sum(PendingCount);
+			int allPending = TotalPending();
+
+			// ---- 左ノード: アバター ----
+			if (avatar == null)
 			{
-				UpdateIdleStateFromComponents();
-				// アバターフィールドの値を更新（UIイベント発火なし）
-				if (_avatarField.value != avatarData.AvatarObject)
-				{
-					_avatarField.SetValueWithoutNotify(avatarData.AvatarObject);
-				}
+				_nodeAvatar.AddToClassList("pbr-node--empty");
+				PBRemapIcons.Set(_nodeAvatarIcon, PBRemapIcons.Unlinked);
+				_nodeAvatarBadge.style.display = DisplayStyle.None;
+				_nodeAvatarName.text = AVATAR_EMPTY_NAME;
+				_nodeAvatarSub.text = AVATAR_EMPTY_SUB;
+				_nodeAvatar.tooltip = "Hierarchy からアバターをドロップ、またはクリックで選択";
 			}
 			else
 			{
-				_avatarField.SetValueWithoutNotify(null);
+				_nodeAvatar.RemoveFromClassList("pbr-node--empty");
+				var method = AvatarValidator.Validate(avatar).Method;
+				PBRemapIcons.Set(_nodeAvatarIcon, IconForDetection(method));
+				_nodeAvatarBadge.style.display = DisplayStyle.None;
+				_nodeAvatarName.text = avatar.name;
+				_nodeAvatarSub.text = state == StatusStateType.Loading
+					? $"{DetectionLabel(method)} · 読み込み中…"
+					: $"{DetectionLabel(method)} · Armature 内 {totalComponents} 件";
+				_nodeAvatar.tooltip = "クリックで別のアバターを選択、右クリックで Hierarchy 表示 / 解除";
+			}
+
+			// ---- 右ノード: AvatarDynamics ----
+			var dynamics = FindAvatarDynamics();
+			_nodeDynamicsName.text = rootName;
+			if (dynamics == null)
+			{
+				PBRemapIcons.Set(_nodeDynamicsIcon, PBRemapIcons.Empty);
+				_nodeDynamicsSub.text = avatar == null ? "" : "未作成";
+				_nodeDynamics.tooltip = "再配置すると作成されます";
+				_nodeDynamics.AddToClassList("pbr-node--ghost");
+			}
+			else
+			{
+				PBRemapIcons.Set(_nodeDynamicsIcon, PBRemapIcons.Prefab);
+				_nodeDynamicsSub.text = $"配置済み {totalProcessed} 件";
+				_nodeDynamics.tooltip = "クリックで Hierarchy に表示";
+				_nodeDynamics.RemoveFromClassList("pbr-node--ghost");
+			}
+
+			// ---- 背景・線・中央 ----
+			_strip.RemoveFromClassList("pbr-strip--home");
+			_strip.RemoveFromClassList("pbr-strip--displaced");
+			_strip.RemoveFromClassList("pbr-strip--error");
+			_lineLeft.RemoveFromClassList("pbr-line--active");
+			_lineLeft.RemoveFromClassList("pbr-line--home");
+			_lineRight.RemoveFromClassList("pbr-line--active");
+			_lineRight.RemoveFromClassList("pbr-line--home");
+			_applyButton.RemoveFromClassList("pbr-apply--ready");
+			_applyButton.RemoveFromClassList("pbr-apply--partial");
+			_applyButton.RemoveFromClassList("pbr-apply--hidden");
+			_connectorState.style.display = DisplayStyle.None;
+
+			string verb = "再配置";
+
+			if (avatar == null)
+			{
+				_applyLabel.text = verb;
+				_applyButton.SetEnabled(false);
+				_applyButton.tooltip = "先にアバターを設定してください";
+				return;
+			}
+
+			if (state == StatusStateType.Error)
+			{
+				_strip.AddToClassList("pbr-strip--error");
+				_connectorState.style.display = DisplayStyle.Flex;
+				PBRemapIcons.Set(_connectorState, PBRemapIcons.Error, _stateMachine?.Context?.Message ?? "エラー");
+				_applyLabel.text = allPending > 0 ? $"{verb} {visiblePending}" : verb;
+				_applyButton.SetEnabled(visiblePending > 0);
+				_applyButton.tooltip = "Console にエラーの内容があります。原因を直してからもう一度再配置してください";
+				return;
+			}
+
+			if (state == StatusStateType.Loading || state == StatusStateType.Processing)
+			{
+				_applyLabel.text = allPending > 0 ? $"{verb} {visiblePending}" : verb;
+				_applyButton.SetEnabled(false);
+				_applyButton.tooltip = state == StatusStateType.Loading ? "読み込み中…" : "処理中…";
+				return;
+			}
+
+			if (allPending == 0)
+			{
+				// すべて配置済み（または対象なし）: 線が緑、中央は Linked
+				bool anything = totalComponents > 0 || totalProcessed > 0;
+				if (anything)
+				{
+					_strip.AddToClassList("pbr-strip--home");
+					_lineLeft.AddToClassList("pbr-line--home");
+					_lineRight.AddToClassList("pbr-line--home");
+					_applyButton.AddToClassList("pbr-apply--hidden");
+					_connectorState.style.display = DisplayStyle.Flex;
+					PBRemapIcons.Set(_connectorState, PBRemapIcons.Linked, $"すべて {rootName} に配置済みです");
+				}
+				else
+				{
+					_applyLabel.text = verb;
+					_applyButton.SetEnabled(false);
+					_applyButton.tooltip = "Armature 内に対象のコンポーネントがありません。検索範囲は ⚙ 詳細設定で広げられます";
+				}
+				return;
+			}
+
+			// 未処理あり
+			_strip.AddToClassList("pbr-strip--displaced");
+			_lineLeft.AddToClassList("pbr-line--active");
+			_lineRight.AddToClassList("pbr-line--active");
+
+			if (visiblePending == 0)
+			{
+				_applyLabel.text = verb;
+				_applyButton.SetEnabled(false);
+				_applyButton.tooltip = $"表示中のカテゴリに未処理はありません（他に {allPending} 件）。左のチップで表示を切り替えてください";
+				return;
+			}
+
+			bool partial = visiblePending < allPending;
+			_applyButton.AddToClassList(partial ? "pbr-apply--partial" : "pbr-apply--ready");
+			_applyButton.SetEnabled(true);
+			_applyLabel.text = $"{verb} {visiblePending}";
+
+			var names = groups.Where(g => PendingCount(g) > 0).Select(g => $"{ComponentCategoryInfo.ProcessGroupName(g)} {PendingCount(g)}");
+			string detail = string.Join(" · ", names);
+			_applyButton.tooltip = partial
+				? $"{detail} を {rootName} へ再配置（表示中のカテゴリのみ。残り {allPending - visiblePending} 件）\nPhysBone と Collider は常に同時に処理されます。Ctrl+Z で元に戻せます"
+				: $"{detail} を {rootName} へ再配置\nCtrl+Z で元に戻せます";
+		}
+
+		/// <summary>成功時: 背景が緑に光って戻る（PBRemap と同じ）</summary>
+		private void FlashStrip()
+		{
+			if (_strip == null) return;
+			_strip.AddToClassList("pbr-strip--flash");
+			_strip.schedule.Execute(() => _strip.RemoveFromClassList("pbr-strip--flash")).StartingIn(450);
+		}
+
+		private static string IconForDetection(AvatarDetectionMethod method)
+		{
+			switch (method)
+			{
+				case AvatarDetectionMethod.VRCAvatarDescriptor: return PBRemapIcons.Avatar;
+				case AvatarDetectionMethod.MergeArmature: return PBRemapIcons.Costume;
+				case AvatarDetectionMethod.Animator: return PBRemapIcons.Animator;
+				default: return PBRemapIcons.Prop;
 			}
 		}
 
-		/// <summary>
-		/// データマネージャーからのデータ読み込み完了通知
-		/// </summary>
-		private void OnDataLoadedFromManager<T>(List<T> _)
+		private static string DetectionLabel(AvatarDetectionMethod method)
 		{
-			_stateMachine?.OnDataLoaded();
-		}
-
-		/// <summary>
-		/// 処理完了時の処理
-		/// </summary>
-		private void OnProcessingComplete()
-		{
-			GetProcessedComponents();
-			// UIスレッドで更新
-			EditorApplication.delayCall += () => {
-				// 処理完了後のUIの更新
-				RepaintAllListViews();
-			};
-		}
-		#endregion
-
-		#region Status Helpers
-		private bool _componentCountStatusScheduled = false;
-
-		private void ScheduleComponentCountStatusUpdate<T>(List<T> _)
-		{
-			ScheduleComponentCountStatusUpdate();
-		}
-
-		private void ScheduleComponentCountStatusUpdate()
-		{
-			if (_componentCountStatusScheduled) return;
-			_componentCountStatusScheduled = true;
-			EditorApplication.delayCall += () =>
+			switch (method)
 			{
-				_componentCountStatusScheduled = false;
-				UpdateIdleStateFromComponents();
-			};
-		}
-
-		/// <summary>
-		/// 現在のタブの未処理コンポーネントの有無を確認
-		/// </summary>
-		private bool HasUnprocessedComponents()
-		{
-			switch (_tabContainer.value)
-			{
-			case 0: // PhysBone (PB + PBC両方をチェック)
-				var pbUnprocessed = _pbDataManager.Components.Any(c => !_processed.Contains(c));
-				var pbcUnprocessed = _pbcDataManager.Components.Any(c => !_processed.Contains(c));
-				return pbUnprocessed || pbcUnprocessed;
-			case 1: // Constraint
-				return _constraintDataManager.Components.Any(c => !_processed.Contains(c));
-			case 2: // Contact
-				return _contactDataManager.Components.Any(c => !_processed.Contains(c));
-			default:
-				return false;
+				case AvatarDetectionMethod.VRCAvatarDescriptor: return "VRC Avatar Descriptor";
+				case AvatarDetectionMethod.MergeArmature: return "MA Merge Armature";
+				case AvatarDetectionMethod.Animator: return "Animator";
+				default: return "GameObject";
 			}
-		}
-
-		/// <summary>
-		/// 現在のタブの未処理コンポーネント件数を取得
-		/// 確認ダイアログの省略可否判定（閾値比較）に使用
-		/// </summary>
-		private int GetUnprocessedComponentCount()
-		{
-			switch (_tabContainer.value)
-			{
-			case 0: // PhysBone (PB + PBC両方をカウント)
-				var pbUnprocessedCount = _pbDataManager.Components.Count(c => !_processed.Contains(c));
-				var pbcUnprocessedCount = _pbcDataManager.Components.Count(c => !_processed.Contains(c));
-				return pbUnprocessedCount + pbcUnprocessedCount;
-			case 1: // Constraint
-				return _constraintDataManager.Components.Count(c => !_processed.Contains(c));
-			case 2: // Contact
-				return _contactDataManager.Components.Count(c => !_processed.Contains(c));
-			default:
-				return 0;
-			}
-		}
-
-		/// <summary>
-		/// 現在のタブにコンポーネントが存在するかを確認
-		/// </summary>
-		private bool HasAnyComponents()
-		{
-			switch (_tabContainer.value)
-			{
-			case 0: // PhysBone (PB + PBC両方をチェック)
-				return _pbDataManager.Components.Count > 0 || _pbcDataManager.Components.Count > 0;
-			case 1: // Constraint
-				return _constraintDataManager.Components.Count > 0;
-			case 2: // Contact
-				return _contactDataManager.Components.Count > 0;
-			default:
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Idle状態の種類を判定
-		/// </summary>
-		private IdleStateKind GetIdleStateKind()
-		{
-			if (HasUnprocessedComponents()) return IdleStateKind.HasUnprocessed;
-			return HasAnyComponents() ? IdleStateKind.AllProcessed : IdleStateKind.NoComponents;
-		}
-
-		/// <summary>
-		/// コンポーネント状態に基づいてステートマシンのIdle状態を更新
-		/// </summary>
-		private void UpdateIdleStateFromComponents()
-		{
-			// ステートマシンのIdle状態を更新
-			_stateMachine?.UpdateIdleState(GetIdleStateKind());
-		}
-
-		/// <summary>
-		/// タブ変更時にステータスを更新
-		/// Complete/Warning/Error状態からはタイムアウトを待たずに即座にIdleに遷移
-		/// </summary>
-		private void SetComponentCountStatus()
-		{
-			_stateMachine?.OnTabChanged(GetIdleStateKind());
-		}
-
-		private void GetProcessedComponents()
-		{
-			_processed = DataManagerHelper.GetAvatarDynamicsComponent<Component>();
-		}
-		#endregion
-
-		#region Tab Notification Helpers
-		private void SetTabNotification(Toggle target, List<Component> list)
-		{
-			GetProcessedComponents();
-			EditorApplication.delayCall += () =>
-				target.value = !list.All(_processed.Contains);
-		}
-
-		private void SetPBTabNotification(List<VRCPhysBone> list)
-		{
-			UpdatePBTabNotification();
-		}
-
-		private void SetPBCTabNotification(List<VRCPhysBoneCollider> list)
-		{
-			UpdatePBTabNotification();
-		}
-
-		private void UpdatePBTabNotification()
-		{
-			var notification = _tabContainer.Query<Toggle>().AtIndex(0);
-			// PhysBoneとPhysBoneCollider両方を結合してチェック
-			var pbComponents = _pbDataManager.Components.Select(c => c as Component);
-			var pbcComponents = _pbcDataManager.Components.Select(c => c as Component);
-			var allComponents = pbComponents.Concat(pbcComponents).ToList();
-			SetTabNotification(notification, allComponents);
-		}
-
-		private void SetConstraintTabNotification(List<VRCConstraintBase> list)
-		{
-			var notification = _tabContainer.Query<Toggle>().AtIndex(1);
-			var components = list.Select(c => c as Component).ToList();
-			SetTabNotification(notification, components);
-		}
-
-		private void SetContactTabNotification(List<Component> list)
-		{
-			var notification = _tabContainer.Query<Toggle>().AtIndex(2);
-			var components = list.Select(c => c as Component).ToList();
-			SetTabNotification(notification, components);
 		}
 		#endregion
 	}
