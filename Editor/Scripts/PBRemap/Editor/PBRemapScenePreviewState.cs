@@ -93,7 +93,8 @@ namespace colloid.PBReplacer
         {
             switch (v.Status)
             {
-                case BoneVisualStatus.Resolved: case BoneVisualStatus.Manual: return ShowResolved;
+                case BoneVisualStatus.Resolved: return ShowResolved;
+                case BoneVisualStatus.Manual: return true; // 自分で決めた対応は常に見せる
                 case BoneVisualStatus.AutoCreate: return ShowAutoCreatable;
                 case BoneVisualStatus.Ambiguous: return ShowAmbiguous;
                 default: return ShowUnresolved;

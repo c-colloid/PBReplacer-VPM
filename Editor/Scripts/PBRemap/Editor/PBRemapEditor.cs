@@ -59,7 +59,6 @@ namespace colloid.PBReplacer
         private SourceDetector.DetectionResult _detection;
         private PBRemapPreviewData _preview;
         private bool _refreshQueued;
-        private bool _filterInitialized;
 
         private StringResources _strings;
 
@@ -417,12 +416,6 @@ namespace colloid.PBReplacer
             _chips.style.display = DisplayStyle.Flex;
 
             int unresolved = plan.CountOf(ResolutionStatus.Unresolved) + plan.CountOf(ResolutionStatus.ExternalObject);
-            if (!_filterInitialized)
-            {
-                // 最初は問題のある行だけを見せる（問題が無ければ解決済みを見せる）
-                _filterInitialized = true;
-                Filter.ShowResolved = plan.AutoCreateCount + plan.AmbiguousCount + unresolved == 0;
-            }
             if (plan.ResolvedCount > 0) _chips.Add(Chip(PBRemapIcons.Resolved, plan.ResolvedCount, "resolved", "解決済み（クリックで表示を切り替え）", Filter.ShowResolved, v => Filter.ShowResolved = v));
             if (plan.AutoCreateCount > 0) _chips.Add(Chip(PBRemapIcons.AutoCreate, plan.AutoCreateCount, "auto", "移植先に無いので自動作成する（クリックで表示を切り替え）", Filter.ShowAutoCreatable, v => Filter.ShowAutoCreatable = v));
             if (plan.AmbiguousCount > 0) _chips.Add(Chip(PBRemapIcons.Ambiguous, plan.AmbiguousCount, "ambiguous", "同名の候補が複数あり、選択が必要（クリックで表示を切り替え）", Filter.ShowAmbiguous, v => Filter.ShowAmbiguous = v));
@@ -504,7 +497,9 @@ namespace colloid.PBReplacer
             var plan = _preview?.Plan;
             if (plan == null || plan.Resolutions.Count == 0) { _mappingTable.style.display = DisplayStyle.None; return; }
 
-            var groups = plan.Resolutions.GroupBy(r => r.SourceKey).ToList();
+            // 問題のある行（要選択/未解決）を先頭に、次に自動作成、最後に解決済み
+            int Rank(ReferenceResolution r) => r.Status == ResolutionStatus.Ambiguous || r.Status == ResolutionStatus.Unresolved || r.Status == ResolutionStatus.ExternalObject ? 0 : r.Status == ResolutionStatus.AutoCreate ? 1 : 2;
+            var groups = plan.Resolutions.GroupBy(r => r.SourceKey).OrderBy(g => Rank(g.First())).ToList();
             int shown = 0;
             foreach (var g in groups)
             {
