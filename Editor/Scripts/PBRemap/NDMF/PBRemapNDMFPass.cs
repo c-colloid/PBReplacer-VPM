@@ -102,12 +102,24 @@ namespace colloid.PBReplacer
             { "pbremap.unresolved:description", "パスリマップルールの追加、または Inspector の手動マッピングで解決してください。" },
         };
 
+        private static readonly System.Collections.Generic.Dictionary<string, string> En = new System.Collections.Generic.Dictionary<string, string>
+        {
+            { "pbremap.no_destination", "PBRemap '{0}': destination could not be determined. Place the PBRemap object under an avatar." },
+            { "pbremap.plan_failed", "PBRemap '{0}': resolution failed. {1}" },
+            { "pbremap.apply_failed", "PBRemap '{0}': apply failed. {1}" },
+            { "pbremap.unresolved", "PBRemap '{0}': {1} reference(s) could not be resolved; those components still point at the source.\n{2}" },
+            { "pbremap.no_destination:description", "The object PBRemap was dropped into is not recognized as an avatar / costume / prop." },
+            { "pbremap.plan_failed:description", "The source reference manifest is missing or the destination structure is unexpected." },
+            { "pbremap.apply_failed:description", "An exception occurred while applying." },
+            { "pbremap.unresolved:description", "Add path remap rules or map the bones manually in the Inspector." },
+        };
+
         private static nadena.dev.ndmf.localization.Localizer Create()
         {
-            return new nadena.dev.ndmf.localization.Localizer("ja-jp", () => new System.Collections.Generic.List<(string, System.Func<string, string>)>
+            return new nadena.dev.ndmf.localization.Localizer("en-us", () => new System.Collections.Generic.List<(string, System.Func<string, string>)>
             {
+                ("en-us", key => En.TryGetValue(key, out var v) ? v : null),
                 ("ja-jp", key => Ja.TryGetValue(key, out var v) ? v : null),
-                ("en-us", key => Ja.TryGetValue(key, out var v) ? v : null),
             });
         }
     }

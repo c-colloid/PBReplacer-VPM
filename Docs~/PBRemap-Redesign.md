@@ -259,6 +259,9 @@ worldRatio = Hips-Head距離比（両Humanoid）
 - AvatarDynamics 外の PhysBoneCollider 参照は、移植先の同位置に同型コンポーネントがあればそれを参照し、無ければ参照を解除して警告する
 - スケルトンボーン（SkinnedMeshRendererにバインド済み）の自動作成は行わない（メッシュのウェイトを持たない空ボーンを作っても意味がないため）
 - Ambiguous（同名複数）は自動確定しない。Inspector の「候補…」から選ぶか、パスリマップルールで一意にする
+- VRC Constraint は参照の付け替えのみ行い、位置/回転オフセットの再ベイクは行わない（移植先でボーンの向きが異なる場合は再ベイクが必要。計画時に警告を出す）
+- 衣装の検出は Modular Avatar の MergeArmature のみ対応。VRCFury の Armature Link 等は汎用ルート（名前/パス解決）として扱われる
+- Prefab Stage（Prefabモード編集）内では AutoOnDrop でも自動適用せず、必ずプレビューでの確認を挟む
 
 ### 3.4 実装差分の監査で修正した点
 
@@ -275,6 +278,10 @@ worldRatio = Hips-Head距離比（両Humanoid）
 | `PrefabStage.prefabSaving` 未購読 | 購読して保存前にマニフェストを確定 |
 | NDMF Resolving 内で Modular Avatar との順序が未指定 | `BeforePlugin("nadena.dev.modular-avatar")` を宣言 |
 | 移植先候補の列挙が直下の子のみ | 2階層下まで探索 |
+| Prefab Stage 内で AutoOnDrop が共有Prefabへ無確認で焼き込まれ得る（網羅性批評） | Prefab Stage 内では Confirm 扱い |
+| batchmode/CI でも Tracker が動く（網羅性批評） | `Application.isBatchMode` でガード |
+| NDMF エラー文言の en-us が日本語（網羅性批評） | 英語文言を追加し en-us を既定に |
+| Constraint のオフセット未補正（網羅性批評） | 計画時に警告。再ベイクは今後の課題 |
 
 ---
 
@@ -313,3 +320,77 @@ worldRatio = Hips-Head距離比（両Humanoid）
 | S17 | 旧形式 `serializedBoneReferences` + `autoCalculateScale=false, scaleFactor=2.0` のみを持つPBRemap（参照null） | ○ | マニフェストへ移行（2件）、`ScaleMode.Manual`/係数2.0 へ移行、移行データから解決 |
 
 20/20 シナリオ通過（`Reports/` の最終実行）。
+
+---
+
+## 付録A. コードレビュー所見（8観点、反証検証つき）
+
+確認済み 47 件（うち反証検証まで完了 47 件）、反証 2 件。実機で確認できたものはシナリオIDを付記。
+
+| 深刻度 | 所見 | 箇所 | 実機確認 |
+|---|---|---|---|
+| critical | MergeArmatureがArmatureに直付けされた標準構成で、Source側がAvatarではなくArmature自身に誤検出される | `SourceDetector.cs:224` | S04, S04b |
+| critical | Source誤検出（Armature自身）によりCollectSkinnedBonesがSkinnedMeshRendererを一つも見つけられず、IsSkeletonBone判定が常にfalseになる | `PBRemapper.cs:187` | S04, S04b |
+| critical | ModularAvatarMergeArmatureのprefix/suffixが一切参照されず、リテラルなボーン名/パス一致に依存しているため、MA側でprefix/suffixが設定された衣装間ではボーン解決が破綻する | `BoneMapper.cs:20` | S04b |
+| critical | 衣装ボーン(sourceArmature)の外側を直接参照するPBが実行時に無警告で移植漏れになる（Previewは「解決済み」と誤表示） | `PBRemapper.cs:223` | S04, S04b |
+| critical | IsLiveModeのままInspectorを一度も開かないとSerializedBoneReferencesが空のままPrefab化・持ち出しされ、以後回復不能になる | `PBRemapEditor.cs:632` | S03, S03b, S03c |
+| critical | 移植の実行トリガーがInspector内ボタンしか存在せず「D&Dだけ」で完結しない | `PBRemapEditor.cs:1025` | なし（scenario_report_v1.mdはPBRemapper.Remap()を直接スクリプトから呼び出す検証手法のため、実際のD&D操作だけでは移植が起きないことをUI経由で確認したものではない。ただしS07/S08の検証手順自体が『移植実行』という明示的なAPI呼び出しを前提としており、D&Dだけでは完結しないという設計と整合する） |
+| critical | VRCPhysBone.colliders（コンポーネント参照）がスキャン・キャプチャ・リマップいずれの経路からも完全に漏れている | `PBRemapper.cs:340` | S13: AvatarDynamics外に残ったPBCを参照するPB — remap後もcolliders.Array.data[1]=EXTERNAL:AvatarA/Armature/Hips/Spine/Chest/LeftUpperArm/LeftLowerArm/LeftHand [VRCPhysBoneCollider]のまま、警告なし |
+| critical | 手動「移植実行」後にNDMFビルドすると二重リマップ・二重スケール適用が発生する（IsReferencingDestinationがPBRemapper.Remapの分岐に反映されていない） | `PBRemapper.cs:56` | S08: NDMFビルド: 移植済みアバターをNDMFで処理 — edit-time remap後radius=0.036だったのが、NDMF build後radius=0.0432(scaleFactor 1.2の二乗適用)になり『NDMF build keeps radius 0.036 (no double scaling)』がFAILと判定されている |
+| critical | 非Humanoid判定時のArmature検出がModularAvatarMergeArmatureを持つ最初の子を機械的に採用するため、本体ではなく衣装側の元FBXスケール（0.01系等）をArmature基準に誤採用しうる | `AvatarData.cs:154` | 直接の実機シナリオは無し（S04/S04b/S05はMergeArmature候補が単一のため誤検出は発生していない）。ただしコード上、TryGetModularAvatarArmatureの結果が実スケール計算に直結することは0398d36のAvatarData.cs/SourceDetector.cs/PBRemapper.csの読解で確認済み |
+| major | Source誤検出（Armature自身）により、実在するHumanoid Animator/isHumanが見えなくなりHumanoidベースのボーン対応・スケール算出が使われなくなる | `AvatarData.cs:50` | S04, S04b, S05 |
+| major | Liveモードのリマップでは未解決の外部参照が一切警告されず、失敗が静かに握りつぶされる | `PBRemapper.cs:272` | S01 |
+| major | 非Humanoid（Animator無し、またはisHuman=false）なMA衣装間の移植では、スケール算出がArmatureのlossyScale比にフォールバックし、実際の体格差を反映しない | `ScaleCalculator.cs:44` | S05 |
+| major | 移植先Armatureが常にマージ前のボディ骨格に固定され、MAのMergeArmature設定(prefix/suffix)を一切参照しないため衣装固有ボーンへの正しい対応付けができない | `AvatarData.cs:72` | S04b |
+| major | AutoCreateHelperObjects/TryAutoCreateFromSerializedが生成する代替ボーンがソース元ボーンのローカル位置を引き継がず、常に親の原点に生成される | `PBRemapper.cs:240` |  |
+| major | （推測）移植先自身のMA衣装マージ時、PBReplacer製スタブに実ボーンが吸収され宛先メッシュが破損する可能性 | `PBRemapper.cs:240` |  |
+| major | MA検出時のCollectSkinnedBones(sourceAvatar)が常に空集合になり、IsSkeletonBone判定が機能しない | `PBRemapper.cs:187` | S04,S04b |
+| major | PBRemapEditor.ScanComponentReferencesがsourceArmature外を参照するコンポーネントを無警告でシリアライズから除外する | `PBRemapEditor.cs:713` | S04,S04b |
+| major | Prefab境界フォールバックが最初に見つかった「任意の」Prefabインスタンス境界で止まり、ネストしたPrefabのケースで小物Prefab自体をアバタールートと誤認する | `SourceDetector.cs:234` |  |
+| major | FindLargestChildrenStructure は初期値 maxChildCount=0 のため、実体のあるボーン階層が無くても常に何らかのオブジェクトを『Armature』として確定してしまう | `AvatarData.cs:104` |  |
+| major | 誤検出されたArmatureのlossyScaleがそのままPhysBone/Collider/Contactのradius等のスケール係数として使われる | `ScaleCalculator.cs:33` |  |
+| major | 名前マッチ戦略の FirstOrDefault が、同名の子オブジェクトを複数持つ小物集合（複製されたProps等）で誤った対応先を選ぶ | `BoneMapper.cs:134` | S12 |
+| major | OnHierarchyChangedはPBRemap直下の子オブジェクト数と親しか見ておらず、孫以下の変更やAddComponentによるコンポーネント追加を検知できない | `PBRemapEditor.cs:343` |  |
+| major | Liveモードの自動作成ヘルパーオブジェクトがリマップ本体のUndoグループより前に登録され、1回のUndoで完全に戻らない／失敗時にオーファンとして残る | `PBRemapper.cs:86` |  |
+| major | 「他のアバターへ移植」メニューはAvatarDynamics階層そのものではなく新規の空オブジェクトを生成するだけで、コンセプトと実装がズレている | `PBReplacerWindow.Events.cs:205` | なし（scenario_report_v1.mdはPBRemapコンポーネントの直接付与によるシナリオ検証であり、PBReplacerWindowの「⋮」メニュー経由のUIフローは検証対象外） |
+| major | コンセプトの主要ユースケースであるPrefabモード（同一シーンにソースが無いD&D移植）ではSceneViewの可視化プレビューが動作しない | `PBRemapEditor.cs:1016` | コード確認のみ（scenario_report_v1.mdはSceneViewの可視化状態を直接検証していないが、S03/S03b/S03cはPrefabモード全般が実運用上機能しないことを裏付けている） |
+| major | リマップルールの逆方向フォールバック（ApplyReverse系）がSource→Dest解決中にも無条件に試行され、無関係なボーンへ誤マッチしうる | `BoneMapper.cs:291` | 直接この衝突ケースを検証したシナリオはscenario_report_v1.mdに存在しないが、コード読解により機序は完全に裏付けられる |
+| major | NDMFパスはリマップ失敗をNDMFのErrorReport機構に伝えず、失敗時もPBRemapを無条件に削除するためビルドが「サイレント失敗」する | `PBRemapNDMFPass.cs:51` | この失敗パス自体を直接テストしたシナリオはscenario_report_v1.mdには無いが、PBRemapNDMFPass.csの全文読解により機序は完全に裏付けられる |
+| major | NDMFパッケージが無効/未インストールの環境では、VRChat SDKのIEditorOnlyストリップにより移植処理が実行されないままPBRemapが黙って消える | `PBRemap.cs:16` |  |
+| major | Hips→Head距離ベースのスケール算出がワールド座標のポーズに依存し、T-pose以外・Animator実行中の姿勢では誤ったスケール比になる | `ScaleCalculator.cs:77` | S01 (0398d36): detection.sourceAvatarScale等はTポーズ相当の通常姿勢での実行のため直接的な姿勢ずれの実証は無いが、CalculateFromHumanoid経路自体（scale=1.2, Hips-Head距離比）が実際に稼働していることは確認できる |
+| major | Hips→Head距離比は全身の頭身差を表すだけで、個々のPhysBoneが実際に付いているボーン枝（尻尾・耳・リボン等）の局所スケールとは無関係であり、単一グローバル値が全コンポーネントへ一律適用される | `PBRemapper.cs:80` | S01 (0398d36) post: Hair_Root 0.03→0.036, Skirt_L 0.02→0.024, HeadCollider 0.05→0.06, LeftHand Contact 0.04→0.048, Head Receiver 0.08→0.09599999 と全コンポーネントが同一のscale=1.2で一律スケールされている |
+| major | ApplyScaleFactorはVRCPhysBone/Collider/ContactBaseのみをスケールし、VRCConstraintBase系のオフセット値（Position At Rest / Position Offset等）は一切スケールされない | `PBRemapper.cs:780` |  |
+| major | Prefabモードでスケール未算出（SourceAvatarScale<=0）の状態はInspector上のラベルでのみ示唆され、Remap実行系・NDMFビルドログには一切警告が出ない | `PBRemapNDMFPass.cs:32` | 直接の実機検証は無し（S03/S03b/S03cはSerializedBoneReferences自体が0件のため別の早期エラーで停止しており、本所見が想定する『シリアライズ済みボーン参照はあるがSourceAvatarScaleだけ0』のケースは検証されていない）。コード読解のみによる確認 |
+| minor | 複数MergeArmatureが存在する場合、AvatarData.DetectArmatureが配列の先頭要素を無条件採用するため、意図しないArmatureが選ばれ得る | `AvatarData.cs:154` |  |
+| minor | Animator フォールバックが「最上位」を採用するため、無関係な祖先ヒエラルキーに引っ張られる | `SourceDetector.cs:257` |  |
+| minor | root フォールバックは階層構造を検証せず transform.root をそのままアバタールートとして採用する | `SourceDetector.cs:270` | S10 |
+| minor | UpdateSerializedBoneReferencesがInspectorを開いただけで無条件にApplyModifiedPropertiesWithoutUndoを実行し、Prefabオーバーライドとシーンdirty化を無自覚に発生させる | `PBRemapEditor.cs:686` |  |
+| minor | PBRemapがアバタールート自身に付いている場合、Destination検出は常に自身を除外して親から走査するため未検出または誤検出になる | `SourceDetector.cs:150` | S09(ただし再設計前コードに対する実測であり、HEADはコード読解のみで確認) |
+| minor | EditorApplication.hierarchyChangedは無関係な操作でも全PBRemap Inspectorインスタンス分発火し、対象自身の変化検知時は差分計算なしの全件フルスキャンが同期実行される | `PBRemapEditor.cs:317` | なし（scenario_report_v1.mdはPBRemapper.Remap()等のAPIを直接呼び出す機能検証であり、Inspectorのパフォーマンス/イベント発火挙動は測定対象外） |
+| minor | ⋮メニューが対象とするアバターはHierarchy選択ではなくPBReplacerメインウィンドウにロード中のアバターであり、意図しないアバターにPBRemapが付く恐れがある | `PBReplacerWindow.Events.cs:185` |  |
+| minor | 検出失敗時のガイダンスがInspectorを開かないと表示されず、文言も『AvatarDynamicsをドラッグ』という具体操作を示していない | `PBRemap.uxml:90` | なし（scenario_report_v1.mdはAPI呼び出しによる機能検証でありUI文言やSceneView表示は検証対象外） |
+| minor | 移植実行完了後の状態遷移・後片付け導線が無く、PBRemapオブジェクトを削除してよいか判断できない | `PBRemap.uxml:89` | scenario_report_v1.mdの各シナリオpost状態にPBRemap削除に関する案内・処理が一切現れないことから間接的に確認（直接テストする専用シナリオIDはなし） |
+| minor | PBRemap実行後にコンポーネントが削除されず、後続のNDMFビルドでスケールが二重適用される（無警告） | `PBRemapNDMFPass.cs:27` |  |
+| minor | BuildHumanoidBoneMapの辞書上書きによるHumanoidボーン衝突と、Live/Prefab間での衝突解決ロジックの不一致 | `BoneMapper.cs:86` |  |
+| minor | リマップルールのパターン文字列に"/"を含めた場合、パスのセグメント分割・再結合ロジックが破綻する | `BoneMapper.cs:156` |  |
+| minor | lossyScaleフォールバックはY成分のみを比較しており、非一様スケール（XZのみの拡縮等）では実際のスケール差を代表できない | `ScaleCalculator.cs:44` | レポートに非一様スケール(X≠Y≠Z)を直接検証したシナリオは無し。コード読解のみによる確認 |
+| minor | 同一アバターの別インスタンス間移植でもスケール1.0が保証されない：ポーズ依存(上記のCalculateFromHumanoid問題)に加え、NDMFビルド時はソース側が『生シーンの現在のTransform』を直接参照し続ける | `SourceDetector.cs:182` | 直接の実機検証なし（S08はIsReferencingDestination=trueのPrefabモード経路を検証したものであり、本所見が想定するLiveモードNDMFビルドのシナリオとは異なる）。所見提出者自身もis_speculation=trueと明記 |
+| info | （確認事項・非バグ）PBRemapのGeneratingフェーズ実行はMAのMergeArmature(Transformingフェーズ)より前だが、MA側の事前ボーン保持スキャンにより整合性は保たれている | `PBRemapNDMFPlugin.cs:19` |  |
+
+### 反証された所見
+
+| 所見 | 反証理由 |
+|---|---|
+| 複数MergeArmatureに参照が分散する場合、外部参照ごとの多数決でSourceAvatarを一意に決めるため少数派側のボーンが誤ったArmature基準で解決される | 0398d36のPBRemapper.BuildBoneMap(151-170行付近)は sourceArmature.GetComponentsInChildren<Transform>(true)(151行目、sourceArmature=多数決で選ばれた勝者側のArmature)のみをループしてBoneMapper.ResolveBone/ResolveBoneWithRemapを呼ぶため、 |
+| SourceAvatarScale が UI 駆動でしか保存されず、未取得(0)のまま Prefab 化されると AutoCalculateScale が無警告で scaleFactor=1.0 にフォールバックする | 0398d36のコードでRuntime/Scripts/PBRemap.cs:36(private float sourceAvatarScale;)、PBRemapEditor.cs:632-687(UpdateSerializedBoneReferences)、PBRemapper.cs:100-125(RemapPrefabMode)を実際に確認したところ、所見が引用する各行・各処理の存在自 |
+
+### 網羅性批評で追加された観点
+
+- [critical] PBRemapTrackerの自動処理（AutoOnDrop等）がPrefab Stage（Prefabモード編集中）でも無条件に発火し、共有Prefabアセットへ確認なしで自動移植・自動作成・自動スケールが焼き込まれる（`PBRemapTracker.cs:122`）: PBRemapTracker.FindAll() (122-127行) は `d.gameObject.scene.IsValid() && !EditorUtility.IsPersistent(d)` のみで対象を絞り込んでいる。Unity の Prefab Stage（Prefabモード編集）中のオブジェクトは専用のプレビューシーンに実体化されており、scene.IsValid()==tru
+- [critical] PBRemapの入れ子（PBRemap配下に別のPBRemap管理下ツリーが含まれる）が範囲を区別せず二重に走査・二重に適用される（`PBRemapManifestBuilder.cs:258`）: CollectVRCComponents(root) (258-266行) は `root.GetComponentsInChildren<T>(true)` で無条件にサブツリー全体を収集しており、途中に別のPBRemapコンポーネントが挟まっているかどうかを一切考慮しない。そのため、外側のPBRemap（本体一式用）のScan/Build/Applyは、内側のPBRemap（帽子+羽根用）が管
+- [major] PBRemapTrackerの常時ポーリングが、PBRemapと無関係なあらゆるhierarchyChangedをトリガーに、プロジェクト内の全PBRemapへ対して重いフル再スキャンを実行する（`PBRemapTracker.cs:29`）: `EditorApplication.hierarchyChanged += () => _dirty = true;` (29行) はエディタ全体のどこでヒエラルキーが変わるたびに（PBRemapと無関係な変更でも）発火し、OnUpdate (36-67行) は0.5秒に一度、`Resources.FindObjectsOfTypeAll<PBRemap>()` (124行、ロード中の全アセット
+- [major] PBRemapTracker.Suspendedはバッチ/CI用として用意されているが、コードベースのどこからも設定されておらず、-batchmodeガードも無いため、ヘッドレスビルドパイプライン中も自動移植ロジックが動き続ける（`PBRemapTracker.cs:25`）: `Suspended` プロパティ (25行) のXMLコメントには明示的に「自動処理を止める（テスト・バッチ用）」と書かれているが、リポジトリ全体を検索しても `PBRemapTracker.Suspended = true` のようにこれを設定している箇所は存在しない（設計上の唯一の無効化スイッチが未配線のデッドプロパティになっている）。また OnUpdate (38行) のガードは `Sus
+- [minor] NDMFエラーレポートのen-usロケールが日本語辞書をそのまま返しており、英語環境のユーザーにも常に日本語のエラー文言が表示される（`PBRemapNDMFPass.cs:109`）: PBRemapErrorLocalizer.Create() (105-112行) は `nadena.dev.ndmf.localization.Localizer` に "ja-jp" と "en-us" の2ロケールを登録しているが、双方とも同一の `Ja` 辞書 (94-103行、日本語文字列のみ) を参照する `key => Ja.TryGetValue(key, out var v) 
+- [major] ルート/コンテキスト検出がModularAvatarのMergeArmatureのみに対応しており、VRCFury等の同等機能（アーマチュアリンク）には一切対応していない（`PBRemapContextResolver.cs:165`）: 衣装ルート判定 `IsCostumeRoot` (165-178行) は `#if MODULAR_AVATAR` ブロック内で `ModularAvatarMergeArmature` の有無のみをチェックしており、`ClassifyRootCandidate`（RootKind.MACostume）や `BuildContexts`（衣装Armatureコンテキストの列挙、220行付近の `r
+- [minor] AutoOnDropの自動移植はドロップ操作の最大0.5秒後にポーリング経由で実行されるため、その間に行われたユーザー操作とUndoスタック上の順序が食い違い、1回のCtrl+Zで意図しない操作が取り消される（`PBRemapTracker.cs:78`）: OnDropped の AutoOnDrop 分岐 (73-88行) は、ドラッグ操作（Unityのヒエラルキー上での実際のreparent操作、それ自体が既に1つのUndoエントリになる）そのものの中では実行されず、次のOnUpdateポーリング(40行のRefreshIntervalによって最短でも0.5秒後)で初めて `PBRemapper.Remap(def)` (78行、内部でUndo.
+- [major] VRCConstraintBaseのSources/TargetTransformの付け替えは参照の差し替えのみで、ソースとデスティネーションのボーンの向き（ローカル座標系）の違いを一切補正しないため、スケール差が無くてもコンストレイントのオフセットが破綻する（`PBRemapApplier.cs:242`）: ApplyScale (204-245行) のswitch文は `VRCPhysBoneBase`/`VRCPhysBoneColliderBase`/`ContactBase` のみを明示的に処理し、`VRCConstraintBase` はどちらの分岐（226-234行の非冪等パス、236-244行の冪等パス）にもcaseが無いため `default: return;` (242行) で完全に

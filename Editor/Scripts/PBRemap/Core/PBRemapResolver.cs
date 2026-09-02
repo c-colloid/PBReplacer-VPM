@@ -203,6 +203,8 @@ namespace colloid.PBReplacer
                 plan.Warnings.Add($"移植先 '{destinationRoot.name}' は汎用オブジェクトとして扱います（Descriptor/Animator/MergeArmature無し）。");
             if (manifest.contexts.Any(c => c.kind == BoneContextKind.Costume) && !plan.DestinationContexts.Any(c => c.Kind == BoneContextKind.Costume))
                 plan.Warnings.Add("移植元には衣装（MergeArmature）コンテキストがありますが、移植先に衣装がありません。衣装ボーンは本体Armature上で名前解決されます。");
+            if (manifest.refs.Any(r => r.componentType.Contains("Constraint")))
+                plan.Warnings.Add("VRC Constraint は参照の付け替えのみ行い、位置/回転オフセットは再計算しません。移植先でボーンの向きが異なる場合は Constraint のオフセットを再ベイクしてください。");
 
             return plan;
         }

@@ -28,7 +28,7 @@ namespace colloid.PBReplacer
 
         static PBRemapTracker()
         {
-            EditorApplication.hierarchyChanged += () => _dirty = true;
+            EditorApplication.hierarchyChanged += () => { _dirty = true; _lastRefresh = 0; };
             EditorApplication.update += OnUpdate;
             EditorSceneManager.sceneSaving += (scene, path) => FlushManifests();
             PrefabUtility.prefabInstanceUpdated += _ => FlushManifests();
@@ -45,7 +45,7 @@ namespace colloid.PBReplacer
 
         private static void OnUpdate()
         {
-            if (Suspended || Application.isPlaying || EditorApplication.isCompiling) return;
+            if (Suspended || Application.isPlaying || Application.isBatchMode || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
             if (!_dirty) return;
             if (EditorApplication.timeSinceStartup - _lastRefresh < RefreshInterval) return;
             _lastRefresh = EditorApplication.timeSinceStartup;
@@ -68,7 +68,7 @@ namespace colloid.PBReplacer
 
                 // ドロップ検知（Undo/Redo 直後は抑制）
                 if (known && moved && situation.State == PBRemapState.Displaced && EditorApplication.timeSinceStartup >= _suppressDropUntil)
-                    OnDropped(def, situation);
+                    OnDropped(def, situation, IsInPrefabStage(def));
             }
 
             // 消えたものを掃除
@@ -76,9 +76,18 @@ namespace colloid.PBReplacer
             foreach (var k in _lastParent.Keys.ToList()) if (!alive.Contains(k)) _lastParent.Remove(k);
         }
 
-        private static void OnDropped(PBRemap def, PBRemapSituation situation)
+        /// <summary>Prefab Stage（Prefabモード編集）中のオブジェクトか。共有アセットへの無確認の自動適用を避けるために使う</summary>
+        private static bool IsInPrefabStage(PBRemap def)
         {
-            switch (def.ApplyMode)
+            var stage = UnityEditor.SceneManagement.PrefabStageUtility.GetPrefabStage(def.gameObject);
+            return stage != null;
+        }
+
+        private static void OnDropped(PBRemap def, PBRemapSituation situation, bool inPrefabStage)
+        {
+            // Prefab Stage 内では自動適用せず、必ず確認（プレビュー）を挟む
+            var mode = inPrefabStage && def.ApplyMode == PBRemapApplyMode.AutoOnDrop ? PBRemapApplyMode.Confirm : def.ApplyMode;
+            switch (mode)
             {
                 case PBRemapApplyMode.AutoOnDrop:
                 {
