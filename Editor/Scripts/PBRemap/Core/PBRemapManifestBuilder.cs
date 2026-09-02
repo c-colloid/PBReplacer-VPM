@@ -51,6 +51,8 @@ namespace colloid.PBReplacer
 
             var rootCounts = new Dictionary<GameObject, int>();
             var rootInfos = new Dictionary<GameObject, RootInfo>();
+            var rootByTransform = new Dictionary<Transform, RootInfo>();
+            var classifyCache = new Dictionary<Transform, RootKind>();
 
             // マニフェストに記録された参照キー（null になっていれば「失われた参照」と判定する根拠）
             var manifestKeys = new HashSet<string>();
@@ -79,7 +81,11 @@ namespace colloid.PBReplacer
                     if (t == definitionRoot || t.IsChildOf(definitionRoot)) { result.InternalRefs++; continue; }
 
                     result.ExternalRefs.Add((component, prop.propertyPath, obj));
-                    var ri = PBRemapContextResolver.FindRoot(t, excludeSelf: false);
+                    if (!rootByTransform.TryGetValue(t, out var ri))
+                    {
+                        ri = PBRemapContextResolver.FindRoot(t, excludeSelf: false, classifyCache);
+                        rootByTransform[t] = ri;
+                    }
                     var key = ri.IsFound ? ri.Root : t.root.gameObject;
                     rootCounts[key] = rootCounts.TryGetValue(key, out var c) ? c + 1 : 1;
                     if (!rootInfos.ContainsKey(key)) rootInfos[key] = ri.IsFound ? ri : new RootInfo { Root = key, Kind = RootKind.Generic, Method = AvatarDetectionMethod.Root, Reason = "fallback:transform.root" };
@@ -262,6 +268,10 @@ namespace colloid.PBReplacer
             components.AddRange(root.GetComponentsInChildren<VRCPhysBoneColliderBase>(true));
             components.AddRange(root.GetComponentsInChildren<VRCConstraintBase>(true));
             components.AddRange(root.GetComponentsInChildren<ContactBase>(true));
+            // ネストした別の PBRemap の配下は、その PBRemap の管理対象なので除外する
+            var nested = root.GetComponentsInChildren<PBRemap>(true).Where(p => p.transform != root).Select(p => p.transform).ToList();
+            if (nested.Count > 0)
+                components.RemoveAll(c => nested.Any(n => c.transform == n || c.transform.IsChildOf(n)));
             return components;
         }
 

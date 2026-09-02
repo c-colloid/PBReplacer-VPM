@@ -260,6 +260,22 @@ worldRatio = Hips-Head距離比（両Humanoid）
 - スケルトンボーン（SkinnedMeshRendererにバインド済み）の自動作成は行わない（メッシュのウェイトを持たない空ボーンを作っても意味がないため）
 - Ambiguous（同名複数）は自動確定しない。Inspector の「候補…」から選ぶか、パスリマップルールで一意にする
 
+### 3.4 実装差分の監査で修正した点
+
+再設計の差分を独立した監査（Prefab編集モード／Undo・Redo／複数PBRemap／null参照・計算量／NDMF／C#細部の6観点）にかけ、以下を修正した。
+
+| 指摘 | 対応 |
+|---|---|
+| Undo/Redo による親変更を「ドロップ」と誤認し、AutoOnDrop が新規Undoグループを積んで Redo スタックを壊し得る | `Undo.undoRedoPerformed` 直後 2 秒は自動適用を抑制し、既知の親を更新 |
+| `ManifestEquivalent` がボーンのローカルTRS等を比較せず、「参照情報を更新」でも古い位置が残る | 比較対象に localPosition/Rotation/Scale・boneName・Humanoid祖先・コンテキストを追加。ボタンは強制更新 |
+| Prefabインスタンス上のマニフェスト更新が暗黙のオーバーライドになる | `RecordPrefabInstancePropertyModifications` で明示的に記録し、Inspector に「Revert All Overrides で失われる」旨を表示 |
+| ネストした PBRemap の二重処理 | 配下の別 PBRemap のサブツリーは収集対象から除外。Tracker も外側のみ監視。Inspector に警告 |
+| Tracker の常時ポーリングで `Scan`/`FindRoot` が無キャッシュに多重実行される | Scan 内で Transform→ルート、祖先→分類 をメモ化 |
+| `OriginalValues.rootLossyScaleMax` が未使用 | rootTransform 参照が無いコンポーネントの lossyScale 補正に使用 |
+| `PrefabStage.prefabSaving` 未購読 | 購読して保存前にマニフェストを確定 |
+| NDMF Resolving 内で Modular Avatar との順序が未指定 | `BeforePlugin("nadena.dev.modular-avatar")` を宣言 |
+| 移植先候補の列挙が直下の子のみ | 2階層下まで探索 |
+
 ---
 
 ## 4. 再設計後の検証結果

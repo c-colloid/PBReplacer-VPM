@@ -78,8 +78,19 @@ namespace colloid.PBReplacer
         /// </summary>
         /// <param name="start">走査開始 Transform（PBRemap 自身、または参照先ボーン）</param>
         /// <param name="excludeSelf">start 自身を候補から除外するか（PBRemap 自身の検出では true）</param>
-        public static RootInfo FindRoot(Transform start, bool excludeSelf)
+        public static RootInfo FindRoot(Transform start, bool excludeSelf) => FindRoot(start, excludeSelf, null);
+
+        /// <summary>
+        /// <see cref="FindRoot(Transform,bool)"/> のキャッシュ付き版。同じ走査内で祖先の分類結果を共有する。
+        /// </summary>
+        public static RootInfo FindRoot(Transform start, bool excludeSelf, Dictionary<Transform, RootKind> classifyCache)
         {
+            RootKind Classify(Transform t)
+            {
+                if (classifyCache == null) return ClassifyRootCandidate(t);
+                if (!classifyCache.TryGetValue(t, out var k)) { k = ClassifyRootCandidate(t); classifyCache[t] = k; }
+                return k;
+            }
             var info = new RootInfo();
             if (start == null) { info.Reason = "start is null"; return info; }
 
@@ -94,7 +105,7 @@ namespace colloid.PBReplacer
             for (Transform a = scan; a != null; a = a.parent)
             {
                 top = a;
-                var kind = ClassifyRootCandidate(a);
+                var kind = Classify(a);
                 if (kind == RootKind.VRCAvatarDescriptor || kind == RootKind.MACostume || kind == RootKind.Animator)
                 {
                     outermostStrong = a.gameObject;
@@ -122,18 +133,29 @@ namespace colloid.PBReplacer
                 // 候補: 走査開始点（とその祖先）の直下の子で、ルートとして成立するもの
                 for (Transform a = scan; a != null; a = a.parent)
                 {
+                    // 直下の子と、その下2階層までを候補として探す
                     foreach (Transform child in a)
                     {
                         if (child == start) continue;
-                        var k = ClassifyRootCandidate(child);
-                        if (k != RootKind.None && !info.Candidates.Contains(child.gameObject))
-                            info.Candidates.Add(child.gameObject);
+                        CollectCandidates(child, 2, info.Candidates, Classify);
                     }
                 }
             }
 
             info.Method = ToMethod(info.Kind);
             return info;
+        }
+
+        private static void CollectCandidates(Transform t, int depth, List<GameObject> into, System.Func<Transform, RootKind> classify)
+        {
+            var k = classify(t);
+            if (k != RootKind.None)
+            {
+                if (!into.Contains(t.gameObject)) into.Add(t.gameObject);
+                return;
+            }
+            if (depth <= 0) return;
+            foreach (Transform c in t) CollectCandidates(c, depth - 1, into, classify);
         }
 
         /// <summary>

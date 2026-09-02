@@ -24,13 +24,23 @@ namespace colloid.PBReplacer
         /// <summary>自動処理を止める（テスト・バッチ用）</summary>
         public static bool Suspended { get; set; }
 
+        private static double _suppressDropUntil;
+
         static PBRemapTracker()
         {
             EditorApplication.hierarchyChanged += () => _dirty = true;
             EditorApplication.update += OnUpdate;
             EditorSceneManager.sceneSaving += (scene, path) => FlushManifests();
             PrefabUtility.prefabInstanceUpdated += _ => FlushManifests();
+            UnityEditor.SceneManagement.PrefabStage.prefabSaving += _ => FlushManifests();
             AssemblyReloadEvents.beforeAssemblyReload += FlushManifests;
+            // Undo/Redo による親変更を「ドロップ」と誤認して自動適用しない（Redoスタックを壊さない）
+            Undo.undoRedoPerformed += () =>
+            {
+                _suppressDropUntil = EditorApplication.timeSinceStartup + 2.0;
+                foreach (var def in FindAll()) _lastParent[def.GetInstanceID()] = def.transform.parent;
+                _dirty = true;
+            };
         }
 
         private static void OnUpdate()
@@ -56,8 +66,8 @@ namespace colloid.PBReplacer
                 if (situation.State == PBRemapState.AtHome || situation.State == PBRemapState.Displaced)
                     PBRemapper.RefreshManifestIfLive(def, situation);
 
-                // ドロップ検知
-                if (known && moved && situation.State == PBRemapState.Displaced)
+                // ドロップ検知（Undo/Redo 直後は抑制）
+                if (known && moved && situation.State == PBRemapState.Displaced && EditorApplication.timeSinceStartup >= _suppressDropUntil)
                     OnDropped(def, situation);
             }
 
@@ -122,8 +132,16 @@ namespace colloid.PBReplacer
         private static IEnumerable<PBRemap> FindAll()
         {
             return Resources.FindObjectsOfTypeAll<PBRemap>()
-                .Where(d => d != null && d.gameObject.scene.IsValid() && !EditorUtility.IsPersistent(d)
-                            && (d.hideFlags & HideFlags.HideInHierarchy) == 0);
+                .Where(d => d != null && d.gameObject.scene.IsValid() && d.gameObject.scene.isLoaded && !EditorUtility.IsPersistent(d)
+                            && (d.hideFlags & HideFlags.HideInHierarchy) == 0
+                            && !IsNested(d));
+        }
+
+        /// <summary>別の PBRemap の配下にある（ネストした）PBRemap か。管理は外側に委ねる</summary>
+        private static bool IsNested(PBRemap d)
+        {
+            var parent = d.transform.parent;
+            return parent != null && parent.GetComponentInParent<PBRemap>(true) != null;
         }
     }
 }

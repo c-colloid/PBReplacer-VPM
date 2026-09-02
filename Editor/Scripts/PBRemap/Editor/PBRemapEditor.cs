@@ -276,6 +276,12 @@ namespace colloid.PBReplacer
             UpdateManifestInfo(definition);
 
             var allWarnings = new List<string>(_detection.Warnings);
+            if (definition.transform.parent != null && definition.transform.parent.GetComponentInParent<PBRemap>(true) != null)
+                allWarnings.Add("このPBRemapは別のPBRemapの配下にあります。外側のPBRemapが一括で扱うため、このコンポーネントは無視されます。");
+            if (definition.GetComponentsInChildren<PBRemap>(true).Any(x => x != definition))
+                allWarnings.Add("配下に別のPBRemapがあります。その配下のコンポーネントはこのPBRemapの対象外です。");
+            if (PrefabUtility.IsPartOfPrefabInstance(definition) && definition.Manifest != null && !definition.Manifest.IsEmpty)
+                allWarnings.Add("参照情報はPrefabインスタンスのオーバーライドとして保存されています（Revert All Overrides で失われます。持ち出す場合は Apply するか Prefab を作り直してください）。");
             if (_preview != null) { allWarnings.AddRange(_preview.Errors); allWarnings.AddRange(_preview.Warnings); }
             allWarnings = allWarnings.Distinct().ToList();
             if (allWarnings.Count > 0)
@@ -708,8 +714,8 @@ namespace colloid.PBReplacer
         private void OnRefreshManifestClicked()
         {
             var definition = (PBRemap)target;
-            bool changed = PBRemapper.RefreshManifestIfLive(definition, null, registerUndo: true);
-            _statusBox.text = changed ? $"参照情報を更新しました（{definition.Manifest.refs.Count} 件）" : "参照情報は最新です（または参照が生きていません）";
+            bool changed = PBRemapper.RefreshManifestIfLive(definition, null, registerUndo: true, force: true);
+            _statusBox.text = changed ? $"参照情報を更新しました（{definition.Manifest.refs.Count} 件）" : "参照が生きていないため更新できません（移植元のシーンで実行してください）";
             _statusBox.messageType = HelpBoxMessageType.Info;
             _statusBox.style.display = DisplayStyle.Flex;
             QueueRefresh();

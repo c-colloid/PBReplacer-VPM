@@ -19,6 +19,7 @@ namespace colloid.PBReplacer
         protected override void Configure()
         {
 	        InPhase(BuildPhase.Resolving)
+		        .BeforePlugin("nadena.dev.modular-avatar")
 		        .Run<PBRemapNDMFPass>(new PBRemapNDMFPass());
         }
     }

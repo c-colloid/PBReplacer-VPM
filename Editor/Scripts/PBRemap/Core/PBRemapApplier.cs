@@ -161,7 +161,26 @@ namespace colloid.PBReplacer
                     var orig = manifest.GetOriginal(path, typeName);
                     var rootRes = plan.Resolutions.FirstOrDefault(r => r.Ref.componentPath == path && r.Ref.componentType == typeName && r.Ref.propertyPath == "rootTransform")
                                   ?? plan.Resolutions.FirstOrDefault(r => r.Ref.componentPath == path && r.Ref.componentType == typeName && r.Target != null);
-                    float factor = rootRes != null && rootRes.Target != null ? rootRes.ScaleFactor : plan.WorldScaleRatio;
+                    float factor;
+                    if (rootRes != null && rootRes.Target != null)
+                    {
+                        factor = rootRes.ScaleFactor;
+                    }
+                    else
+                    {
+                        // rootTransform 参照が無い（自身のTransformが基準）: マニフェストの元 lossyScale と現在の lossyScale の比で補正
+                        Transform selfRoot = component.transform;
+                        switch (component)
+                        {
+                            case VRCPhysBoneBase pb when pb.rootTransform != null: selfRoot = pb.rootTransform; break;
+                            case VRCPhysBoneColliderBase pbc when pbc.rootTransform != null: selfRoot = pbc.rootTransform; break;
+                            case ContactBase ct when ct.rootTransform != null: selfRoot = ct.rootTransform; break;
+                        }
+                        float srcLossy = orig != null && orig.rootLossyScaleMax > 1e-6f ? orig.rootLossyScaleMax : 1f;
+                        float dstLossy = PBRemapManifestBuilder.MaxComponent(selfRoot.lossyScale);
+                        if (dstLossy < 1e-6f) dstLossy = 1f;
+                        factor = plan.WorldScaleRatio * srcLossy / dstLossy;
+                    }
                     ApplyScale(component, orig, factor, registerUndo, result);
                 }
 
@@ -180,7 +199,7 @@ namespace colloid.PBReplacer
                 var newManifest = PBRemapManifestBuilder.Build(definition);
                 if (newManifest != null && !newManifest.IsEmpty)
                     definition.SetManifest(newManifest);
-                EditorUtility.SetDirty(definition);
+                PBRemapper.MarkDirty(definition);
             }
             catch (Exception ex)
             {

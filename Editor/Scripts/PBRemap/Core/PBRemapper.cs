@@ -126,7 +126,7 @@ namespace colloid.PBReplacer
         /// 移植元にいるときに常に最新の情報を持つための処理（P1）。
         /// </summary>
         /// <returns>更新した場合 true</returns>
-        public static bool RefreshManifestIfLive(PBRemap definition, PBRemapSituation situation = null, bool registerUndo = false)
+        public static bool RefreshManifestIfLive(PBRemap definition, PBRemapSituation situation = null, bool registerUndo = false, bool force = false)
         {
             situation ??= Inspect(definition);
             if (situation.Scan == null || situation.Scan.State != PBRemapManifestBuilder.ReferenceState.Live) return false;
@@ -143,12 +143,24 @@ namespace colloid.PBReplacer
 
             var manifest = PBRemapManifestBuilder.Build(definition, scan);
             if (manifest == null) return false;
-            if (ManifestEquivalent(definition.Manifest, manifest)) return false;
+            if (!force && ManifestEquivalent(definition.Manifest, manifest)) return false;
 
             if (registerUndo) Undo.RecordObject(definition, "PBRemap 参照情報更新");
             definition.SetManifest(manifest);
-            EditorUtility.SetDirty(definition);
+            MarkDirty(definition);
             return true;
+        }
+
+        /// <summary>
+        /// 変更を保存対象にする。Prefabインスタンス上では明示的なオーバーライドとして記録する
+        /// （記録しないと保存されないことがある。Revert All Overrides で消える点は Inspector で案内する）。
+        /// </summary>
+        public static void MarkDirty(PBRemap definition)
+        {
+            if (definition == null) return;
+            if (PrefabUtility.IsPartOfPrefabInstance(definition))
+                PrefabUtility.RecordPrefabInstancePropertyModifications(definition);
+            EditorUtility.SetDirty(definition);
         }
 
         private static bool ManifestEquivalent(PBRemapManifest a, PBRemapManifest b)
@@ -158,8 +170,19 @@ namespace colloid.PBReplacer
             for (int i = 0; i < a.refs.Count; i++)
             {
                 var x = a.refs[i]; var y = b.refs[i];
-                if (x.Key != y.Key || x.contextId != y.contextId || x.relPath != y.relPath || x.humanBone != y.humanBone || x.isSkeletonBone != y.isSkeletonBone
-                    || x.targetComponentType != y.targetComponentType || x.pathFromRoot != y.pathFromRoot || (x.lossyScale - y.lossyScale).sqrMagnitude > 1e-8f)
+                if (x.Key != y.Key || x.contextId != y.contextId || x.relPath != y.relPath || x.boneName != y.boneName
+                    || x.humanBone != y.humanBone || x.nearestHumanoidAncestor != y.nearestHumanoidAncestor || x.pathFromAncestor != y.pathFromAncestor
+                    || x.isSkeletonBone != y.isSkeletonBone || x.targetComponentType != y.targetComponentType || x.pathFromRoot != y.pathFromRoot
+                    || (x.lossyScale - y.lossyScale).sqrMagnitude > 1e-8f
+                    || (x.localPosition - y.localPosition).sqrMagnitude > 1e-10f
+                    || Quaternion.Angle(x.localRotation, y.localRotation) > 0.01f
+                    || (x.localScale - y.localScale).sqrMagnitude > 1e-10f)
+                    return false;
+            }
+            for (int i = 0; i < a.contexts.Count; i++)
+            {
+                var x = a.contexts[i]; var y = b.contexts[i];
+                if (x.id != y.id || x.kind != y.kind || x.armaturePathFromRoot != y.armaturePathFromRoot || x.maPrefix != y.maPrefix || x.maSuffix != y.maSuffix || x.costumeName != y.costumeName)
                     return false;
             }
             for (int i = 0; i < a.originals.Count; i++)
@@ -190,7 +213,7 @@ namespace colloid.PBReplacer
                 definition.MigrateLegacyScaleSettings();
                 changed = true;
             }
-            if (changed) EditorUtility.SetDirty(definition);
+            if (changed) MarkDirty(definition);
             return changed;
         }
 
