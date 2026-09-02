@@ -1,46 +1,414 @@
-.pbremap-section {
-    margin-left: 3px;
-    margin-right: 3px;
-    margin-top: 4px;
-    margin-bottom: 4px;
+/* ============================================================
+   PBRemap Inspector
+   流れ（strip）: [移植元] ──(移植)──▶ [移植先]
+   状態は色とアイコンで伝え、文字は オブジェクト名 / 数値 / 動詞1語 に限る
+   ============================================================ */
+
+.pbremap-icon {
+    flex-shrink: 0;
 }
 
-.pbremap-detection-row {
+/* ---- ツール行（右寄せのアイコンボタン） ---- */
+.pbremap-tools {
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+    margin: 2px 2px 0 2px;
+}
+
+.pbremap-icon-button {
+    width: 24px;
+    height: 22px;
+    padding: 0;
+    margin: 0 1px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 3px;
+}
+
+.pbremap-icon-button--on {
+    background-color: rgba(90, 160, 255, 0.35);
+}
+
+.pbremap-icon-button:disabled {
+    opacity: 0.35;
+}
+
+/* ---- 流れ ---- */
+.pbremap-strip {
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 4px;
+    margin: 2px 2px 4px 2px;
+    border-radius: 6px;
+    background-color: rgba(0, 0, 0, 0.12);
+    transition-property: background-color;
+    transition-duration: 0.35s;
+}
+
+.pbremap-strip--home {
+    background-color: rgba(90, 200, 120, 0.08);
+}
+
+.pbremap-strip--displaced {
+    background-color: rgba(255, 190, 60, 0.10);
+}
+
+.pbremap-strip--broken {
+    background-color: rgba(255, 140, 60, 0.10);
+}
+
+.pbremap-strip--error {
+    background-color: rgba(230, 70, 70, 0.14);
+}
+
+.pbremap-strip--flash {
+    background-color: rgba(90, 200, 120, 0.40);
+}
+
+.pbremap-node {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    flex-direction: row;
+    align-items: center;
+    min-width: 0;
+    padding: 3px 4px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.pbremap-node--drop-hover {
+    background-color: rgba(90, 160, 255, 0.25);
+    border-color: rgba(90, 160, 255, 0.9);
+}
+
+.pbremap-node--empty {
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+.pbremap-node--ghost .pbremap-node-icon {
+    opacity: 0.45;
+}
+
+.pbremap-node--ghost .pbremap-node-name {
+    opacity: 0.65;
+    -unity-font-style: italic;
+}
+
+.pbremap-node-iconwrap {
+    width: 22px;
+    height: 22px;
+    margin-right: 5px;
+    flex-shrink: 0;
+}
+
+.pbremap-node-icon {
+    width: 20px;
+    height: 20px;
+}
+
+.pbremap-node-badge {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 12px;
+    height: 12px;
+}
+
+.pbremap-node-text {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+    justify-content: center;
+}
+
+.pbremap-node-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+    font-size: 12px;
+}
+
+.pbremap-node-sub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+    font-size: 9px;
+    opacity: 0.6;
+    margin-top: -2px;
+}
+
+.pbremap-connector {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    width: 88px;
+    flex-shrink: 0;
+}
+
+.pbremap-line {
+    flex-grow: 1;
+    flex-basis: 0;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.18);
+    border-radius: 1px;
+}
+
+.pbremap-line--active {
+    background-color: rgba(255, 190, 60, 0.7);
+}
+
+.pbremap-line--home {
+    background-color: rgba(90, 200, 120, 0.55);
+}
+
+.pbremap-apply {
+    height: 24px;
+    padding: 0 8px 0 10px;
+    margin: 0 2px;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 12px;
+    border-width: 0;
+    background-color: rgba(120, 120, 120, 0.35);
+}
+
+.pbremap-apply-label {
+    font-size: 12px;
+    -unity-font-style: bold;
+    margin-right: 2px;
+}
+
+.pbremap-apply-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.pbremap-apply--ready {
+    background-color: rgb(52, 140, 92);
+    color: white;
+}
+
+.pbremap-apply--ready:hover {
+    background-color: rgb(64, 168, 110);
+}
+
+.pbremap-apply--partial {
+    background-color: rgb(190, 140, 40);
+    color: white;
+}
+
+.pbremap-apply--partial:hover {
+    background-color: rgb(215, 160, 50);
+}
+
+.pbremap-apply:disabled {
+    opacity: 0.4;
+}
+
+.pbremap-connector-state {
+    width: 16px;
+    height: 16px;
+    margin: 0 2px;
+}
+
+/* ---- 候補（移植先が見つからないとき） ---- */
+.pbremap-candidates {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0 4px 4px 4px;
+}
+
+.pbremap-candidate {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    padding: 0 8px 0 4px;
+    margin: 2px 4px 2px 0;
+    border-radius: 11px;
+}
+
+.pbremap-candidate > Label {
+    margin-left: 4px;
+}
+
+/* ---- チップ（Console 風のフィルタ） ---- */
+.pbremap-chips {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    margin: 0 4px 2px 4px;
+}
+
+.pbremap-chip {
+    flex-direction: row;
+    align-items: center;
+    height: 20px;
+    padding: 0 7px 0 4px;
+    margin: 1px 4px 1px 0;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.pbremap-chip:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+}
+
+.pbremap-chip--off {
+    opacity: 0.4;
+}
+
+.pbremap-chip-count {
+    margin-left: 4px;
+    font-size: 11px;
+    -unity-text-align: middle-left;
+}
+
+.pbremap-chip--resolved {
+    border-color: rgba(100, 200, 100, 0.5);
+}
+
+.pbremap-chip--auto {
+    border-color: rgba(220, 180, 50, 0.6);
+}
+
+.pbremap-chip--ambiguous {
+    border-color: rgba(220, 180, 50, 0.6);
+}
+
+.pbremap-chip--unresolved {
+    border-color: rgba(220, 80, 80, 0.6);
+}
+
+.pbremap-chip--scale {
+    margin-left: auto;
+}
+
+.pbremap-chip--manual {
+    border-color: rgba(90, 160, 255, 0.6);
+}
+
+.pbremap-chip-field {
+    width: 56px;
+    margin: 0 0 0 2px;
+}
+
+/* ---- ボーン対応表 ---- */
+.pbremap-table {
+    margin: 0 2px 4px 2px;
+}
+
+.pbremap-row {
+    flex-direction: row;
+    align-items: center;
+    padding: 1px 4px;
+    margin-bottom: 1px;
+    border-radius: 3px;
+}
+
+.pbremap-row--unresolved {
+    background-color: rgba(220, 80, 80, 0.10);
+}
+
+.pbremap-row--ambiguous {
+    background-color: rgba(220, 180, 50, 0.10);
+}
+
+.pbremap-row--auto {
+    background-color: rgba(220, 180, 50, 0.06);
+}
+
+.pbremap-row-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+}
+
+.pbremap-row-src {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    -unity-text-align: middle-left;
+    font-size: 11px;
+}
+
+.pbremap-row-src--outer {
+    -unity-font-style: italic;
+}
+
+.pbremap-row-arrow {
+    width: 14px;
+    height: 14px;
+    margin: 0 2px;
+    opacity: 0.6;
+}
+
+.pbremap-row > ObjectField {
+    flex-grow: 1.3;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 96px;
+    margin: 0 2px;
+}
+
+.pbremap-row--unresolved > ObjectField > .unity-object-field__input {
+    border-color: rgba(220, 80, 80, 0.7);
+}
+
+.pbremap-row-action {
+    width: 22px;
+    height: 18px;
+    padding: 0;
+    margin: 0 0 0 2px;
+    align-items: center;
+    justify-content: center;
+}
+
+.pbremap-row-ghost {
+    font-size: 11px;
+    color: rgb(220, 180, 50);
+    margin-left: 2px;
+    flex-shrink: 0;
+}
+
+/* ---- 詳細設定 ---- */
+.pbremap-advanced {
+    margin: 2px 2px 4px 2px;
+    padding: 4px 4px 2px 4px;
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.pbremap-scale-row {
     flex-direction: row;
     align-items: center;
 }
 
-.pbremap-detection-badge {
+.pbremap-scale-row > EnumField {
+    flex-grow: 1;
+}
+
+.pbremap-scale-factor {
+    width: 70px;
+}
+
+.pbremap-manifest-info {
     font-size: 10px;
-    padding: 1px 5px;
-    margin-left: 6px;
-    border-radius: 3px;
-    background-color: rgba(220, 180, 50, 0.15);
-    color: rgb(220, 180, 50);
-    flex-shrink: 0;
-}
-
-.pbremap-section-header {
-    font-size: 11px;
-    -unity-font-style: bold;
-    color: var(--unity-colors-label-text);
-    padding: 0 4px 2px 4px;
-    margin-bottom: 2px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(85, 85, 85, 0.3);
-}
-
-.pbremap-action-section {
-    padding-bottom: 4px;
-    margin-bottom: 2px;
-    border-bottom-width: 1px;
-    border-bottom-color: rgba(85, 85, 85, 0.4);
-}
-
-.pbremap-add-button {
-    align-self: flex-end;
-    width: 100px;
-    margin-top: 4px;
+    color: rgb(160, 160, 160);
+    white-space: normal;
+    margin: 2px 4px;
 }
 
 .pbremap-rules-toolbar {
@@ -64,119 +432,12 @@
     color: rgb(100, 200, 100);
 }
 
-.pbremap-scale-label {
-    font-size: 11px;
-    color: rgb(160, 160, 160);
-    margin-left: 4px;
-    margin-top: 2px;
-}
-
-.pbremap-detection-label {
-    font-size: 12px;
-    padding: 2px 4px;
-}
-
-.pbremap-mode-label {
-    font-size: 11px;
-    color: rgb(160, 160, 160);
-    padding: 0 4px 2px 4px;
-}
-
-.pbremap-components-summary {
-    font-size: 12px;
-    padding: 4px;
-    white-space: normal;
-}
-
-.pbremap-resolution-summary {
-    flex-direction: row;
-    flex-wrap: wrap;
+.pbremap-add-button {
+    width: 26px;
+    height: 20px;
+    padding: 0;
     align-items: center;
-    padding: 2px 4px;
-    margin-top: 2px;
-}
-
-.pbremap-resolution-header {
-    font-size: 11px;
-    color: rgb(200, 200, 200);
-    margin-right: 6px;
-    -unity-text-align: middle-left;
-}
-
-.pbremap-resolution-chip {
-    flex-direction: row;
-    align-items: center;
-    margin-right: 6px;
-    padding: 1px 6px 1px 4px;
-    border-radius: 8px;
-}
-
-.pbremap-resolution-chip-resolved {
-    background-color: rgba(100, 200, 100, 0.15);
-}
-
-.pbremap-resolution-chip-auto-creatable {
-    background-color: rgba(220, 180, 50, 0.15);
-}
-
-.pbremap-resolution-chip-unresolved {
-    background-color: rgba(220, 80, 80, 0.15);
-}
-
-.pbremap-resolution-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 4px;
-    margin-right: 4px;
-    flex-shrink: 0;
-}
-
-.pbremap-resolution-dot-resolved {
-    background-color: rgb(100, 200, 100);
-}
-
-.pbremap-resolution-dot-auto-creatable {
-    background-color: rgb(220, 180, 50);
-}
-
-.pbremap-resolution-dot-unresolved {
-    background-color: rgb(220, 80, 80);
-}
-
-.pbremap-resolution-chip-label {
-    font-size: 11px;
-    -unity-text-align: middle-left;
-}
-
-.pbremap-resolution-chip-label-resolved {
-    color: rgb(100, 200, 100);
-}
-
-.pbremap-resolution-chip-label-auto-creatable {
-    color: rgb(220, 180, 50);
-}
-
-.pbremap-resolution-chip-label-unresolved {
-    color: rgb(220, 80, 80);
-}
-
-.pbremap-execute-button {
-    height: 28px;
-    padding-left: 16px;
-    padding-right: 16px;
-    -unity-font-style: bold;
-    font-size: 13px;
-    background-color: var(--unity-colors-highlight-background);
-    color: var(--unity-colors-highlight-text);
-    border-radius: 4px;
-}
-
-.pbremap-execute-button:hover {
-    background-color: var(--unity-colors-highlight-background-hover);
-}
-
-.pbremap-execute-button:disabled {
-    opacity: 0.5;
+    justify-content: center;
 }
 
 .remap-rule-item {
@@ -217,10 +478,10 @@
     width: 20px;
     height: 20px;
     flex-shrink: 0;
-    -unity-text-align: middle-center;
-    font-size: 14px;
     padding: 0;
     margin: 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .remap-rule-hint {
@@ -242,6 +503,7 @@
     white-space: normal;
 }
 
+/* ---- プレビューウィンドウ（共有） ---- */
 .preview-summary-label {
     -unity-font-style: bold;
     padding: 4px;
@@ -327,16 +589,6 @@
     flex-shrink: 0;
     justify-content: center;
     align-items: center;
-    background-color: rgb(48, 48, 48);
-    border-left-color: rgb(195, 195, 195);
-    border-left-width: 1px;
-    border-top-left-radius: 2px;
-    border-top-right-radius: 2px;
-    border-bottom-right-radius: 2px;
-    border-bottom-left-radius: 2px;
-    border-top-width: 1px;
-    border-right-width: 1px;
-    border-bottom-width: 1px;
 }
 
 .preview-bone-action-button {
@@ -357,17 +609,11 @@
 .preview-bone-resolved {
     color: var(--unity-colors-default-text);
     font-size: 11px;
-    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
-}
-
-.preview-bone-resolved > Label {
-    color: var(--unity-colors-default-text);
 }
 
 .preview-bone-auto-creatable {
     color: rgb(220, 180, 50);
     font-size: 11px;
-    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
 }
 
 .preview-bone-auto-creatable > Label {
@@ -377,8 +623,6 @@
 .preview-bone-unresolved {
     color: rgb(220, 80, 80);
     font-size: 11px;
-    -unity-font-style: normal;
-    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
 }
 
 .preview-bone-unresolved > Label {
@@ -397,6 +641,10 @@
     color: rgb(220, 180, 50);
     flex-grow: 1;
     white-space: normal;
-    -unity-font-definition: resource('Font/Noto_Sans_JP/static/NotoSansJP-Bold SDF');
-    -unity-font-style: italic;
+}
+
+/* 詳細設定内の Foldout/Toggle は共通スタイル（緑・太字）を使わず標準の見た目にする */
+.pbremap-advanced .unity-toggle__text {
+    color: var(--unity-colors-label-text);
+    -unity-font-style: normal;
 }

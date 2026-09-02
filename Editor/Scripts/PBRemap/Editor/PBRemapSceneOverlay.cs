@@ -1,229 +1,176 @@
 using UnityEditor;
+using UnityEditor.EditorTools;
 using UnityEditor.Overlays;
+using UnityEditor.Toolbars;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace colloid.PBReplacer
 {
-	/// <summary>
-	/// SceneView内にPBRemapプレビューのコントロールパネルを表示するOverlay。
-	/// ITransientOverlayにより、プレビューがアクティブな時のみ表示される。
-	/// </summary>
-	[Overlay(typeof(SceneView), OverlayID, "PBRemap Preview")]
-	public class PBRemapSceneOverlay : Overlay, ITransientOverlay
-	{
-		public const string OverlayID = "pbremap-scene-preview";
+    /// <summary>
+    /// SceneView のツールバー型オーバーレイ。プレビューが有効なときだけ現れる。
+    /// Unity 標準のツールバーと同じ「アイコンのトグル」だけで構成し、文字は件数のみ:
+    ///   [線] [名前] | [✔ n] [＋ n] [▾ n] [✖ n] | [スポイト = 対応ツール] [目を閉じる = 終了]
+    /// 件数トグルは Inspector のチップと同じ意味・同じ共有状態（クリックで表示の絞り込み）。
+    /// </summary>
+    [Overlay(typeof(SceneView), OverlayID, "PBRemap", defaultDisplay = true)]
+    public class PBRemapSceneOverlay : ToolbarOverlay, ITransientOverlay
+    {
+        public const string OverlayID = "pbremap-scene-preview";
 
-		public bool visible => PBRemapScenePreviewState.Instance.IsActive;
+        public PBRemapSceneOverlay() : base(
+            LinesToggle.Id, LabelsToggle.Id,
+            ResolvedToggle.Id, AutoCreateToggle.Id, AmbiguousToggle.Id, UnresolvedToggle.Id,
+            PickToolButton.Id, CloseButton.Id)
+        { }
 
-		private VisualElement _summaryContainer;
-		private VisualElement _filterBar;
-		private Toggle _showLinesToggle;
-		private Toggle _showLabelsToggle;
+        public bool visible => PBRemapScenePreviewState.Instance.IsActive;
 
-		// キャッシュ（不要な再構築を防ぐための変更検知用）
-		private int _cachedResolved;
-		private int _cachedAutoCreatable;
-		private int _cachedUnresolved;
-		private bool _cachedShowResolved;
-		private bool _cachedShowAutoCreatable;
-		private bool _cachedShowUnresolved;
+        public override void OnCreated()
+        {
+            SceneView.duringSceneGui += PBRemapSceneRenderer.OnSceneGUI;
+            PBRemapScenePreviewState.Instance.PreviewDataChanged += SceneView.RepaintAll;
+            PBRemapScenePreviewState.Instance.FilterStateChanged += SceneView.RepaintAll;
+        }
 
-		// 色定数
-		private static readonly Color ResolvedColor = new Color(0.39f, 0.78f, 0.39f);
-		private static readonly Color AutoCreatableColor = new Color(0.86f, 0.71f, 0.20f);
-		private static readonly Color UnresolvedColor = new Color(0.86f, 0.31f, 0.31f);
+        public override void OnWillBeDestroyed()
+        {
+            SceneView.duringSceneGui -= PBRemapSceneRenderer.OnSceneGUI;
+            PBRemapScenePreviewState.Instance.PreviewDataChanged -= SceneView.RepaintAll;
+            PBRemapScenePreviewState.Instance.FilterStateChanged -= SceneView.RepaintAll;
+        }
+    }
 
-		public override void OnCreated()
-		{
-			SceneView.duringSceneGui += PBRemapSceneRenderer.OnSceneGUI;
-			PBRemapScenePreviewState.Instance.FilterStateChanged += OnStateChanged;
-			PBRemapScenePreviewState.Instance.PreviewDataChanged += OnStateChanged;
-		}
+    /// <summary>件数付きのフィルタトグル（共有状態と同期）</summary>
+    public abstract class PBRemapCountToggle : EditorToolbarToggle
+    {
+        protected static PBRemapScenePreviewState State => PBRemapScenePreviewState.Instance;
 
-		public override void OnWillBeDestroyed()
-		{
-			SceneView.duringSceneGui -= PBRemapSceneRenderer.OnSceneGUI;
-			PBRemapScenePreviewState.Instance.FilterStateChanged -= OnStateChanged;
-			PBRemapScenePreviewState.Instance.PreviewDataChanged -= OnStateChanged;
-		}
+        protected PBRemapCountToggle(string iconName, string tip)
+        {
+            icon = PBRemapIcons.Get(iconName);
+            tooltip = tip;
+            RegisterCallback<AttachToPanelEvent>(_ => { State.PreviewDataChanged += Sync; State.FilterStateChanged += Sync; Sync(); });
+            RegisterCallback<DetachFromPanelEvent>(_ => { State.PreviewDataChanged -= Sync; State.FilterStateChanged -= Sync; });
+            this.RegisterValueChangedCallback(evt => { SetFlag(evt.newValue); SceneView.RepaintAll(); });
+        }
 
-		private void OnStateChanged()
-		{
-			UpdatePanel();
-			SceneView.RepaintAll();
-		}
+        protected abstract int Count { get; }
+        protected abstract bool Flag { get; }
+        protected abstract void SetFlag(bool v);
 
-		public override VisualElement CreatePanelContent()
-		{
-			var root = new VisualElement();
-			root.AddToClassList("overlay-panel-root");
+        private void Sync()
+        {
+            int n = Count;
+            text = n > 0 ? n.ToString() : "";
+            style.display = n > 0 ? DisplayStyle.Flex : DisplayStyle.None;
+            SetValueWithoutNotify(Flag);
+        }
+    }
 
-			var styleSheet = Resources.Load<StyleSheet>("USS/PBRemapOverlay");
-			if (styleSheet != null)
-				root.styleSheets.Add(styleSheet);
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class ResolvedToggle : PBRemapCountToggle
+    {
+        public const string Id = "PBRemap/Resolved";
+        public ResolvedToggle() : base(PBRemapIcons.Resolved, "解決済みの対応を表示") { }
+        protected override int Count => State.ResolvedCount;
+        protected override bool Flag => State.ShowResolved;
+        protected override void SetFlag(bool v) => State.ShowResolved = v;
+    }
 
-			// サマリー（カラーチップ表示）
-			_summaryContainer = new VisualElement();
-			_summaryContainer.AddToClassList("overlay-summary-container");
-			root.Add(_summaryContainer);
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class AutoCreateToggle : PBRemapCountToggle
+    {
+        public const string Id = "PBRemap/AutoCreate";
+        public AutoCreateToggle() : base(PBRemapIcons.AutoCreate, "自動作成される対応を表示") { }
+        protected override int Count => State.AutoCreatableCount;
+        protected override bool Flag => State.ShowAutoCreatable;
+        protected override void SetFlag(bool v) => State.ShowAutoCreatable = v;
+    }
 
-			// フィルターバー（3状態トグル）
-			_filterBar = new VisualElement();
-			_filterBar.AddToClassList("overlay-filter-bar");
-			root.Add(_filterBar);
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class AmbiguousToggle : PBRemapCountToggle
+    {
+        public const string Id = "PBRemap/Ambiguous";
+        public AmbiguousToggle() : base(PBRemapIcons.Ambiguous, "候補が複数ある対応を表示（候補をクリックで確定）") { }
+        protected override int Count => State.AmbiguousCount;
+        protected override bool Flag => State.ShowAmbiguous;
+        protected override void SetFlag(bool v) => State.ShowAmbiguous = v;
+    }
 
-			// 表示設定トグル
-			_showLinesToggle = CreateToggle(
-				"接続ラインを表示",
-				PBRemapScenePreviewState.Instance.ShowConnectionLines,
-				evt =>
-				{
-					PBRemapScenePreviewState.Instance.ShowConnectionLines = evt.newValue;
-					SceneView.RepaintAll();
-				});
-			root.Add(_showLinesToggle);
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class UnresolvedToggle : PBRemapCountToggle
+    {
+        public const string Id = "PBRemap/Unresolved";
+        public UnresolvedToggle() : base(PBRemapIcons.Unresolved, "対応先が無いボーンを表示（クリックで対応ツール）") { }
+        protected override int Count => State.UnresolvedCount;
+        protected override bool Flag => State.ShowUnresolved;
+        protected override void SetFlag(bool v) => State.ShowUnresolved = v;
+    }
 
-			_showLabelsToggle = CreateToggle(
-				"ボーン名ラベルを表示",
-				PBRemapScenePreviewState.Instance.ShowBoneLabels,
-				evt =>
-				{
-					PBRemapScenePreviewState.Instance.ShowBoneLabels = evt.newValue;
-					SceneView.RepaintAll();
-				});
-			root.Add(_showLabelsToggle);
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class LinesToggle : EditorToolbarToggle
+    {
+        public const string Id = "PBRemap/Lines";
+        public LinesToggle()
+        {
+            icon = PBRemapIcons.Get(PBRemapIcons.Linked);
+            tooltip = "移植元 → 移植先 の線を表示";
+            SetValueWithoutNotify(PBRemapScenePreviewState.Instance.ShowConnectionLines);
+            this.RegisterValueChangedCallback(evt => { PBRemapScenePreviewState.Instance.ShowConnectionLines = evt.newValue; SceneView.RepaintAll(); });
+        }
+    }
 
-			UpdatePanel();
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class LabelsToggle : EditorToolbarToggle
+    {
+        public const string Id = "PBRemap/Labels";
+        public LabelsToggle()
+        {
+            icon = PBRemapIcons.Get(PBRemapIcons.Labels);
+            tooltip = "全ての骨の名前を表示（通常は問題のある対応と、マウスを乗せた対応だけ）";
+            SetValueWithoutNotify(PBRemapScenePreviewState.Instance.ShowBoneLabels);
+            this.RegisterValueChangedCallback(evt => { PBRemapScenePreviewState.Instance.ShowBoneLabels = evt.newValue; SceneView.RepaintAll(); });
+        }
+    }
 
-			return root;
-		}
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class PickToolButton : EditorToolbarToggle
+    {
+        public const string Id = "PBRemap/PickTool";
+        public PickToolButton()
+        {
+            icon = PBRemapIcons.Get(PBRemapIcons.Pick);
+            tooltip = "ボーン対応ツール: 未解決の骨をクリック → 移植先の骨をクリックで決める（Esc で終了）";
+            RegisterCallback<AttachToPanelEvent>(_ => { ToolManager.activeToolChanged += Sync; Sync(); });
+            RegisterCallback<DetachFromPanelEvent>(_ => ToolManager.activeToolChanged -= Sync);
+            this.RegisterValueChangedCallback(evt =>
+            {
+                if (evt.newValue)
+                {
+                    var def = PBRemapScenePreviewState.Instance.Definition;
+                    if (def != null && Selection.activeGameObject != def.gameObject) Selection.activeGameObject = def.gameObject;
+                    ToolManager.SetActiveTool<PBRemapBoneMapTool>();
+                }
+                else if (ToolManager.activeToolType == typeof(PBRemapBoneMapTool)) ToolManager.RestorePreviousTool();
+            });
+        }
+        private void Sync() => SetValueWithoutNotify(ToolManager.activeToolType == typeof(PBRemapBoneMapTool));
+    }
 
-		private Toggle CreateToggle(string label, bool initialValue,
-			EventCallback<ChangeEvent<bool>> callback)
-		{
-			var toggle = new Toggle(label);
-			toggle.value = initialValue;
-			toggle.AddToClassList("overlay-toggle-row");
-			toggle.RegisterValueChangedCallback(callback);
-			return toggle;
-		}
-
-		private void UpdatePanel()
-		{
-			if (_summaryContainer == null || _filterBar == null)
-				return;
-
-			var state = PBRemapScenePreviewState.Instance;
-			if (!state.IsActive)
-			{
-				_summaryContainer.Clear();
-				_filterBar.Clear();
-				return;
-			}
-
-			int resolved = state.ResolvedCount;
-			int autoCreatable = state.AutoCreatableCount;
-			int unresolved = state.TotalCount - resolved - autoCreatable;
-
-			// カウントもフィルター状態も変わっていなければ再構築不要
-			if (resolved == _cachedResolved
-				&& autoCreatable == _cachedAutoCreatable
-				&& unresolved == _cachedUnresolved
-				&& state.ShowResolved == _cachedShowResolved
-				&& state.ShowAutoCreatable == _cachedShowAutoCreatable
-				&& state.ShowUnresolved == _cachedShowUnresolved
-				&& _summaryContainer.childCount > 0)
-				return;
-
-			_cachedResolved = resolved;
-			_cachedAutoCreatable = autoCreatable;
-			_cachedUnresolved = unresolved;
-			_cachedShowResolved = state.ShowResolved;
-			_cachedShowAutoCreatable = state.ShowAutoCreatable;
-			_cachedShowUnresolved = state.ShowUnresolved;
-
-			// サマリー再構築
-			_summaryContainer.Clear();
-			var header = new Label($"ボーン解決: {resolved}/{state.TotalCount}");
-			header.AddToClassList("overlay-summary-header");
-			_summaryContainer.Add(header);
-
-			var chipRow = new VisualElement();
-			chipRow.AddToClassList("overlay-chip-row");
-			if (resolved > 0)
-				chipRow.Add(CreateSummaryChip(resolved, "解決", ResolvedColor));
-			if (autoCreatable > 0)
-				chipRow.Add(CreateSummaryChip(autoCreatable, "作成予定", AutoCreatableColor));
-			if (unresolved > 0)
-				chipRow.Add(CreateSummaryChip(unresolved, "未解決", UnresolvedColor));
-			_summaryContainer.Add(chipRow);
-
-			// フィルターバー再構築
-			_filterBar.Clear();
-			var filterLabel = new Label("表示:");
-			filterLabel.AddToClassList("overlay-filter-label");
-			_filterBar.Add(filterLabel);
-
-			_filterBar.Add(CreateFilterChip(
-				resolved, "解決済み", ResolvedColor, state.ShowResolved,
-				v => state.ShowResolved = v));
-			_filterBar.Add(CreateFilterChip(
-				autoCreatable, "作成予定", AutoCreatableColor, state.ShowAutoCreatable,
-				v => state.ShowAutoCreatable = v));
-			_filterBar.Add(CreateFilterChip(
-				unresolved, "未解決", UnresolvedColor, state.ShowUnresolved,
-				v => state.ShowUnresolved = v));
-		}
-
-		private static VisualElement CreateSummaryChip(int count, string label, Color color)
-		{
-			var chip = new VisualElement();
-			chip.AddToClassList("overlay-summary-chip");
-
-			var dot = new VisualElement();
-			dot.AddToClassList("overlay-chip-dot");
-			dot.style.backgroundColor = color;
-			chip.Add(dot);
-
-			var text = new Label($"{count} {label}");
-			text.AddToClassList("overlay-chip-text");
-			text.style.color = color;
-			chip.Add(text);
-
-			return chip;
-		}
-
-		private static VisualElement CreateFilterChip(
-			int count, string label, Color color, bool active, System.Action<bool> onToggle)
-		{
-			var chip = new VisualElement();
-			chip.AddToClassList("overlay-filter-chip");
-			chip.AddToClassList(active ? "overlay-filter-chip-active" : "overlay-filter-chip-inactive");
-
-			var borderColor = active ? color : new Color(1, 1, 1, 0.08f);
-			chip.style.borderTopColor = borderColor;
-			chip.style.borderBottomColor = borderColor;
-			chip.style.borderLeftColor = borderColor;
-			chip.style.borderRightColor = borderColor;
-
-			var dot = new VisualElement();
-			dot.AddToClassList("overlay-chip-dot");
-			dot.style.backgroundColor = active
-				? (StyleColor)color
-				: new StyleColor(new Color(color.r, color.g, color.b, 0.3f));
-			chip.Add(dot);
-
-			var text = new Label($"{count} {label}");
-			text.AddToClassList("overlay-chip-text");
-			text.style.color = active
-				? (StyleColor)color
-				: new StyleColor(new Color(0.6f, 0.6f, 0.6f));
-			chip.Add(text);
-
-			chip.RegisterCallback<ClickEvent>(evt => onToggle(!active));
-
-			return chip;
-		}
-	}
+    [EditorToolbarElement(Id, typeof(SceneView))]
+    public class CloseButton : EditorToolbarButton
+    {
+        public const string Id = "PBRemap/Close";
+        public CloseButton()
+        {
+            icon = PBRemapIcons.Get(PBRemapIcons.EyeOff);
+            tooltip = "プレビューを閉じる";
+            clicked += () =>
+            {
+                if (ToolManager.activeToolType == typeof(PBRemapBoneMapTool)) ToolManager.RestorePreviousTool();
+                PBRemapScenePreviewState.Instance.Deactivate();
+            };
+        }
+    }
 }
