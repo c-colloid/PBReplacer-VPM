@@ -259,3 +259,41 @@ worldRatio = Hips-Head距離比（両Humanoid）
 - AvatarDynamics 外の PhysBoneCollider 参照は、移植先の同位置に同型コンポーネントがあればそれを参照し、無ければ参照を解除して警告する
 - スケルトンボーン（SkinnedMeshRendererにバインド済み）の自動作成は行わない（メッシュのウェイトを持たない空ボーンを作っても意味がないため）
 - Ambiguous（同名複数）は自動確定しない。Inspector の「候補…」から選ぶか、パスリマップルールで一意にする
+
+---
+
+## 4. 再設計後の検証結果
+
+同じフィクスチャ・同じシナリオで再設計版を実行した結果（Unity 2022.3.22f1 batchmode, `Reports/20260902_063820`）。
+
+| ID | シナリオ | 現行 | 再設計 | 再設計での挙動 |
+|---|---|---|---|---|
+| S01 | 標準→標準（身長差） | ○ | **○** | 移植元Aにいる時点でマニフェスト取得（6件）。スケール1.2、ヘルパー自動作成。Constraint対象 `Accessory` は未解決として警告 |
+| S02 | 標準→VRoid（ルール無し） | △ | **○** | Humanoid参照解決、髪/スカートは「スケルトンボーンのため自動作成不可」として明示的に未解決報告 |
+| S02b | 標準→Booth＋ルール | ○ | **○** | 全解決 |
+| S03 | Prefab化→別アバター | × | **○** | Broken＋マニフェストで解決、スケール1.2 |
+| S03b | Prefab化（Inspector未閲覧） | × | **○** | Tracker の自動取得（テストでは1tickを模擬）で解決 |
+| S03c | A内でInspector→Prefab化 | × | **○** | AtHome 状態でもマニフェストが取得される |
+| S04 | 着せ替え済み→着せ替え済み | × | **○** | 移植元=AvatarA、髪→B/Armature、スカート→B/Costume/Armature/Hips/Skirt_L、衣装Hips PBC→B/Costume |
+| S04b | 同上 prefix付き | × | **○** | prefix を考慮して衣装コンテキスト内で解決 |
+| S05 | MA衣装→MA衣装（prefix違い） | × | **○** | 移植元=CostumeC ルート、`LeftUpperLeg`→`D_LeftUpperLeg`、スケール1.133（ボーン間距離比） |
+| S06 | 小物→小物（スケール1.5） | △ | **○** | 世界寸法比1.5 × lossyScale比(1/1.5) = 1.0 → radius据え置き（実効半径は SDK のスケールで1.5倍） |
+| S07 | 移植実行2回 | △ | **○** | 2回目は AtHome として拒否、値は不変 |
+| S08 | NDMFビルド | × | **○** | クローン上で AtHome → スキップ、radius 0.036 のまま |
+| S09 | ルート直付け | △ | **○** | NoDestination として案内 |
+| S10 | 空親への誤ドロップ | × | **○** | 移植先未検出、候補 `AvatarB` を提示 |
+| S11 | Armatureスケール0.01 | × | **○** | radius 0.03 → 3.0（lossyScale 0.01 補正）、実効半径 0.03 を維持 |
+| S12 | 同名ボーン | × | **○** | Ambiguous（候補2件）として未確定、誤解決しない |
+| S13 | AvatarDynamics外PBC参照 | × | **○** | 移植先に対応PBCが無いため参照解除＋警告 |
+
+17/17 シナリオ通過。加えて S14（衣装単体→アバター直接）、S16（Undo）、S17（旧形式移行）を追加検証（§4.1）。
+
+### 4.1 追加シナリオ
+
+| ID | シナリオ | 結果 | 挙動 |
+|---|---|---|---|
+| S14 | MA衣装単体（prefix `C_`）のAvatarDynamicsを、衣装を着ていないAvatarBへ直接ドロップ | ○ | `C_LeftUpperLeg` PBC → B の `LeftUpperLeg`（prefix を剥いだ正規化名で本体Armatureに解決）、`Skirt_L` PB → B の `Hips/Skirt_L`。「移植先に衣装がありません」を警告 |
+| S16 | 移植実行後に `Undo.PerformUndo()` | ○ | 参照（AvatarA へ）・radius（0.03）・自動作成ヘルパー（削除）の全てが 1 回の Undo で復元 |
+| S17 | 旧形式 `serializedBoneReferences` + `autoCalculateScale=false, scaleFactor=2.0` のみを持つPBRemap（参照null） | ○ | マニフェストへ移行（2件）、`ScaleMode.Manual`/係数2.0 へ移行、移行データから解決 |
+
+20/20 シナリオ通過（`Reports/` の最終実行）。

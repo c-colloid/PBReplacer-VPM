@@ -99,9 +99,9 @@ namespace colloid.PBReplacer
             result.SourceRoot = rootInfos[winner];
             if (rootCounts.Count > 1)
             {
-                result.Warnings.Add("外部参照が複数のルートに分散しています: " +
-                    string.Join(", ", rootCounts.Select(kv => $"{kv.Key.name}({kv.Value})")) +
-                    $"。'{winner.name}' を移植元として扱います。");
+                var others = rootCounts.Where(kv => kv.Key != winner).Select(kv => $"{kv.Key.name}({kv.Value}件)");
+                result.Warnings.Add($"参照の一部が '{winner.name}' 以外のオブジェクトを指しています: {string.Join(", ", others)}" +
+                    "（Constraintの対象や別アバターのボーン等）。これらは移植先で解決できない場合、未解決として残ります。");
             }
             result.Contexts = PBRemapContextResolver.BuildContexts(winner);
             // 一部が失われていても、生きている参照があれば Live として扱う（失われた分はマニフェストで補う）

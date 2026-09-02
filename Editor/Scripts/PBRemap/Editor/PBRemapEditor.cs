@@ -415,6 +415,7 @@ namespace colloid.PBReplacer
                 row.AddToClassList("preview-bone-item");
                 row.style.flexDirection = FlexDirection.Row;
                 row.style.alignItems = Align.Center;
+                row.style.flexWrap = Wrap.Wrap;
                 row.style.marginBottom = 2;
 
                 string dotClass;
@@ -440,7 +441,7 @@ namespace colloid.PBReplacer
                 row.Add(arrow);
 
                 var destField = new ObjectField { objectType = typeof(Transform), allowSceneObjects = true };
-                destField.style.flexGrow = 1; destField.style.flexBasis = 0;
+                destField.style.flexGrow = 1; destField.style.flexBasis = 0; destField.style.minWidth = 120; destField.style.flexShrink = 1;
                 destField.SetValueWithoutNotify(res.Target);
                 string tip;
                 switch (res.Status)
@@ -452,11 +453,6 @@ namespace colloid.PBReplacer
                     default: tip = res.Message + "\n（Transformをドロップして手動で対応付けできます）"; break;
                 }
                 destField.tooltip = tip;
-                if (res.Status == ResolutionStatus.AutoCreate && res.Target == null)
-                {
-                    var l = destField.Q<Label>();
-                    // ObjectFieldの表示は空のままにし、右側に作成予定を表示
-                }
                 var key = res.SourceKey;
                 var displayPath = res.SourceDisplayPath;
                 destField.RegisterValueChangedCallback(evt => SetManualMapping(definition, key, displayPath, evt.newValue as Transform));
@@ -464,8 +460,10 @@ namespace colloid.PBReplacer
 
                 if (res.Status == ResolutionStatus.AutoCreate)
                 {
-                    var note = new Label("(作成予定)");
+                    var note = new Label("作成予定");
                     note.AddToClassList("preview-bone-auto-creatable");
+                    note.tooltip = res.Message;
+                    note.style.flexShrink = 0;
                     row.Add(note);
                 }
                 else if (res.Status == ResolutionStatus.Ambiguous)
@@ -488,9 +486,10 @@ namespace colloid.PBReplacer
                 }
                 else if (res.Status == ResolutionStatus.Unresolved || res.Status == ResolutionStatus.ExternalObject)
                 {
-                    var note = new Label(res.Status == ResolutionStatus.ExternalObject ? "(外部)" : "(未解決)");
+                    var note = new Label(res.Status == ResolutionStatus.ExternalObject ? "外部" : "未解決");
                     note.AddToClassList("preview-bone-unresolved");
                     note.tooltip = res.Message;
+                    note.style.flexShrink = 0;
                     row.Add(note);
                 }
                 _mappingTable.Add(row);
