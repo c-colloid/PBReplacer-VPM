@@ -20,6 +20,7 @@ PBRemap: EditorTool「PBRemap ボーン対応」を追加。未解決の骨を�
 PBRemap: AutoOnDrop が「解決できない参照が1件でもあると何もしない」問題を修正。候補が複数ある参照が無ければドロップ時に移植し、対応物が無い参照は残して警告する。保留したときも理由を Console に出す
 PBRemap: Project からの Prefab ドロップ・ペースト・複製で現れた PBRemap もドロップとして検知（ObjectChangeEvents）。Hierarchy の親ごと移動した場合も検知
 PBRemap: BuildOnly のとき、ドロップ時に Console で案内し、Hierarchy と Inspector に ▶（ビルド時に移植）を表示
+PBRemap: BuildOnly で移植先が VRC アバター配下でない場合（単体の衣装・小物・Animator だけのオブジェクト。NDMF はこれらを処理しない）に再生しても何も起きなかった問題を修正。再生開始時に PBRemap が非破壊で移植し、PhysBone/Collider/Contact/Constraint のランタイムを再初期化する。案内文言も置き場所に応じて分岐
 
 [3.0.0-beta.7]2026.07.21
 メインウィンドウ: リスト右クリックの削除を「削除」に日本語化し、確認ダイアログを追加(Ctrl+Zで取り消せる旨を明記)

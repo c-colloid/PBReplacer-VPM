@@ -247,8 +247,11 @@ namespace colloid.PBReplacer
                     OpenPreview(def);
                     break;
                 default:
-                    // BuildOnly: 編集時は触らない。NDMF ビルド（再生）時に非破壊で移植される
-                    Debug.Log($"[PBRemap] '{name}' は '{dest}' へ NDMF ビルド時（再生時）に移植されます（BuildOnly）。今すぐ移植するなら Inspector の →", def);
+                    // BuildOnly: 編集時は触らない。VRC アバター配下なら NDMF ビルド（再生）時に、そうでなければ再生時に PBRemap 自身が非破壊で移植する
+                    if (PBRemapPlayModeApplier.IsHandledByNdmf(def))
+                        Debug.Log($"[PBRemap] '{name}' は '{dest}' へ NDMF ビルド時（再生時）に移植されます（BuildOnly）。今すぐ移植するなら Inspector の →", def);
+                    else
+                        Debug.Log($"[PBRemap] '{name}' は '{dest}' へ再生時に移植されます（BuildOnly。VRC アバター配下ではないため NDMF の対象外で、PBRemap が再生開始時に適用します。VRChat へのビルドには含まれません）。今すぐ移植するなら Inspector の →", def);
                     break;
             }
         }

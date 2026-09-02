@@ -34,7 +34,7 @@ namespace colloid.PBReplacer
             string icon = badge.icon, tip = badge.tip;
             if (state == PBRemapState.Broken && !hasManifest) { icon = PBRemapIcons.Error; tip = "PBRemap: 参照が失われており、参照情報もありません（移植元のシーンで更新してください）"; }
             // ビルド時のみ適用: 「今は触らない、再生/ビルドで移植される」を再生アイコンで示す（→ だと手で押す必要があるように見える）
-            else if (buildOnly && (state == PBRemapState.Displaced || state == PBRemapState.Broken)) { icon = PBRemapIcons.Build; tip = "PBRemap: NDMF ビルド時（再生時）に移植されます（BuildOnly）。今すぐ移植するなら Inspector の →"; }
+            else if (buildOnly && (state == PBRemapState.Displaced || state == PBRemapState.Broken)) { icon = PBRemapIcons.Build; tip = "PBRemap: ビルド時 / 再生時に移植されます（BuildOnly。VRC アバター配下は NDMF が、それ以外は再生開始時に PBRemap が適用）。今すぐ移植するなら Inspector の →"; }
             var tex = PBRemapIcons.Get(icon);
             if (tex == null) return;
             // 右端は Unity の Prefab 矢印が使うので、その左に置く

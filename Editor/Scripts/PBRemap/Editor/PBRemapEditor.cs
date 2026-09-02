@@ -371,7 +371,10 @@ namespace colloid.PBReplacer
             // ビルド時のみ適用: 「今は触らない、NDMF ビルド（再生）時に移植される」を → の隣に再生アイコンで示す
             if (showApply && definition.ApplyMode == PBRemapApplyMode.BuildOnly)
             {
-                PBRemapIcons.Set(_connectorState, PBRemapIcons.Build, "ビルド時のみ移植（BuildOnly）: NDMF ビルド（再生）時に非破壊で移植されます。編集中のシーンは変わりません\n今すぐ移植するなら → を押します（詳細設定で「ドロップ時」を変更できます）");
+                string when = PBRemapPlayModeApplier.IsHandledByNdmf(definition)
+                    ? "NDMF ビルド（再生）時に非破壊で移植されます。編集中のシーンは変わりません"
+                    : "再生時に非破壊で移植されます（VRC アバター配下ではないため NDMF の対象外。PBRemap が再生開始時に適用し、VRChat へのビルドには含まれません）";
+                PBRemapIcons.Set(_connectorState, PBRemapIcons.Build, "ビルド時のみ移植（BuildOnly）: " + when + "\n今すぐ移植するなら → を押します（詳細設定で「ドロップ時」を変更できます）");
                 _connectorState.style.display = DisplayStyle.Flex;
             }
 

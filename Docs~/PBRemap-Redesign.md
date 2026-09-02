@@ -494,7 +494,7 @@ Unity 標準の Tools オーバーレイにスポイトのアイコンで並ぶ�
 - **適用条件**: 「候補が複数ある参照（Ambiguous）が無く、解決/自動作成できる参照が 1 件以上」なら適用する。対応物が無い参照は移植元を指したまま残し、Console 警告に一覧する（Inspector の → で部分適用したときと同じ挙動）。保留したときは理由を Console 警告に出し、PBRemap を選択して SceneView プレビューを出す。
 - **検知**: `ObjectChangeEvents.changesPublished` で `ChangeGameObjectParent`（自身または先祖の移動）と `CreateGameObjectHierarchy`（Prefab 配置・ペースト・複製・Instantiate）を拾い、配下の PBRemap を「置かれた」候補にする。親差分のポーリングは保険として残す。対象状態は Displaced に加え Broken+参照情報あり。
 - **誤検知の抑制**: Undo/Redo 直後 2 秒、シーンを開いた直後・再生モードから戻った直後・ドメインリロード直後 1 秒はドロップ扱いしない（候補フラグは消費する）。Prefab Stage 内では従来どおり AutoOnDrop でも確認に落とす。
-- **BuildOnly の可視化**: ドロップ時に Console で案内。Hierarchy バッジと Inspector の接続部に ▶（Unity の PlayButton）を出し「ビルド（再生）時に移植される」ことを示す。→ は残す（今すぐ移植も可）。
+- **BuildOnly の可視化**: ドロップ時に Console で案内。Hierarchy バッジと Inspector の接続部に ▶（Unity の PlayButton）を出し「ビルド（再生）時に移植される」ことを示す。→ は残す（今すぐ移植も可）。NDMF の対象外の置き場所では再生時に PBRemap 自身が適用する（§8.6）。
 - **テスト用フック**: `PBRemapTracker.ProcessNow()`（1 ティック分の処理）、`PBRemapTracker.MarkDropped(GameObject)`（配置イベント相当）。バッチでは `Suspended` を無視して直接呼べる。
 - **適用後の状態判定**: 参照切れ（Prefab 配置）から適用したとき、移植先に対応物が無く空のまま残った参照があっても、この移植先へ適用済み（`Applied` が一致）なら AtHome とし、件数を警告で示す。従来は「一部が失われている＝Displaced」となり、適用済みなのに → が出続けていた（S29 で検出）。
 - **検証で分かった注意点**: NDMF はシーンの作成/オープンのたびにプレビューシーンを追加ロードするため、`sceneOpened` はモード `Single` のときだけ抑制に使う。バッチではイベント間の Undo グループが分かれないため、テストは操作ごとに `Undo.IncrementCurrentGroup()` を呼ぶ。
@@ -523,6 +523,29 @@ Xvfb 上の Unity 2022.3.22f1 で、実マウスによる Hierarchy ドラッグ
 | S31（Undo/Redo）を GUI 上で実行 | 5/5 合格 |
 
 バッチ（`ScenarioRunner.RunAll`）は S01〜S31 の全 34 ケース（派生含む）が合格。
+
+### 8.6 追加報告「BuildOnly で再生モードに入っても元のアバターに紐づいたまま」
+
+再現の切り分け（GUI 実機、再生中に `VRCPhysBoneBase.bones`（ランタイムのボーンチェーン）を読んで確認）:
+
+| 条件 | 再生中の rootTransform / bones | PBRemap |
+|---|---|---|
+| 移植先 = VRC アバター（Descriptor あり）。通常の再生 | 移植先 AvatarB | NDMF が除去 |
+| 同上、AutoOnDrop 適用 → Undo → BuildOnly → 再生 | 移植先 AvatarB | NDMF が除去 |
+| 同上、Enter Play Mode Options（ドメイン/シーンのリロード無効） | 移植先 AvatarB | NDMF が除去 |
+| **移植先 = Animator だけの Humanoid（Descriptor なし）** | **移植元 AvatarA のまま** | **残る（NDMF が処理していない）** |
+
+原因: NDMF の apply-on-play / ビルドは **VRC アバタールート（VRCAvatarDescriptor）配下しか処理しない**（`RuntimeUtil.FindAvatarRoots`）。PBRemap は移植先として「VRC アバター / MA 衣装 / Animator / SkinnedMesh を持つ小物」を受け付けるため、単体の衣装・小物・Animator だけのオブジェクトへ置いた BuildOnly は、再生してもビルドしても何も起きなかった。編集時の案内も「NDMF ビルド時（再生時）に移植されます」と誤っていた。
+
+NDMF の処理順（参考。`ApplyOnPlayGlobalActivator`(-9995) → `AvatarActivator`(-9997) の Awake で VRC SDK のビルド前処理フック経由で NDMF を実行、最後に `ForceReinitPhysBonesHook`(int.MaxValue) が PhysBone/Collider/Contact を再初期化）は、VRC PhysBone（実行順 12001、`InitTransforms` は一度だけ）より先に走るため、アバター配下では問題ない。
+
+修正:
+- `PBRemapPlayModeApplier`（[InitializeOnLoad]）: `EnteredPlayMode` で、NDMF の対象外（VRC アバター配下ではない。NDMF 未導入なら全て）にある Displaced / Broken+参照情報あり の PBRemap を非破壊で移植し、ランタイムを再初期化する（PhysBone: enabled オフ → `InitTransforms(true)` + `InitParameters()` → オン、Collider/Contact: `UpdateShape()`、Constraint: NDMF と同じく `Awake` を再実行）。処理後は NDMF と同じく PBRemap を除去する（再生を止めれば戻る）。VRC アバター配下は NDMF に任せ、二重適用しない。
+- Tracker の BuildOnly の案内、Inspector の ▶ ツールチップ、Hierarchy バッジの文言を「VRC アバター配下は NDMF ビルド（再生）時 / それ以外は再生時に PBRemap が適用（VRChat のビルドには含まれない）」に分けた。
+- `MarkDirty` は再生中に Prefab オーバーライドを記録しない。
+- S32: Animator だけの移植先で `ApplyAll` が移植し、VRC アバター配下の PBRemap には触らないことを検証。
+
+未対応（設計上の注意として記録）: 移植先アバターを移植元アバターの子に置いた場合（NDMF はネストしたアバターを処理しない。PBRemap は外側単位への参照を「整合」とみなすため AtHome になる）、NDMF の Apply on Play をオフにしている場合、Av3Emulator が有効な場合（NDMF は自身の処理を止め、Av3Emulator が同じフック列を実行する）。
 
 ## 付録A. コードレビュー所見（8観点、反証検証つき）
 

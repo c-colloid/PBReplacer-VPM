@@ -172,7 +172,8 @@ namespace colloid.PBReplacer
         public static void MarkDirty(PBRemap definition)
         {
             if (definition == null) return;
-            if (PrefabUtility.IsPartOfPrefabInstance(definition))
+            // 再生中（NDMF apply-on-play / 再生時適用）の変更は保存されないので、Prefab オーバーライドの記録は編集時だけ行う
+            if (!Application.isPlaying && PrefabUtility.IsPartOfPrefabInstance(definition))
                 PrefabUtility.RecordPrefabInstancePropertyModifications(definition);
             EditorUtility.SetDirty(definition);
         }
