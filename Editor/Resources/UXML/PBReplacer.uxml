@@ -53,7 +53,7 @@
 
             <ui:Label text="個人設定 — この PC のみ (EditorPrefs)" class="pbr-advanced-section" />
             <ui:Toggle name="setting-auto-load" label="前回のアバターを自動で読み込む" />
-            <ui:Toggle name="setting-confirm" label="再配置の前に確認する" tooltip="再配置は Ctrl+Z で元に戻せるため既定はオフ" />
+            <ui:Toggle name="setting-confirm" label="再配置・移植の前に確認する" tooltip="メインウィンドウの再配置と PBRemap の移植（→）で共通。どちらも Ctrl+Z で元に戻せるため既定はオフ" />
             <ui:VisualElement name="setting-skip-row" class="pbr-advanced-row">
                 <ui:Toggle name="setting-skip-small" label="　未処理が" />
                 <uie:IntegerField name="setting-skip-threshold" value="5" />

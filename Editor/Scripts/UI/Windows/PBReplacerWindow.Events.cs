@@ -22,6 +22,7 @@ namespace colloid.PBReplacer
 			PBReplacerSettings.OnSettingsChanged += OnSettingsChanged;
 			Undo.undoRedoPerformed += OnUndoRedo;
 			EditorApplication.hierarchyChanged += OnHierarchyChanged;
+			Selection.selectionChanged += OnSelectionChanged;
 		}
 
 		private void UnregisterEvents()
@@ -29,6 +30,7 @@ namespace colloid.PBReplacer
 			PBReplacerSettings.OnSettingsChanged -= OnSettingsChanged;
 			Undo.undoRedoPerformed -= OnUndoRedo;
 			EditorApplication.hierarchyChanged -= OnHierarchyChanged;
+			Selection.selectionChanged -= OnSelectionChanged;
 		}
 
 		private void OnSettingsChanged()
@@ -162,8 +164,21 @@ namespace colloid.PBReplacer
 		private void OnHierarchyChanged()
 		{
 			// 再配置直後の階層変更は自分のものなので無視。それ以外の変更があったら ↶ は対象外になる
-			if (!_undoAvailable) return;
 			if (EditorApplication.timeSinceStartup < _ignoreHierarchyChangesUntil) return;
+			InvalidateUndo();
+		}
+
+		private void OnSelectionChanged()
+		{
+			// 選択変更も Undo に積まれる（Selection Change）ので、↶ は「直前の再配置」を指さなくなる
+			if (EditorApplication.timeSinceStartup < _ignoreHierarchyChangesUntil) return;
+			InvalidateUndo();
+		}
+
+		/// <summary>↶ を無効化（Undo スタックの先頭が再配置でなくなったとき）</summary>
+		private void InvalidateUndo()
+		{
+			if (!_undoAvailable) return;
 			_undoAvailable = false;
 			UpdateTools();
 		}

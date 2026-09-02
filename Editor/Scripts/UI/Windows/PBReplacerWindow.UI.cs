@@ -170,6 +170,8 @@ namespace colloid.PBReplacer
 					var fresh = new PBReplacerSettings { LastAvatarGUID = _settings.LastAvatarGUID };
 					_settings = fresh;
 					SaveSettings();
+					// 検索範囲が変わっている可能性があるので一覧を取り直す
+					DataManagerHelper.ReloadData();
 				};
 			}
 
@@ -203,15 +205,18 @@ namespace colloid.PBReplacer
 			_settings.Save();
 		}
 
+		private bool _advancedVisible;
+
 		private void SetAdvancedVisible(bool visible)
 		{
 			if (_advanced == null) return;
+			_advancedVisible = visible;
 			_advanced.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
 			_gearButton?.EnableInClassList("pbremap-icon-button--on", visible);
 			EditorPrefs.SetBool(PrefAdvanced, visible);
 		}
 
-		private bool IsAdvancedVisible => _advanced != null && _advanced.resolvedStyle.display != DisplayStyle.None;
+		private bool IsAdvancedVisible => _advancedVisible;
 
 		/// <summary>
 		/// レール: カテゴリのアイコンチップ。文字は持たず、名前と件数はツールチップと列見出しに任せる。

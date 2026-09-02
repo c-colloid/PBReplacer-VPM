@@ -4,6 +4,8 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor;
+using VRC.Dynamics;
+using VRC.SDK3.Dynamics.PhysBone.Components;
 
 namespace colloid.PBReplacer
 {
@@ -241,7 +243,8 @@ namespace colloid.PBReplacer
 
 			try
 			{
-				_processed = new HashSet<Component>(DataManagerHelper.GetAvatarDynamicsComponent<Component>().Where(c => c != null));
+				// AvatarDynamics 配下の「対象 4 種」だけを配置済みとして数える（Transform や補助コンポーネントは含めない）
+				_processed = new HashSet<Component>(DataManagerHelper.GetAvatarDynamicsComponent<Component>().Where(IsTargetComponent));
 			}
 			catch
 			{
@@ -320,6 +323,11 @@ namespace colloid.PBReplacer
 			}
 			catch (Exception) { }
 			return new List<Component>();
+		}
+
+		private static bool IsTargetComponent(Component c)
+		{
+			return c != null && (c is VRCPhysBone || c is VRCPhysBoneCollider || c is VRCConstraintBase || c is ContactBase);
 		}
 
 		private static string HierarchyPath(Transform t, Transform root)
@@ -403,6 +411,9 @@ namespace colloid.PBReplacer
 				.Select(r => (UnityEngine.Object)r.Component.gameObject)
 				.ToArray();
 			if (objects.Length == 0) return;
+
+			// 選択変更は Undo スタックに積まれるので、↶ が「直前の再配置」でなくなる
+			InvalidateUndo();
 
 			// 他の列の選択は解除（Unity の選択は 1 つなので）
 			foreach (var other in _columnViews.Values)

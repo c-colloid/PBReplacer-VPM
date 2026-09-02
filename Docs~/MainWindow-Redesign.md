@@ -83,7 +83,7 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 - アイコン: `Editor/Scripts/Utilities/ComponentIconUtility.cs`
 - ドロップ: `Editor/Scripts/UI/Handlers/ColumnDropHandler.cs`（アバターは既存 `AvatarFieldDropManipulator`。ピッカー用に `ResolveAvatarComponent` を公開）
 - 削除: `SideBar.uxml/.uss`, `VerticalTabContainer/Element`, `GroupBoxUtility` 系, `ListViewDragHandler`, `PBReplacerSettingsWindow.cs/.uxml`（`Tools/PBReplacer/Settings` はメインウィンドウの ⚙ を開く導線として維持）
-- 設定: `ShowConfirmDialog` の既定を false に（EditorPrefs に保存済みの値は尊重される）
+- 設定: `ShowConfirmDialog` の既定を false に（メインウィンドウの再配置と PBRemap の移植で共通。EditorPrefs に保存済みの値は尊重される）
 
 ## 5. 未決（後続）
 
