@@ -256,13 +256,29 @@ namespace colloid.PBReplacer
             };
         }
 
-        private static ContextInfo MatchCostume(BoneContext srcCtx, List<ContextInfo> costumes)
+        private static ContextInfo MatchCostume(BoneContext srcCtx, List<ContextInfo> costumes, ResolutionPlan plan)
         {
             if (costumes == null || costumes.Count == 0) return null;
-            var byName = costumes.FirstOrDefault(c => !string.IsNullOrEmpty(srcCtx.costumeName) && c.CostumeName == srcCtx.costumeName);
-            if (byName != null) return byName;
-            if (costumes.Count == 1) return costumes[0];
+            var byName = costumes.Where(c => !string.IsNullOrEmpty(srcCtx.costumeName) && c.CostumeName == srcCtx.costumeName).ToList();
+            if (byName.Count == 1) return byName[0];
+            if (byName.Count > 1)
+            {
+                AddWarningOnce(plan, $"移植先に同名の衣装 '{srcCtx.costumeName}' が {byName.Count} 着あります。最初の1着を使います。特定の衣装へ移す場合は、その衣装の配下へ直接ドロップしてください。");
+                return byName[0];
+            }
+            if (costumes.Count == 1)
+            {
+                // ホームが衣装そのもの（衣装の配下へドロップ）なら名前が違っても意図は明確。アバター配下で唯一の衣装に名前不一致で当てる場合は警告
+                if (costumes[0].Scope == ContextScope.Self && plan.DestinationInfo != null && plan.DestinationInfo.Kind == RootKind.MACostume) return costumes[0];
+                AddWarningOnce(plan, $"移植元の衣装 '{srcCtx.costumeName}' と移植先の衣装 '{costumes[0].CostumeName}' は名前が異なります。移植先に衣装が1着だけなのでその衣装へ対応付けます（意図と異なる場合は衣装の配下へ直接ドロップしてください）。");
+                return costumes[0];
+            }
             return costumes.FirstOrDefault(c => c.MaPrefix == srcCtx.maPrefix && c.MaSuffix == srcCtx.maSuffix);
+        }
+
+        private static void AddWarningOnce(ResolutionPlan plan, string text)
+        {
+            if (!plan.Warnings.Contains(text)) plan.Warnings.Add(text);
         }
 
         /// <summary>
@@ -288,8 +304,8 @@ namespace colloid.PBReplacer
                         : plan.SelfMain ?? plan.OuterMain ?? (selfCostumes.Count == 1 && plan.DestinationInfo != null && plan.DestinationInfo.Kind == RootKind.MACostume ? selfCostumes[0] : null) ?? plan.SelfGeneric;
                 case BoneContextKind.Costume:
                     return srcOuter
-                        ? MatchCostume(srcCtx, outerCostumes) ?? MatchCostume(srcCtx, selfCostumes) ?? plan.OuterMain ?? plan.SelfMain ?? plan.SelfGeneric
-                        : MatchCostume(srcCtx, selfCostumes) ?? MatchCostume(srcCtx, outerCostumes) ?? plan.SelfMain ?? plan.OuterMain ?? plan.SelfGeneric;
+                        ? MatchCostume(srcCtx, outerCostumes, plan) ?? MatchCostume(srcCtx, selfCostumes, plan) ?? plan.OuterMain ?? plan.SelfMain ?? plan.SelfGeneric
+                        : MatchCostume(srcCtx, selfCostumes, plan) ?? MatchCostume(srcCtx, outerCostumes, plan) ?? plan.SelfMain ?? plan.OuterMain ?? plan.SelfGeneric;
                 default:
                     return srcOuter ? plan.OuterGeneric ?? plan.SelfGeneric : plan.SelfGeneric;
             }

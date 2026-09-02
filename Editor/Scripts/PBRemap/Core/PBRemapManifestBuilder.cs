@@ -48,6 +48,8 @@ namespace colloid.PBReplacer
             public int ConsistentRefs;
             /// <summary>現在のホーム/外側から外れている参照数（= 移植が必要な参照）</summary>
             public int ForeignRefs;
+            /// <summary>外れているが、マニフェスト取得時点で既に移植元の外にあった参照数（判定材料にしない）</summary>
+            public int KnownExternalRefs;
             /// <summary>マニフェストにあるが現在 null の参照キー（Prefab化などで失われた参照）</summary>
             public List<string> LostKeys = new List<string>();
             public List<string> Warnings = new List<string>();
@@ -78,9 +80,16 @@ namespace colloid.PBReplacer
             var classifyCache = new Dictionary<Transform, RootKind>();
 
             // マニフェストに記録された参照キー（null になっていれば「失われた参照」と判定する根拠）
+            // および、取得時点で既に移植元の外にあった参照（contextId < 0）。後者は移植の判定材料にしない
+            // （例: 移植後も移植元アバターの小物を指したままの Constraint。これを「外れ」と数えると適用済みなのに Displaced になる）
             var manifestKeys = new HashSet<string>();
+            var knownExternalKeys = new HashSet<string>();
             if (definition.Manifest != null)
-                foreach (var r in definition.Manifest.refs) manifestKeys.Add(r.Key);
+                foreach (var r in definition.Manifest.refs)
+                {
+                    manifestKeys.Add(r.Key);
+                    if (r.contextId < 0) knownExternalKeys.Add(r.Key);
+                }
 
             foreach (var component in CollectVRCComponents(definitionRoot))
             {
@@ -110,6 +119,7 @@ namespace colloid.PBReplacer
                         rootByTransform[t] = ri;
                     }
                     if (IsConsistentWithHome(t, ri, home)) { result.ConsistentRefs++; continue; }
+                    if (knownExternalKeys.Contains(componentPath + "." + prop.propertyPath)) { result.KnownExternalRefs++; continue; }
 
                     result.ForeignRefs++;
                     var rootGo = ri.IsFound ? ri.Root : t.root.gameObject;

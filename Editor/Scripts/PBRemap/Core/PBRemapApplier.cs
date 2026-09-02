@@ -196,7 +196,14 @@ namespace colloid.PBReplacer
                 };
                 if (registerUndo) Undo.RecordObject(definition, "PBRemap 適用記録");
                 definition.SetApplied(record);
-                var newManifest = PBRemapManifestBuilder.Build(definition);
+                // 移植先を新しいホームとしてマニフェストを取り直す（未解決で移植元を指したままの参照は「外」として記録される）
+                var scan = PBRemapManifestBuilder.Scan(definition, plan.DestinationInfo);
+                if (scan.State == PBRemapManifestBuilder.ReferenceState.Live && plan.DestinationInfo != null && plan.DestinationInfo.IsFound)
+                {
+                    scan.SourceRoot = plan.DestinationInfo;
+                    scan.Contexts = PBRemapContextResolver.BuildContexts(plan.DestinationInfo);
+                }
+                var newManifest = PBRemapManifestBuilder.Build(definition, scan);
                 if (newManifest != null && !newManifest.IsEmpty)
                     definition.SetManifest(newManifest);
                 PBRemapper.MarkDirty(definition);
