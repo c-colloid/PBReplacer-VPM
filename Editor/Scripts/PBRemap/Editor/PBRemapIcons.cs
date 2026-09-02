@@ -27,6 +27,7 @@ namespace colloid.PBReplacer
         public const string Info = "console.infoicon.sml";          // 情報
         public const string Warning = "console.warnicon.sml";
         public const string Apply = "forward";                      // 移植（→）
+        public const string Build = "PlayButton";                   // ビルド（再生）時に移植（BuildOnly）
         public const string Refresh = "Refresh";                    // 参照情報を更新
         public const string Settings = "Settings";                  // 詳細設定
         public const string Eye = "scenevis_visible_hover";         // SceneView プレビュー ON

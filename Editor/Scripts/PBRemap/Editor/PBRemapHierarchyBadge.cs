@@ -29,10 +29,12 @@ namespace colloid.PBReplacer
 
         private static void OnItemGUI(int instanceID, Rect selectionRect)
         {
-            if (!PBRemapTracker.TryGetState(instanceID, out var state, out var hasManifest)) return;
+            if (!PBRemapTracker.TryGetState(instanceID, out var state, out var hasManifest, out var buildOnly)) return;
             if (!Badges.TryGetValue(state, out var badge)) return;
             string icon = badge.icon, tip = badge.tip;
             if (state == PBRemapState.Broken && !hasManifest) { icon = PBRemapIcons.Error; tip = "PBRemap: 参照が失われており、参照情報もありません（移植元のシーンで更新してください）"; }
+            // ビルド時のみ適用: 「今は触らない、再生/ビルドで移植される」を再生アイコンで示す（→ だと手で押す必要があるように見える）
+            else if (buildOnly && (state == PBRemapState.Displaced || state == PBRemapState.Broken)) { icon = PBRemapIcons.Build; tip = "PBRemap: NDMF ビルド時（再生時）に移植されます（BuildOnly）。今すぐ移植するなら Inspector の →"; }
             var tex = PBRemapIcons.Get(icon);
             if (tex == null) return;
             // 右端は Unity の Prefab 矢印が使うので、その左に置く

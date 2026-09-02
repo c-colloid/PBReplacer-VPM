@@ -104,7 +104,7 @@ namespace colloid.PBReplacer
                         s.State = s.Source != null && s.Source.Root == s.Destination.Root ? PBRemapState.AtHome : PBRemapState.Displaced;
                     else if (s.Scan.HasForeign)
                         s.State = PBRemapState.Displaced;
-                    else if (s.Scan.LostKeys.Count > 0 && s.HasManifest)
+                    else if (s.Scan.LostKeys.Count > 0 && s.HasManifest && !AppliedTo(definition, s.Destination))
                     {
                         // 生きている参照はホームに整合しているが、一部が失われている（衣装Prefabを別アバターへ置いた等）
                         s.State = PBRemapState.Displaced;
@@ -112,7 +112,12 @@ namespace colloid.PBReplacer
                         s.Source = null;
                     }
                     else
+                    {
                         s.State = PBRemapState.AtHome;
+                        // 適用済みで、失われた参照に対応するものが移植先に無かった場合はホーム扱い（未適用と誤認しない）。残りは警告で示す
+                        if (s.Scan.LostKeys.Count > 0)
+                            s.Warnings.Add($"{s.Scan.LostKeys.Count} 件の参照は移植元で失われており、移植先に対応するものもありませんでした（空のままです）");
+                    }
                     break;
                 default:
                     s.State = PBRemapState.Broken;
@@ -122,6 +127,14 @@ namespace colloid.PBReplacer
             if (s.State == PBRemapState.Broken && !s.HasManifest)
                 s.Warnings.Add("参照が失われており、移植元の参照情報（マニフェスト）もありません。移植元のシーンでPBRemapを選択して参照情報を更新してください。");
             return s;
+        }
+
+        /// <summary>この移植先へ既に適用済みか（失われたままの参照を「未適用」と誤認しないため）</summary>
+        private static bool AppliedTo(PBRemap definition, RootInfo destination)
+        {
+            var a = definition.Applied;
+            if (a == null || !a.isApplied || destination == null || destination.Root == null) return false;
+            return a.destinationRootInstanceId == destination.Root.GetInstanceID() || a.destinationRootName == destination.Root.name;
         }
 
         /// <summary>

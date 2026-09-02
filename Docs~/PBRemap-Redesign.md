@@ -213,7 +213,7 @@ worldRatio = Hips-Head距離比（両Humanoid）
 ### 2.5 UI / UX（P7, P8）
 
 - **Hierarchy**: PBRemapオブジェクトに状態アイコン（AtHome=灰 / Displaced=黄 / Applied=緑 / 未解決あり=赤）
-- **ドロップ時**: `applyMode` に応じて (a)自動適用してステータス通知 (b)マッピングウィンドウを開く (c)何もしない（ビルド時）
+- **ドロップ時**: `applyMode` に応じて (a) AutoOnDrop: 候補が複数ある参照が無ければ自動適用し、対応物が無い参照は残して Console 警告（保留時も理由を出す） (b) Confirm: PBRemap を選択して流れと SceneView プレビューを見せる (c) BuildOnly: Console で案内し ▶ を表示（NDMF ビルド時に適用）。検知は ObjectChangeEvents（§8）
 - **Inspector**: 状態カード（移植元 → 移植先、検出根拠バッジ、係数）／解決サマリ（解決・自動作成・曖昧・未解決・ルート外）／マッピングテーブル（フィルタ、行ごとにObjectFieldで手動確定、候補ドロップダウン）／アクション（適用・元に戻す・マニフェスト更新・プレビュー）／詳細（ルール、手動ルート指定、スケール）
 - **SceneViewオーバーレイ**: 既存を踏襲（解決=緑、自動作成=黄、未解決=赤）に「曖昧=橙（候補へ点線）」を追加
 - **PBReplacerメインウィンドウ**: 「他のアバターへ移植」は AvatarDynamics 自身に PBRemap を付ける（専用子オブジェクトを作らない）。コンセプト（AvatarDynamics階層ごとD&D）と一致させる
@@ -246,7 +246,7 @@ worldRatio = Hips-Head距離比（両Humanoid）
 | `Editor/.../Core/PBRemapApplier.cs` | 適用（Undo 1グループ、元値×係数、適用記録、マニフェスト再取得） |
 | `Editor/.../Core/PBRemapper.cs` | ファサード（Inspect / RefreshManifestIfLive / Plan / Remap）と状態モデル（NoReferences / AtHome / Displaced / Broken / NoDestination） |
 | `Editor/.../Core/SourceDetector.cs` | 互換レイヤ（DetectionResult を新モデルから構築） |
-| `Editor/.../Editor/PBRemapTracker.cs` | [InitializeOnLoad] 監視: 移植元にいる間のマニフェスト自動更新、ドロップ検知→ApplyMode に従う自動適用/プレビュー、保存前フラッシュ |
+| `Editor/.../Editor/PBRemapTracker.cs` | [InitializeOnLoad] 監視: 移植元にいる間のマニフェスト自動更新、ドロップ検知（ObjectChangeEvents の親変更/階層生成 + 親差分の保険）→ApplyMode に従う自動適用/選択/案内、保存前フラッシュ（§8） |
 | `Editor/.../Editor/PBRemapEditor.cs` + `UXML/PBRemap.uxml` | 状態カード／解決サマリ／ボーン対応テーブル（手動マッピング・候補選択）／スケールモード／参照情報更新 |
 | `Editor/.../Editor/PBRemapPreview.cs` | 解決計画から表示データを生成（曖昧・外部参照を区別） |
 | `Editor/.../NDMF/PBRemapNDMFPass.cs` | Displaced/Broken のみ適用、AtHome はスキップ、未解決は ErrorReport |
@@ -469,6 +469,60 @@ Unity 標準の Tools オーバーレイにスポイトのアイコンで並ぶ�
 `PBRemapSceneOverlay.cs`（ToolbarOverlay と EditorToolbarToggle 群）、`PBRemapSceneRenderer.cs`（描画とクリック）、`PBRemapBoneMapTool.cs`（EditorTool）、`PBRemapScenePreviewState.cs`（共有状態。選択/ホバー、要選択フィルタ、手動対応の書き込み）、`PBRemapManualMapping.cs`（Inspector と SceneView で共用する手動対応の保存）。
 
 ---
+
+## 8. ドロップ時の動作（AutoOnDrop / BuildOnly）の再検証と修正
+
+### 8.1 報告と再現
+
+報告: 「Auto on Drop や Build only が機能していません」。GUI 実機（Unity 2022.3.22f1、Xvfb 上で実マウスによる Hierarchy ドラッグ）で再現した。
+
+| ケース | 修正前の結果 |
+|---|---|
+| 同一シーンで `AvatarA/AvatarDynamics` → `AvatarB` へ実ドラッグ（参照が全て解決できる） | 自動移植された（5 参照, x1.200, 自動作成 1） |
+| 同上、AvatarA に Accessory（Constraint の対象。AvatarB に対応物なし）がある | **何も起きない**（PBRemap が選択されるだけ）。plan: resolved=5 auto=1 amb=0 unres=1 → `IsFullyResolved=false` で保留。Console にも理由が出ない |
+| AvatarDynamics を Prefab 化し、Project から AvatarB へ配置 | **何も起きない**。状態は Broken（参照切れ）+参照情報あり。Tracker は Displaced しか扱わず、「前回見た親と違う」条件も新規オブジェクトには成立しない |
+| BuildOnly でドロップ → NDMF（`AvatarProcessor.ProcessAvatar` のクローン / 再生モードの apply-on-play） | 移植される（クローン内参照・半径 0.036・PBRemap 除去）。編集中のシーンは Displaced のまま＝設計どおり。ただし編集時の**手応えが皆無**（Console にも Hierarchy/Inspector にも「ビルド時に移植される」と出ず、→ だけが見える） |
+
+### 8.2 原因
+
+1. AutoOnDrop の適用条件が `IsFullyResolved`（曖昧 0 かつ 未解決 0）だった。実アバターでは AvatarDynamics 外のオブジェクト参照（Constraint の対象、Contact の対象など）が 1 件でもあると未解決扱いになり、自動移植が一切行われない。保留した理由も出力されない。
+2. ドロップ検知が「PBRemap 自身の親の差分」だけだった。Prefab の配置・ペースト・複製（新規に現れたオブジェクト）、先祖ごとの移動は検知できない。Broken（参照切れ）はドロップの対象外だった。
+3. BuildOnly は機能しているが、編集時に何も伝えないため「動いていない」と受け取られる。
+
+### 8.3 修正
+
+- **適用条件**: 「候補が複数ある参照（Ambiguous）が無く、解決/自動作成できる参照が 1 件以上」なら適用する。対応物が無い参照は移植元を指したまま残し、Console 警告に一覧する（Inspector の → で部分適用したときと同じ挙動）。保留したときは理由を Console 警告に出し、PBRemap を選択して SceneView プレビューを出す。
+- **検知**: `ObjectChangeEvents.changesPublished` で `ChangeGameObjectParent`（自身または先祖の移動）と `CreateGameObjectHierarchy`（Prefab 配置・ペースト・複製・Instantiate）を拾い、配下の PBRemap を「置かれた」候補にする。親差分のポーリングは保険として残す。対象状態は Displaced に加え Broken+参照情報あり。
+- **誤検知の抑制**: Undo/Redo 直後 2 秒、シーンを開いた直後・再生モードから戻った直後・ドメインリロード直後 1 秒はドロップ扱いしない（候補フラグは消費する）。Prefab Stage 内では従来どおり AutoOnDrop でも確認に落とす。
+- **BuildOnly の可視化**: ドロップ時に Console で案内。Hierarchy バッジと Inspector の接続部に ▶（Unity の PlayButton）を出し「ビルド（再生）時に移植される」ことを示す。→ は残す（今すぐ移植も可）。
+- **テスト用フック**: `PBRemapTracker.ProcessNow()`（1 ティック分の処理）、`PBRemapTracker.MarkDropped(GameObject)`（配置イベント相当）。バッチでは `Suspended` を無視して直接呼べる。
+- **適用後の状態判定**: 参照切れ（Prefab 配置）から適用したとき、移植先に対応物が無く空のまま残った参照があっても、この移植先へ適用済み（`Applied` が一致）なら AtHome とし、件数を警告で示す。従来は「一部が失われている＝Displaced」となり、適用済みなのに → が出続けていた（S29 で検出）。
+- **検証で分かった注意点**: NDMF はシーンの作成/オープンのたびにプレビューシーンを追加ロードするため、`sceneOpened` はモード `Single` のときだけ抑制に使う。バッチではイベント間の Undo グループが分かれないため、テストは操作ごとに `Undo.IncrementCurrentGroup()` を呼ぶ。
+
+### 8.4 追加シナリオ（S27〜S31）
+
+| ID | 内容 | 期待 |
+|---|---|---|
+| S27 | AutoOnDrop、外部参照 1 件あり（Accessory） | ドロップで自動移植。Accessory 参照は残り警告。AtHome、半径 0.036 |
+| S28 | AutoOnDrop、同名ボーン複数（曖昧） | 保留。Displaced のまま、PBRemap が選択される |
+| S29 | AutoOnDrop、Prefab を Project から配置（Broken+参照情報） | 参照情報から自動移植（MarkDropped 経由） |
+| S30 | BuildOnly | 編集時は Displaced のまま、状態キャッシュに BuildOnly。NDMF クローンで移植、シーンは不変 |
+| S31 | Confirm（既定）+ Undo/Redo | 選択のみ。Undo で AtHome、Redo でも自動移植しない |
+
+### 8.5 実機（GUI）での確認
+
+Xvfb 上の Unity 2022.3.22f1 で、実マウスによる Hierarchy ドラッグ／`PrefabUtility.InstantiatePrefab`＋親変更（Project からのドロップ相当）／再生モード往復／シーンの保存と再オープンを行い、Console と状態を確認した。
+
+| ケース | 結果（修正後） |
+|---|---|
+| AutoOnDrop、外部参照 1 件あり（Accessory）を実ドラッグ | ドロップ直後に自動移植（6 参照, x1.200, 自動作成 1）。Console 警告「1 件は移植先に対応するものが無く、そのまま残しました」。状態 AtHome、Applied=AvatarB |
+| AutoOnDrop、Prefab を Project から AvatarB へ配置 | 参照情報から自動移植（5 参照, x1.200, 自動作成 1）。状態 AtHome |
+| AutoOnDrop、同名ボーン複数（候補あり）を実ドラッグ | 保留。Console 警告「自動移植を保留しました（1 件の参照は対応先の候補が複数あります）…」、PBRemap が選択され SceneView に ▾ の候補 |
+| 同上の状態で再生モードに入って戻る／シーンを保存して開き直す | 自動移植されない（Displaced のまま、保留の再通知も無し） |
+| BuildOnly を実ドラッグ | Console「NDMF ビルド時（再生時）に移植されます（BuildOnly）」。Inspector の → の隣と Hierarchy 行に ▶。再生モードでは移植済み（参照が AvatarB、半径 0.036/0.024）、戻すと Displaced のまま |
+| S31（Undo/Redo）を GUI 上で実行 | 5/5 合格 |
+
+バッチ（`ScenarioRunner.RunAll`）は S01〜S31 の全 34 ケース（派生含む）が合格。
 
 ## 付録A. コードレビュー所見（8観点、反証検証つき）
 

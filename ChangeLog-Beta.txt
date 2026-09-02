@@ -17,6 +17,9 @@ PBRemap: Inspector を刷新。「移植元 → 移植先」の流れを1行で�
 PBRemap: Hierarchy の PBRemap 行に状態アイコン（接続済み/移植可/参照切れ/置き場所不明）を表示
 PBRemap: SceneView を刷新。オーバーレイを Unity 標準ツールバーと同じアイコンのトグル（線/名前/✔＋▾✖ の件数/対応ツール/閉じる）に、ギズモを「青の輪→緑の点、点線=未作成、琥珀=候補/自動作成、赤✕=未解決」の語彙に統一。マーカーをクリックで Ping/候補確定/ツール起動
 PBRemap: EditorTool「PBRemap ボーン対応」を追加。未解決の骨をクリックし、移植先の骨に出る点をクリックするだけで手動対応を決められる（Esc で終了、Undo 可）
+PBRemap: AutoOnDrop が「解決できない参照が1件でもあると何もしない」問題を修正。候補が複数ある参照が無ければドロップ時に移植し、対応物が無い参照は残して警告する。保留したときも理由を Console に出す
+PBRemap: Project からの Prefab ドロップ・ペースト・複製で現れた PBRemap もドロップとして検知（ObjectChangeEvents）。Hierarchy の親ごと移動した場合も検知
+PBRemap: BuildOnly のとき、ドロップ時に Console で案内し、Hierarchy と Inspector に ▶（ビルド時に移植）を表示
 
 [3.0.0-beta.7]2026.07.21
 メインウィンドウ: リスト右クリックの削除を「削除」に日本語化し、確認ダイアログを追加(Ctrl+Zで取り消せる旨を明記)

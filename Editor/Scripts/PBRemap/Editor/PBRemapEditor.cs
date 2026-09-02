@@ -368,6 +368,13 @@ namespace colloid.PBReplacer
                     break;
             }
 
+            // ビルド時のみ適用: 「今は触らない、NDMF ビルド（再生）時に移植される」を → の隣に再生アイコンで示す
+            if (showApply && definition.ApplyMode == PBRemapApplyMode.BuildOnly)
+            {
+                PBRemapIcons.Set(_connectorState, PBRemapIcons.Build, "ビルド時のみ移植（BuildOnly）: NDMF ビルド（再生）時に非破壊で移植されます。編集中のシーンは変わりません\n今すぐ移植するなら → を押します（詳細設定で「ドロップ時」を変更できます）");
+                _connectorState.style.display = DisplayStyle.Flex;
+            }
+
             // → ボタン
             var plan = _preview?.Plan;
             if (showApply && plan != null && plan.CanApply)
