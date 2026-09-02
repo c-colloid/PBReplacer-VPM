@@ -17,7 +17,8 @@ namespace colloid.PBReplacer
             { PBRemapState.AtHome, (PBRemapIcons.Linked, "PBRemap: 参照はこのルートに接続済み。別のアバター/衣装/小物へドラッグすると移植できます") },
             { PBRemapState.Displaced, (PBRemapIcons.Apply, "PBRemap: 移植先に置かれています。Inspector の → で移植します") },
             { PBRemapState.Broken, (PBRemapIcons.Unlinked, "PBRemap: 参照が失われています（参照情報から解決します）") },
-            { PBRemapState.NoDestination, (PBRemapIcons.Error, "PBRemap: 置き場所がアバター/衣装/小物として認識できません") },
+            // 置き場所が未確定なだけ（中立）。復旧不能なエラー（Broken・参照情報なし）とは形も色も分ける
+            { PBRemapState.NoDestination, (PBRemapIcons.Unlinked, "PBRemap: 置き場所がアバター/衣装/小物として認識できません。アバター/衣装/小物の配下へ移動してください") },
         };
 
         static PBRemapHierarchyBadge()
@@ -37,9 +38,11 @@ namespace colloid.PBReplacer
             // 右端は Unity の Prefab 矢印が使うので、その左に置く
             var r = new Rect(selectionRect.xMax - 36, selectionRect.y + (selectionRect.height - 14) * 0.5f, 14, 14);
             var prev = GUI.color;
+            // 形 = 状態（Linked / → / Unlinked / エラー）、色 = 健全度（緑 / 琥珀 / 無彩色 / 赤）
             GUI.color = state == PBRemapState.AtHome ? new Color(0.55f, 0.85f, 0.55f, 0.9f)
                 : state == PBRemapState.Displaced ? new Color(1f, 0.8f, 0.3f, 1f)
-                : state == PBRemapState.NoDestination || (state == PBRemapState.Broken && !hasManifest) ? new Color(1f, 0.45f, 0.45f, 1f)
+                : state == PBRemapState.NoDestination ? new Color(0.75f, 0.75f, 0.75f, 0.9f)
+                : state == PBRemapState.Broken && !hasManifest ? new Color(1f, 0.45f, 0.45f, 1f)
                 : new Color(1f, 0.8f, 0.3f, 0.9f);
             GUI.Label(r, new GUIContent(tex, tip));
             GUI.color = prev;

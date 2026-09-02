@@ -407,7 +407,18 @@ worldRatio = Hips-Head距離比（両Humanoid）
 - SceneView: 👁 で移植元ボーンと移植先ボーンを結ぶ線を表示（既存機能。フィルタはチップと共有）
 - ドロップ時の確認（Confirm）は別ウィンドウを開かず、PBRemap を選択して Inspector の流れを見せ、SceneView の線を表示する
 
-### 6.4 実装
+### 6.4 独立審査で取り込んだ点と未決事項
+
+3 案（流れ主役 / Unity 純正記号流用 / 段階的開示）を 2 名の審査（初見ユーザー視点・ツール開発者視点）が 7 原則で採点し、勝者案への移植（graft）として次を反映した。
+
+- 要選択（Ambiguous）の記号を「？」や「⚠」ではなく ▾（Dropdown）にする。「？」はヘルプと誤読される
+- Hierarchy の状態アイコンは「形 = 状態、色 = 健全度」の二重コードにし、置き場所未確定（中立・無彩色の Unlinked）と参照情報なし（赤のエラー）を分ける
+- 移植元が今この場に無い（参照情報のみ）ときは半透明のゴースト表示にする
+- 主ボタンは部分適用可能な状態でも押せる（琥珀）。「全解決まで押せない」ように見せない
+
+未決（後続タスク）: ライトテーマでの内蔵アイコンのコントラスト確認、Hierarchy ドラッグ中の受け入れ可能行ハイライト（永続キャッシュが必要）、完全初見ユーザー向けのワンタイムヒント、SceneView オーバーレイの文字チップのアイコン化。
+
+### 6.5 実装
 
 `Editor/Scripts/PBRemap/Editor/PBRemapIcons.cs`（意味→内蔵アイコン）、`PBRemapHierarchyBadge.cs`（Hierarchy 行）、`PBRemapEditor.cs` / `Resources/UXML/PBRemap.uxml` / `Resources/USS/PBRemap.uss`（Inspector）、`PBRemapTracker`（状態キャッシュ・Invalidate）。
 

@@ -22,7 +22,7 @@ namespace colloid.PBReplacer
         public const string Resolved = "Valid";                     // 解決済み ✔
         public const string Unresolved = "Invalid";                 // 未解決 ✖
         public const string AutoCreate = "Toolbar Plus";            // 自動作成 ＋
-        public const string Ambiguous = "console.warnicon.sml";     // 要選択 ⚠
+        public const string Ambiguous = "icon dropdown";            // 要選択（候補から選ぶ = ▾。「？」はヘルプと誤読されるため使わない）
         public const string Error = "console.erroricon.sml";        // エラー
         public const string Info = "console.infoicon.sml";          // 情報
         public const string Warning = "console.warnicon.sml";
