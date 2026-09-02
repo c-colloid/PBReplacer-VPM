@@ -18,6 +18,17 @@ namespace colloid.PBReplacer
     }
 
     /// <summary>
+    /// コンテキストが移植元ホーム自身のものか、ホームを包む外側の単位（アバター内の衣装に対するアバター）のものか。
+    /// </summary>
+    public enum BoneContextScope
+    {
+        /// <summary>ホーム（PBRemapが属する最も近い単位）自身</summary>
+        Self,
+        /// <summary>ホームを包む外側の単位</summary>
+        Outer,
+    }
+
+    /// <summary>
     /// 参照先ボーンが属するArmatureの情報。マニフェストは参照ごとにこのコンテキストIDを持つ。
     /// </summary>
     [Serializable]
@@ -29,7 +40,10 @@ namespace colloid.PBReplacer
         /// <summary>種別</summary>
         public BoneContextKind kind = BoneContextKind.Main;
 
-        /// <summary>移植元ルートから見た Armature の相対パス（Main: "Armature", Costume: "Costume/Armature" 等）</summary>
+        /// <summary>ホーム自身か外側の単位か</summary>
+        public BoneContextScope scope = BoneContextScope.Self;
+
+        /// <summary>コンテキストが属するルート（Self: 移植元ホーム / Outer: 外側の単位）から見た Armature の相対パス（Main: "Armature", Costume: "Costume/Armature" 等）</summary>
         public string armaturePathFromRoot = "";
 
         /// <summary>Armature オブジェクト名</summary>
@@ -55,6 +69,9 @@ namespace colloid.PBReplacer
 
         /// <summary>Armature の lossyScale（スケール参照用）</summary>
         public Vector3 armatureLossyScale = Vector3.one;
+
+        /// <summary>このコンテキストが Humanoid 本体なら Hips→Head のワールド距離（スケール比の基準）。無ければ0</summary>
+        public float hipsToHead;
     }
 
     /// <summary>
@@ -108,7 +125,7 @@ namespace colloid.PBReplacer
         /// <summary>参照先がボーンではなく、コンポーネント参照（PhysBoneCollider等）の場合の型名。ボーン参照なら空</summary>
         public string targetComponentType = "";
 
-        /// <summary>移植元ルートからの相対パス（コンテキスト外の参照のフォールバック用）</summary>
+        /// <summary>コンテキストが属するルート（Self: 移植元ホーム / Outer: 外側の単位）からの相対パス（フォールバック用）</summary>
         public string pathFromRoot = "";
 
         /// <summary>解決用のキー（componentPath + "." + propertyPath）</summary>
@@ -137,8 +154,11 @@ namespace colloid.PBReplacer
     [Serializable]
     public class ScaleReference
     {
-        /// <summary>Hips→Head のワールド距離（Humanoidのみ、なければ0）</summary>
+        /// <summary>ホームの Hips→Head のワールド距離（ホームがHumanoidの場合のみ、なければ0）</summary>
         public float hipsToHead;
+
+        /// <summary>外側の単位（アバター）の Hips→Head のワールド距離（外側がHumanoidの場合のみ、なければ0）</summary>
+        public float outerHipsToHead;
 
         /// <summary>本体Armatureの lossyScale.y</summary>
         public float armatureLossyScaleY = 1f;
@@ -154,21 +174,33 @@ namespace colloid.PBReplacer
     [Serializable]
     public class PBRemapManifest
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
 
         public int version = CurrentVersion;
 
         /// <summary>取得日時（UTC, ISO8601）</summary>
         public string capturedAtUtc = "";
 
-        /// <summary>移植元ルートのオブジェクト名</summary>
+        /// <summary>移植元ホーム（PBRemapが属していた最も近い単位: アバター/衣装/小物）のオブジェクト名</summary>
         public string sourceRootName = "";
 
-        /// <summary>移植元ルートの種別（VRCAvatarDescriptor / MergeArmature / Animator / Generic）</summary>
+        /// <summary>移植元ホームの種別（VRCAvatarDescriptor / MACostume / Animator / Generic）</summary>
         public string sourceRootKind = "";
 
-        /// <summary>移植元ルートのインスタンスID（同一シーンでの同一性判定用。別シーンでは無効）</summary>
+        /// <summary>移植元ホームのインスタンスID（同一シーンでの同一性判定用。別シーンでは無効）</summary>
         public int sourceRootInstanceId;
+
+        /// <summary>移植元ホームを包んでいた外側の単位（例: 衣装が着せられていたアバター）の名前。無ければ空</summary>
+        public string outerRootName = "";
+
+        /// <summary>外側の単位の種別</summary>
+        public string outerRootKind = "";
+
+        /// <summary>外側の単位のインスタンスID</summary>
+        public int outerRootInstanceId;
+
+        /// <summary>移植元ホームの表示名（外側があれば "Avatar › Costume"）</summary>
+        public string SourceDisplayName => string.IsNullOrEmpty(outerRootName) ? sourceRootName : outerRootName + " › " + sourceRootName;
 
         public List<BoneContext> contexts = new List<BoneContext>();
         public List<BoneRef> refs = new List<BoneRef>();

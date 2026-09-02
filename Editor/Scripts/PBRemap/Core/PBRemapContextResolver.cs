@@ -24,6 +24,8 @@ namespace colloid.PBReplacer
 
     /// <summary>
     /// ルート検出結果。
+    /// <see cref="Root"/> は PBRemap（または参照先ボーン）が属する「最も近い単位」（ホーム）。
+    /// ホームが別の単位の中にある場合（アバター内の衣装など）、その外側の単位を <see cref="Outer"/> に持つ。
     /// </summary>
     public class RootInfo
     {
@@ -31,11 +33,41 @@ namespace colloid.PBReplacer
         public RootKind Kind = RootKind.None;
         /// <summary>UIバッジ互換用</summary>
         public AvatarDetectionMethod Method = AvatarDetectionMethod.None;
+        /// <summary>ホームを包む外側の単位（例: 衣装ホームに対するアバター）。無ければ null</summary>
+        public GameObject Outer;
+        public RootKind OuterKind = RootKind.None;
         /// <summary>検出できなかった場合の候補（直下の子など）</summary>
         public List<GameObject> Candidates = new List<GameObject>();
         public string Reason = "";
 
         public bool IsFound => Root != null && Kind != RootKind.None;
+        public bool HasOuter => Outer != null;
+
+        /// <summary>表示名（外側があれば "Avatar › Costume"）</summary>
+        public string DisplayName => Root == null ? "" : (Outer != null ? Outer.name + " › " + Root.name : Root.name);
+
+        /// <summary>手動指定などから RootInfo を作る</summary>
+        public static RootInfo For(GameObject root, AvatarDetectionMethod method = AvatarDetectionMethod.Manual)
+        {
+            if (root == null) return new RootInfo();
+            var info = PBRemapContextResolver.FindRoot(root.transform, excludeSelf: false);
+            if (!info.IsFound || info.Root != root)
+            {
+                var k = PBRemapContextResolver.ClassifyRootCandidate(root.transform);
+                info = new RootInfo { Root = root, Kind = k != RootKind.None ? k : RootKind.Generic };
+                var outerInfo = root.transform.parent != null ? PBRemapContextResolver.FindRoot(root.transform.parent, excludeSelf: false) : null;
+                if (outerInfo != null && outerInfo.IsFound) { info.Outer = outerInfo.Root; info.OuterKind = outerInfo.Kind; }
+            }
+            info.Method = method;
+            return info;
+        }
+    }
+
+    /// <summary>コンテキストがホーム自身のものか、外側の単位のものか</summary>
+    public enum ContextScope
+    {
+        Self,
+        Outer,
     }
 
     /// <summary>
@@ -45,6 +77,9 @@ namespace colloid.PBReplacer
     {
         public int Id;
         public BoneContextKind Kind;
+        public ContextScope Scope = ContextScope.Self;
+        /// <summary>このコンテキストが属するルート（ホームまたは外側）の Transform</summary>
+        public Transform RootTransform;
         public Transform Armature;
         public Animator Animator;
         public bool IsHumanoid => Animator != null && Animator.isHuman;
@@ -54,18 +89,19 @@ namespace colloid.PBReplacer
         public GameObject CostumeRoot;
         public string CostumeName => CostumeRoot != null ? CostumeRoot.name : "";
 
-        public override string ToString() => $"{Kind}#{Id}({(Armature != null ? Armature.name : "null")})";
+        public override string ToString() => $"{Scope}/{Kind}#{Id}({(Armature != null ? Armature.name : "null")})";
     }
 
     /// <summary>
-    /// 「ルート」と「コンテキスト（Armature）」を決定する。
-    /// 現行 SourceDetector / AvatarData のルート推定を置き換える。
+    /// 「ルート（ホーム）」と「コンテキスト（Armature）」を決定する。
     ///
-    /// ルート判定（祖先を上に辿り、条件を満たす最も外側の祖先を採用。ただし妥当性検証あり）:
+    /// ルート判定（祖先を上に辿り、条件を満たす「最も近い」祖先をホームとして採用する）:
     ///   1. VRC_AvatarDescriptor を持つ
     ///   2. 直下の子に ModularAvatarMergeArmature を持つ（= MA衣装のルート）
     ///   3. Animator を持ち、自前の SkinnedMeshRenderer を子孫に持つ
-    ///   4. 自前の SkinnedMeshRenderer を子孫に持つ（汎用。最も近いもの）
+    ///   4. 自前の SkinnedMeshRenderer を子孫に持つ（汎用。1〜3 が祖先に無い場合のみ、最も近いもの）
+    /// ホームのさらに外側に 1〜3 の祖先があればそれを Outer（外側の単位）として記録する。
+    /// 例: Avatar/Costume/AvatarDynamics → ホーム = Costume、Outer = Avatar。
     /// 「自前の」= 途中に別ルート（1〜3）を挟まずに到達できる SkinnedMeshRenderer。
     /// 空の整理用オブジェクト（例: "Props"）は、配下のメッシュが全て別ルート内にあるため採用されない。
     /// </summary>
@@ -97,30 +133,33 @@ namespace colloid.PBReplacer
             Transform scan = excludeSelf ? start.parent : start;
             if (scan == null) { info.Reason = "親がありません"; return info; }
 
-            GameObject outermostStrong = null;   // descriptor / costume / animator
-            RootKind outermostStrongKind = RootKind.None;
+            GameObject home = null;
+            RootKind homeKind = RootKind.None;
+            GameObject outer = null;
+            RootKind outerKind = RootKind.None;
             GameObject nearestGeneric = null;
-            Transform top = scan;
 
             for (Transform a = scan; a != null; a = a.parent)
             {
-                top = a;
                 var kind = Classify(a);
-                if (kind == RootKind.VRCAvatarDescriptor || kind == RootKind.MACostume || kind == RootKind.Animator)
+                bool strong = kind == RootKind.VRCAvatarDescriptor || kind == RootKind.MACostume || kind == RootKind.Animator;
+                if (strong)
                 {
-                    outermostStrong = a.gameObject;
-                    outermostStrongKind = kind;
+                    if (home == null) { home = a.gameObject; homeKind = kind; }
+                    else { outer = a.gameObject; outerKind = kind; break; }
                 }
-                else if (kind == RootKind.Generic && nearestGeneric == null && outermostStrong == null)
+                else if (kind == RootKind.Generic && nearestGeneric == null && home == null)
                 {
                     nearestGeneric = a.gameObject;
                 }
             }
 
-            if (outermostStrong != null)
+            if (home != null)
             {
-                info.Root = outermostStrong;
-                info.Kind = outermostStrongKind;
+                info.Root = home;
+                info.Kind = homeKind;
+                info.Outer = outer;
+                info.OuterKind = outerKind;
             }
             else if (nearestGeneric != null)
             {
@@ -251,7 +290,7 @@ namespace colloid.PBReplacer
         #region Contexts
 
         /// <summary>
-        /// ルート配下の全コンテキストを列挙する。
+        /// ルート配下の全コンテキストを列挙する（ルート自身のもののみ。Scope = Self）。
         /// [0] は常にルート自身を Armature とする Generic コンテキスト（フォールバック用）。
         /// 続いて本体Armature（Humanoidなら Hips.parent、MA衣装単体ならその Armature）、各MA衣装Armature。
         /// </summary>
@@ -259,8 +298,9 @@ namespace colloid.PBReplacer
         {
             var list = new List<ContextInfo>();
             if (root == null) return list;
+            var rootT = root.transform;
 
-            list.Add(new ContextInfo { Id = 0, Kind = BoneContextKind.Generic, Armature = root.transform });
+            list.Add(new ContextInfo { Id = 0, Kind = BoneContextKind.Generic, Armature = rootT, RootTransform = rootT });
 
             var animator = root.GetComponent<Animator>();
             if (animator != null && animator.isHuman)
@@ -268,7 +308,7 @@ namespace colloid.PBReplacer
                 var hips = animator.GetBoneTransform(HumanBodyBones.Hips);
                 var armature = hips != null && hips.parent != null ? hips.parent : null;
                 if (armature != null)
-                    list.Add(new ContextInfo { Id = 1, Kind = BoneContextKind.Main, Armature = armature, Animator = animator });
+                    list.Add(new ContextInfo { Id = 1, Kind = BoneContextKind.Main, Armature = armature, Animator = animator, RootTransform = rootT });
             }
 
 #if MODULAR_AVATAR
@@ -277,7 +317,7 @@ namespace colloid.PBReplacer
             {
                 // 別のMergeArmatureの内側にネストしているものは親のコンテキストに含める（MA自身もスキップする）
                 bool nested = false;
-                for (Transform p = merge.transform.parent; p != null && p != root.transform; p = p.parent)
+                for (Transform p = merge.transform.parent; p != null && p != rootT; p = p.parent)
                 {
                     if (p.GetComponent<ModularAvatarMergeArmature>() != null) { nested = true; break; }
                 }
@@ -294,6 +334,7 @@ namespace colloid.PBReplacer
                     MaSuffix = merge.suffix ?? "",
                     MaMergeTargetPath = merge.mergeTarget != null ? merge.mergeTarget.referencePath ?? "" : "",
                     CostumeRoot = costumeRoot,
+                    RootTransform = rootT,
                 });
             }
 #endif
@@ -302,10 +343,35 @@ namespace colloid.PBReplacer
             if (!list.Any(c => c.Kind == BoneContextKind.Main))
             {
                 var mainArmature = GuessArmature(root, list);
-                if (mainArmature != null && mainArmature != root.transform)
-                    list.Add(new ContextInfo { Id = list.Count == 1 ? 1 : list.Max(c => c.Id) + 1, Kind = BoneContextKind.Main, Armature = mainArmature, Animator = animator });
+                if (mainArmature != null && mainArmature != rootT)
+                    list.Add(new ContextInfo { Id = list.Count == 1 ? 1 : list.Max(c => c.Id) + 1, Kind = BoneContextKind.Main, Armature = mainArmature, Animator = animator, RootTransform = rootT });
             }
 
+            return list;
+        }
+
+        /// <summary>
+        /// ホームのコンテキスト（Self）に、外側の単位のコンテキスト（Outer。ホーム配下のものは除く）を続けて列挙する。
+        /// 例: ホーム = Avatar/Costume なら [Generic(Costume), Costume(Costume/Armature)] + [Generic(Avatar), Main(Avatar/Armature), 兄弟衣装...]。
+        /// </summary>
+        public static List<ContextInfo> BuildContexts(RootInfo info)
+        {
+            var list = new List<ContextInfo>();
+            if (info == null || info.Root == null) return list;
+            foreach (var c in BuildContexts(info.Root)) { c.Scope = ContextScope.Self; list.Add(c); }
+            if (info.Outer != null && info.Outer != info.Root)
+            {
+                var homeT = info.Root.transform;
+                int next = list.Count == 0 ? 0 : list.Max(c => c.Id) + 1;
+                foreach (var c in BuildContexts(info.Outer))
+                {
+                    // ホーム配下の Armature（ホーム衣装自身の MergeArmature 等）は Self 側で扱う
+                    if (c.Armature != null && c.Armature != info.Outer.transform && (c.Armature == homeT || c.Armature.IsChildOf(homeT))) continue;
+                    c.Id = next++;
+                    c.Scope = ContextScope.Outer;
+                    list.Add(c);
+                }
+            }
             return list;
         }
 
@@ -349,7 +415,7 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// ボーンが属するコンテキストを返す（最も深い Armature を優先）。該当なしなら Generic(ルート)。
+        /// ボーンが属するコンテキストを返す（最も深い Armature を優先。同じ深さなら Self を優先）。該当なしなら null。
         /// </summary>
         public static ContextInfo ClassifyBone(Transform bone, List<ContextInfo> contexts)
         {
@@ -361,7 +427,8 @@ namespace colloid.PBReplacer
                 if (bone == c.Armature || bone.IsChildOf(c.Armature))
                 {
                     int depth = Depth(c.Armature);
-                    if (depth > bestDepth) { bestDepth = depth; best = c; }
+                    if (depth > bestDepth || (depth == bestDepth && best != null && best.Scope == ContextScope.Outer && c.Scope == ContextScope.Self))
+                    { bestDepth = depth; best = c; }
                 }
             }
             return best;
@@ -375,24 +442,36 @@ namespace colloid.PBReplacer
         }
 
         /// <summary>
-        /// コンテキストの実体情報をシリアライズ用データに変換する。
+        /// コンテキストの実体情報をシリアライズ用データに変換する。パスはコンテキストが属するルート基準。
         /// </summary>
         public static BoneContext ToSerializable(ContextInfo c, Transform root)
         {
+            var baseT = c.RootTransform != null ? c.RootTransform : root;
             return new BoneContext
             {
                 id = c.Id,
                 kind = c.Kind,
-                armaturePathFromRoot = BoneMapper.GetRelativePath(c.Armature, root) ?? "",
+                scope = c.Scope == ContextScope.Outer ? BoneContextScope.Outer : BoneContextScope.Self,
+                armaturePathFromRoot = BoneMapper.GetRelativePath(c.Armature, baseT) ?? "",
                 armatureName = c.Armature != null ? c.Armature.name : "",
                 isHumanoid = c.IsHumanoid,
                 maPrefix = c.MaPrefix ?? "",
                 maSuffix = c.MaSuffix ?? "",
                 maMergeTargetPath = c.MaMergeTargetPath ?? "",
                 costumeName = c.CostumeName,
-                costumeRootPathFromRoot = c.CostumeRoot != null ? (BoneMapper.GetRelativePath(c.CostumeRoot.transform, root) ?? "") : "",
+                costumeRootPathFromRoot = c.CostumeRoot != null ? (BoneMapper.GetRelativePath(c.CostumeRoot.transform, baseT) ?? "") : "",
                 armatureLossyScale = c.Armature != null ? c.Armature.lossyScale : Vector3.one,
+                hipsToHead = HipsToHead(c),
             };
+        }
+
+        /// <summary>Humanoid 本体コンテキストの Hips→Head ワールド距離（非Humanoidなら0）</summary>
+        public static float HipsToHead(ContextInfo c)
+        {
+            if (c == null || !c.IsHumanoid) return 0f;
+            var hips = c.Animator.GetBoneTransform(HumanBodyBones.Hips);
+            var head = c.Animator.GetBoneTransform(HumanBodyBones.Head);
+            return hips != null && head != null ? Vector3.Distance(hips.position, head.position) : 0f;
         }
 
         #endregion

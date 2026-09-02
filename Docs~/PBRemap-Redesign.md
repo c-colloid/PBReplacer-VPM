@@ -321,6 +321,52 @@ worldRatio = Hips-Head距離比（両Humanoid）
 
 20/20 シナリオ通過（`Reports/` の最終実行）。
 
+## 5. 衣装ホーム: アバター内の MA 衣装だけを移植する
+
+### 5.1 課題
+
+§4 までの再設計は「PBRemap が属するルート」を **最も外側** の単位（Descriptor / MA衣装ルート / Animator）としていた。
+そのため `AvatarA/Costume_v1/AvatarDynamics`（衣装ルート配下に置いた衣装専用の AvatarDynamics）は
+ルートが `AvatarA` になり、次の実使用ケースが成立しなかった。
+
+| ケース | 旧挙動 |
+|---|---|
+| 同じアバター内で衣装 v1 → v2 へ衣装の AvatarDynamics だけを移す | ルートが移動前後とも `AvatarA` のため **AtHome と誤判定**され何も起きない |
+| AvatarA 内の衣装 → AvatarB 内の同衣装 | 衣装ボーンもアバターの Hips-Head 比でスケールされる（衣装は同サイズなのに半径が変わる） |
+| 衣装 Prefab（AvatarDynamics 同梱）を別アバターへ | アバターボーン参照が null になっても Live 扱いのため解決されない |
+
+### 5.2 モデル
+
+- **ホーム = 最も近い単位**。祖先を上に辿って最初に見つかる Descriptor / MA衣装ルート / Animator をホームとし、
+  その外側にある単位を **Outer** として記録する（`RootInfo.Outer`）。汎用（自前SMR）は強い単位が無い場合のみ。
+- **コンテキストに Scope を持たせる**（`BoneContext.scope = Self | Outer`）。
+  衣装ホームのマニフェストは `Self: Generic(衣装), Costume(衣装/Armature)` と `Outer: Generic(アバター), Main(アバター/Armature), 兄弟衣装…` を持つ。
+- **整合判定**（`PBRemapManifestBuilder.IsConsistentWithHome`）。参照先の単位が
+  ホーム自身 / ホーム配下の単位 / 外側の単位 なら「整合」、外側の中の別単位（兄弟衣装）や別アバターなら「外れ」。
+  外れた参照が 1 件でもあれば Displaced、無ければ AtHome。移植元は外れた参照の多数決（マニフェストが記録する移植元 → 衣装ホームなら衣装 → 入れ子なら外側 → 多数）。
+- **対応付け**（`PBRemapResolver.FindDestContext`）は Scope × 種別で移植先のホーム側/外側へ振り分ける。
+  Self/Costume → ホーム側の衣装 → 外側の衣装 → ホームの本体（衣装→本体）、Outer/Main → 外側の本体 → ホームの本体、など。
+- **スケールはコンテキストごと**（`BoneContext.hipsToHead`）。Humanoid 本体同士なら Hips-Head 比、衣装同士ならそのコンテキストの解決済み参照のボーン間距離比の中央値。
+  衣装ボーンはアバターの身長差に引きずられない。
+- **一部失われた参照**（`ScanResult.LostKeys`）。生きている参照がホームに整合していても、マニフェストにある参照が null なら Displaced（PartiallyLost）とし、
+  マニフェストの記録（以前のコンテキストを複製して保持）から解決する。衣装 Prefab を別アバターへ置いた場合にアバター参照だけが復元される。
+- **ネストした PBRemap** は外側が管理するが、親の追跡だけは行い、外へ出された瞬間にドロップとして検知する。
+
+### 5.3 追加シナリオ（S18〜S25）
+
+| ID | 内容 | 主なアサーション |
+|---|---|---|
+| S18 | 同一アバター内 衣装v1 → v2 | Displaced 判定・衣装参照が v2 へ・アバター Head 参照は同一オブジェクトのまま・半径不変・**アバター本体不変** |
+| S19 | AvatarA 内衣装 → AvatarB(1.8) 内同衣装 | 衣装参照は衣装比 1.0（半径 0.02 のまま）、Head 参照は AvatarB へ |
+| S20 | アバター参照が多数 | 衣装ホームで AtHome。Outer/Main コンテキストに Humanoid ID で記録 |
+| S21 | 衣装 Prefab を別アバターへ | 衣装参照は生存、失われた Head 参照をマニフェストから AvatarB へ |
+| S22 | 未適用のまま NDMF ビルド | クローン内の衣装v2ボーンへ解決、本体 AvatarDynamics 不変、PBRemap 除去 |
+| S23 | 本体 AvatarDynamics 内の衣装サブフォルダ（ネスト PBRemap）を切り出し | 移植元は衣装v1（アバターではなく）、本体側 PBRemap は AtHome のまま |
+| S24 | 衣装 C1/C2 を着た状態で C1 だけ C3 へ | 移植元 C1、C2 の PBRemap は不変 |
+| S25 | 衣装v1 → prefix 付き衣装v2 | `V2_Hips` へ prefix 正規化で解決 |
+
+「アバター本体に手を触れない」は各シナリオで共通のアサーション（ボーン階層不変・本体 AvatarDynamics の参照/半径不変・本体 PBRemap が AtHome かつマニフェスト不変）として検証する。
+
 ---
 
 ## 付録A. コードレビュー所見（8観点、反証検証つき）

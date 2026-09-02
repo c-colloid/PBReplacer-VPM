@@ -51,13 +51,16 @@ namespace colloid.PBReplacer
             _lastRefresh = EditorApplication.timeSinceStartup;
             _dirty = false;
 
-            foreach (var def in FindAll())
+            foreach (var def in FindAll(includeNested: true))
             {
                 int id = def.GetInstanceID();
                 var parent = def.transform.parent;
                 bool moved = _lastParent.TryGetValue(id, out var prev) ? prev != parent : false;
                 bool known = _lastParent.ContainsKey(id);
                 _lastParent[id] = parent;
+
+                // ネストした PBRemap は外側が管理する。親の追跡だけ行い（外へ出された時にドロップとして検知するため）、処理はしない
+                if (IsNested(def)) continue;
 
                 PBRemapper.MigrateLegacyIfNeeded(def);
                 var situation = PBRemapper.Inspect(def);
@@ -72,7 +75,7 @@ namespace colloid.PBReplacer
             }
 
             // 消えたものを掃除
-            var alive = new HashSet<int>(FindAll().Select(d => d.GetInstanceID()));
+            var alive = new HashSet<int>(FindAll(includeNested: true).Select(d => d.GetInstanceID()));
             foreach (var k in _lastParent.Keys.ToList()) if (!alive.Contains(k)) _lastParent.Remove(k);
         }
 
@@ -138,12 +141,12 @@ namespace colloid.PBReplacer
             }
         }
 
-        private static IEnumerable<PBRemap> FindAll()
+        private static IEnumerable<PBRemap> FindAll(bool includeNested = false)
         {
             return Resources.FindObjectsOfTypeAll<PBRemap>()
                 .Where(d => d != null && d.gameObject.scene.IsValid() && d.gameObject.scene.isLoaded && !EditorUtility.IsPersistent(d)
                             && (d.hideFlags & HideFlags.HideInHierarchy) == 0
-                            && !IsNested(d));
+                            && (includeNested || !IsNested(d)));
         }
 
         /// <summary>別の PBRemap の配下にある（ネストした）PBRemap か。管理は外側に委ねる</summary>

@@ -44,11 +44,19 @@ namespace colloid.PBReplacer
         public PBRemapManifestBuilder.ScanResult Scan;
         public bool HasManifest;
         public bool ManifestMatchesDestination; // マニフェストの移植元 == 移植先（適用済み/ホーム）
+        /// <summary>生きている参照はあるが、一部が失われている（衣装Prefabのアバターボーン参照など）</summary>
+        public bool PartiallyLost;
+        public int LostReferences;
         public List<string> Warnings = new List<string>();
 
         public GameObject DestinationRoot => Destination?.Root;
         public GameObject SourceRoot => Source?.Root;
         public bool CanResolve => State == PBRemapState.Displaced || (State == PBRemapState.Broken && HasManifest);
+
+        /// <summary>移植先の表示名（外側があれば "Avatar › Costume"）</summary>
+        public string DestinationDisplayName => Destination != null ? Destination.DisplayName : "";
+        /// <summary>移植元の表示名（Live なら実体、そうでなければマニフェスト）</summary>
+        public string SourceDisplayName(PBRemap def) => Source != null && Source.Root != null ? Source.DisplayName : (def != null && def.Manifest != null && !def.Manifest.IsEmpty ? def.Manifest.SourceDisplayName : "");
     }
 
     /// <summary>
@@ -64,36 +72,19 @@ namespace colloid.PBReplacer
             var s = new PBRemapSituation();
             if (definition == null) { s.State = PBRemapState.NoReferences; return s; }
 
-            // 移植先
-            if (definition.DestinationRootOverride != null)
-            {
-                s.Destination = new RootInfo
-                {
-                    Root = definition.DestinationRootOverride,
-                    Kind = PBRemapContextResolver.ClassifyRootCandidate(definition.DestinationRootOverride.transform) is var k && k != RootKind.None ? k : RootKind.Generic,
-                    Method = AvatarDetectionMethod.Manual,
-                };
-            }
-            else
-            {
-                s.Destination = PBRemapContextResolver.FindRoot(definition.transform, excludeSelf: true);
-            }
+            // 移植先（PBRemap が属する最も近い単位 = ホーム。外側の単位があれば Outer に入る）
+            s.Destination = definition.DestinationRootOverride != null
+                ? RootInfo.For(definition.DestinationRootOverride)
+                : PBRemapContextResolver.FindRoot(definition.transform, excludeSelf: true);
 
-            // 参照の状態
-            s.Scan = PBRemapManifestBuilder.Scan(definition);
+            // 参照の状態（現在のホーム/外側に整合しているかで分類）
+            s.Scan = PBRemapManifestBuilder.Scan(definition, s.Destination);
             s.HasManifest = definition.Manifest != null && !definition.Manifest.IsEmpty;
+            s.LostReferences = s.Scan.LostKeys.Count;
             s.Warnings.AddRange(s.Scan.Warnings);
 
-            if (definition.SourceRootOverride != null && s.Scan.State == PBRemapManifestBuilder.ReferenceState.Live)
-            {
-                s.Source = new RootInfo { Root = definition.SourceRootOverride, Kind = RootKind.Generic, Method = AvatarDetectionMethod.Manual };
-                var k = PBRemapContextResolver.ClassifyRootCandidate(definition.SourceRootOverride.transform);
-                if (k != RootKind.None) s.Source.Kind = k;
-            }
-            else
-            {
-                s.Source = s.Scan.SourceRoot;
-            }
+            bool sourceOverridden = definition.SourceRootOverride != null && s.Scan.State == PBRemapManifestBuilder.ReferenceState.Live;
+            s.Source = sourceOverridden ? RootInfo.For(definition.SourceRootOverride) : s.Scan.SourceRoot;
 
             if (s.Destination == null || !s.Destination.IsFound)
             {
@@ -109,7 +100,19 @@ namespace colloid.PBReplacer
                     s.State = PBRemapState.NoReferences;
                     break;
                 case PBRemapManifestBuilder.ReferenceState.Live:
-                    s.State = s.Source != null && s.Source.Root == s.Destination.Root ? PBRemapState.AtHome : PBRemapState.Displaced;
+                    if (sourceOverridden)
+                        s.State = s.Source != null && s.Source.Root == s.Destination.Root ? PBRemapState.AtHome : PBRemapState.Displaced;
+                    else if (s.Scan.HasForeign)
+                        s.State = PBRemapState.Displaced;
+                    else if (s.Scan.LostKeys.Count > 0 && s.HasManifest)
+                    {
+                        // 生きている参照はホームに整合しているが、一部が失われている（衣装Prefabを別アバターへ置いた等）
+                        s.State = PBRemapState.Displaced;
+                        s.PartiallyLost = true;
+                        s.Source = null;
+                    }
+                    else
+                        s.State = PBRemapState.AtHome;
                     break;
                 default:
                     s.State = PBRemapState.Broken;
@@ -135,10 +138,8 @@ namespace colloid.PBReplacer
             var scan = situation.Scan;
             if (definition.SourceRootOverride != null)
             {
-                scan.SourceRoot = new RootInfo { Root = definition.SourceRootOverride, Kind = RootKind.Generic, Method = AvatarDetectionMethod.Manual };
-                var k = PBRemapContextResolver.ClassifyRootCandidate(definition.SourceRootOverride.transform);
-                if (k != RootKind.None) scan.SourceRoot.Kind = k;
-                scan.Contexts = PBRemapContextResolver.BuildContexts(definition.SourceRootOverride);
+                scan.SourceRoot = RootInfo.For(definition.SourceRootOverride);
+                scan.Contexts = PBRemapContextResolver.BuildContexts(scan.SourceRoot);
             }
 
             var manifest = PBRemapManifestBuilder.Build(definition, scan);
@@ -166,7 +167,7 @@ namespace colloid.PBReplacer
         private static bool ManifestEquivalent(PBRemapManifest a, PBRemapManifest b)
         {
             if (a == null || b == null) return false;
-            if (a.sourceRootName != b.sourceRootName || a.refs.Count != b.refs.Count || a.contexts.Count != b.contexts.Count || a.originals.Count != b.originals.Count) return false;
+            if (a.sourceRootName != b.sourceRootName || a.outerRootName != b.outerRootName || a.refs.Count != b.refs.Count || a.contexts.Count != b.contexts.Count || a.originals.Count != b.originals.Count) return false;
             for (int i = 0; i < a.refs.Count; i++)
             {
                 var x = a.refs[i]; var y = b.refs[i];
@@ -182,7 +183,7 @@ namespace colloid.PBReplacer
             for (int i = 0; i < a.contexts.Count; i++)
             {
                 var x = a.contexts[i]; var y = b.contexts[i];
-                if (x.id != y.id || x.kind != y.kind || x.armaturePathFromRoot != y.armaturePathFromRoot || x.maPrefix != y.maPrefix || x.maSuffix != y.maSuffix || x.costumeName != y.costumeName)
+                if (x.id != y.id || x.kind != y.kind || x.scope != y.scope || x.armaturePathFromRoot != y.armaturePathFromRoot || x.maPrefix != y.maPrefix || x.maSuffix != y.maSuffix || x.costumeName != y.costumeName)
                     return false;
             }
             for (int i = 0; i < a.originals.Count; i++)
@@ -238,11 +239,11 @@ namespace colloid.PBReplacer
             }
             if (situation.State == PBRemapState.AtHome)
             {
-                plan.Errors.Add($"参照は既に '{situation.DestinationRoot.name}' に接続されています（移植の必要はありません）。");
+                plan.Errors.Add($"参照は既に '{situation.DestinationDisplayName}' に接続されています（移植の必要はありません）。");
                 return plan;
             }
 
-            // Live なら最新のマニフェストで解決（保存はしない）
+            // Live なら最新のマニフェストで解決（保存はしない）。失われた参照は既存マニフェストから引き継がれる
             PBRemapManifest manifest = definition.Manifest;
             if (situation.Scan.State == PBRemapManifestBuilder.ReferenceState.Live)
             {

@@ -92,10 +92,14 @@ namespace colloid.PBReplacer
                 if (sourceRoot != null)
                 {
                     var srcCtx = plan.Manifest?.GetContext(res.Ref.contextId);
-                    Transform ctxArmature = srcCtx != null && !string.IsNullOrEmpty(srcCtx.armaturePathFromRoot) ? sourceRoot.Find(srcCtx.armaturePathFromRoot) : sourceRoot;
-                    if (srcCtx != null && string.IsNullOrEmpty(srcCtx.armaturePathFromRoot)) ctxArmature = sourceRoot;
+                    // 外側コンテキスト（アバター内衣装に対するアバター）のパスは外側ルート基準
+                    Transform baseRoot = sourceRoot;
+                    if (srcCtx != null && srcCtx.scope == BoneContextScope.Outer && detection.Situation?.Source?.Outer != null)
+                        baseRoot = detection.Situation.Source.Outer.transform;
+                    Transform ctxArmature = srcCtx != null && !string.IsNullOrEmpty(srcCtx.armaturePathFromRoot) ? baseRoot.Find(srcCtx.armaturePathFromRoot) : baseRoot;
+                    if (srcCtx != null && string.IsNullOrEmpty(srcCtx.armaturePathFromRoot)) ctxArmature = baseRoot;
                     m.sourceTransform = ctxArmature != null && !string.IsNullOrEmpty(res.Ref.relPath) ? ctxArmature.Find(res.Ref.relPath) : null;
-                    if (m.sourceTransform == null && !string.IsNullOrEmpty(res.Ref.pathFromRoot)) m.sourceTransform = sourceRoot.Find(res.Ref.pathFromRoot);
+                    if (m.sourceTransform == null && !string.IsNullOrEmpty(res.Ref.pathFromRoot)) m.sourceTransform = baseRoot.Find(res.Ref.pathFromRoot);
                 }
 
                 switch (res.Status)
