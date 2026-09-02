@@ -199,6 +199,9 @@ namespace colloid.PBReplacer
         /// <summary>外側の単位のインスタンスID</summary>
         public int outerRootInstanceId;
 
+        /// <summary>失われた参照（null になった参照）が元々指していた移植元の表示名。無ければ空</summary>
+        public string lostSourceName = "";
+
         /// <summary>移植元ホームの表示名（外側があれば "Avatar › Costume"）</summary>
         public string SourceDisplayName => string.IsNullOrEmpty(outerRootName) ? sourceRootName : outerRootName + " › " + sourceRootName;
 

@@ -367,6 +367,45 @@ worldRatio = Hips-Head距離比（両Humanoid）
 
 「アバター本体に手を触れない」は各シナリオで共通のアサーション（ボーン階層不変・本体 AvatarDynamics の参照/半径不変・本体 PBRemap が AtHome かつマニフェスト不変）として検証する。
 
+## 6. UI 再設計（7原則）
+
+### 6.1 原則と対応
+
+| 原則 | 対応 |
+|---|---|
+| 1. 文字による説明が無くても使える | 状態説明の HelpBox・完了ダイアログを廃止。状態は「流れ」の絵（アイコン・線・色）で伝え、説明はツールチップに退避 |
+| 2. 使っていて気持ちがいい | 移植/更新の成功時に流れの背景が緑に光って戻る（USS transition）。ダイアログで手を止めない。Undo 可能 |
+| 3. 必要最小限・見やすさ | 既定表示は「ツール3つ／流れ1行／チップ1行／問題のある行だけの表」。スケール・ルール・手動指定・参照情報は ⚙ の奥 |
+| 4. 勘違いが起きない | 移植元/移植先を常に左右同じ位置に置く。ホーム名を1行目、外側（アバター）名を2行目に分けて衣装 v1/v2 の違いが切れない。名前不一致の衣装への対応付けや同名衣装の複数存在は警告 |
+| 5. 文字をアイコンに置き換え | Unity 内蔵アイコンのみ使用: Avatar / Cloth（衣装）/ GameObject（小物）/ MoveTool（自分）/ Linked・Unlinked（接続）/ Valid・Invalid（✔✖）/ Toolbar Plus（自動作成）/ console.warnicon（要選択）/ Refresh / scenevis（👁）/ Settings（⚙）/ ScaleTool |
+| 6. 共通認識 | Console の「アイコン＋件数」フィルタ、Hierarchy の状態アイコン、ObjectField へのドロップ、▾ の候補メニュー、Prefab の Linked/Unlinked 記号など Unity ユーザーが既に知っている操作だけを使う |
+| 7. 向き・動かし方に意味 | 左→右＝移植の向き。真ん中の「→」がそのまま移植ボタン。移植先ノードは Hierarchy からのドロップ先（＝その配下へ移動）。移植先が無いときは候補チップをクリックすると移動する |
+
+### 6.2 レイアウト（上から）
+
+1. ツール行: ↻（参照情報の取り直し。移植元にいるときだけ有効）・👁（SceneView の対応線）・⚙（詳細設定の開閉）
+2. 流れ: `[移植元アイコン] 名前 ──(→ 移植)── [移植先アイコン] 名前`
+   - AtHome: 左＝自分（MoveTool）、真ん中＝Linked（緑）、右＝ホーム
+   - Displaced: 左＝移植元、真ん中＝「→ 移植」ボタン（全解決なら緑、未解決ありなら琥珀）、線が琥珀
+   - Broken（参照情報あり）: 左＝参照情報の移植元（半透明＋Unlinked バッジ）、「→ 移植」
+   - Broken（参照情報なし）: 左＝エラー、ボタンなし（赤）
+   - NoDestination: 右＝空の枠（Unlinked）、下に候補チップ（クリックで移動）
+   - NoReferences: 左＝空フォルダアイコン
+3. 警告（必要なときだけ）
+4. チップ: ✔ n / ＋ n / ⚠ n / ✖ n（クリックで表の絞り込み。SceneView の線のフィルタと連動）、手動対応 n（🗑 で解除）、右端に ×比（クリックで 自動/手動/なし）
+5. 表: `[状態アイコン] ボーン名 → [ObjectField] [▾ 候補 | +自動作成先]`。既定では ✔ を隠す
+6. ⚙ 詳細設定: ドロップ時の動作 / スケール / 名前の対応ルール / 手動指定 / 参照情報
+
+### 6.3 Hierarchy と SceneView
+
+- Hierarchy: PBRemap 行の右側（Prefab 矢印の左）に状態アイコン。Inspector を開かなくても「接続済み（緑 Linked）/ 移植できる（琥珀 →）/ 参照切れ（Unlinked）/ 置き場所不明（赤）」が分かる
+- SceneView: 👁 で移植元ボーンと移植先ボーンを結ぶ線を表示（既存機能。フィルタはチップと共有）
+- ドロップ時の確認（Confirm）は別ウィンドウを開かず、PBRemap を選択して Inspector の流れを見せ、SceneView の線を表示する
+
+### 6.4 実装
+
+`Editor/Scripts/PBRemap/Editor/PBRemapIcons.cs`（意味→内蔵アイコン）、`PBRemapHierarchyBadge.cs`（Hierarchy 行）、`PBRemapEditor.cs` / `Resources/UXML/PBRemap.uxml` / `Resources/USS/PBRemap.uss`（Inspector）、`PBRemapTracker`（状態キャッシュ・Invalidate）。
+
 ---
 
 ## 付録A. コードレビュー所見（8観点、反証検証つき）

@@ -26,6 +26,21 @@ namespace colloid.PBReplacer
 
         private static double _suppressDropUntil;
 
+        // ---- 状態キャッシュ（Hierarchy バッジ用。Inspect の結果を GameObject のインスタンスIDで保持） ----
+        private static readonly Dictionary<int, (PBRemapState state, bool hasManifest)> _states = new Dictionary<int, (PBRemapState, bool)>();
+        /// <summary>状態キャッシュが変わったとき（Hierarchy の再描画用）</summary>
+        public static event System.Action StatesChanged;
+
+        /// <summary>GameObject のインスタンスIDから PBRemap の状態を引く（キャッシュ）</summary>
+        public static bool TryGetState(int gameObjectInstanceId, out PBRemapState state, out bool hasManifest)
+        {
+            if (_states.TryGetValue(gameObjectInstanceId, out var v)) { state = v.state; hasManifest = v.hasManifest; return true; }
+            state = PBRemapState.NoReferences; hasManifest = false; return false;
+        }
+
+        /// <summary>次の更新で全 PBRemap を再評価する（適用後・参照情報更新後などに呼ぶ）</summary>
+        public static void Invalidate() { _dirty = true; _lastRefresh = 0; }
+
         static PBRemapTracker()
         {
             EditorApplication.hierarchyChanged += () => { _dirty = true; _lastRefresh = 0; };
@@ -50,6 +65,7 @@ namespace colloid.PBReplacer
             if (EditorApplication.timeSinceStartup - _lastRefresh < RefreshInterval) return;
             _lastRefresh = EditorApplication.timeSinceStartup;
             _dirty = false;
+            bool statesChanged = false;
 
             foreach (var def in FindAll(includeNested: true))
             {
@@ -65,6 +81,10 @@ namespace colloid.PBReplacer
                 PBRemapper.MigrateLegacyIfNeeded(def);
                 var situation = PBRemapper.Inspect(def);
 
+                int goId = def.gameObject.GetInstanceID();
+                var entry = (situation.State, situation.HasManifest);
+                if (!_states.TryGetValue(goId, out var prevEntry) || prevEntry != entry) { _states[goId] = entry; statesChanged = true; }
+
                 // 移植元にいる間は参照情報を常に最新化（Undoには載せない: 派生データのため）
                 if (situation.State == PBRemapState.AtHome || situation.State == PBRemapState.Displaced)
                     PBRemapper.RefreshManifestIfLive(def, situation);
@@ -75,8 +95,12 @@ namespace colloid.PBReplacer
             }
 
             // 消えたものを掃除
-            var alive = new HashSet<int>(FindAll(includeNested: true).Select(d => d.GetInstanceID()));
+            var all = FindAll(includeNested: true).ToList();
+            var alive = new HashSet<int>(all.Select(d => d.GetInstanceID()));
             foreach (var k in _lastParent.Keys.ToList()) if (!alive.Contains(k)) _lastParent.Remove(k);
+            var aliveGo = new HashSet<int>(all.Select(d => d.gameObject.GetInstanceID()));
+            foreach (var k in _states.Keys.ToList()) if (!aliveGo.Contains(k)) { _states.Remove(k); statesChanged = true; }
+            if (statesChanged) StatesChanged?.Invoke();
         }
 
         /// <summary>Prefab Stage（Prefabモード編集）中のオブジェクトか。共有アセットへの無確認の自動適用を避けるために使う</summary>
@@ -116,15 +140,22 @@ namespace colloid.PBReplacer
             }
         }
 
+        /// <summary>
+        /// 確認（Confirm）: 別ウィンドウは開かず、PBRemap を選択して Inspector の流れ（移植元 → 移植先）を見せ、
+        /// SceneView に対応線を表示する。→ ボタンを押せば移植される。
+        /// </summary>
         private static void OpenPreview(PBRemap def)
         {
             var det = SourceDetector.Detect(def);
             if (det.IsFailure) return;
             Selection.activeGameObject = def.gameObject;
+            EditorGUIUtility.PingObject(def.gameObject);
             EditorApplication.delayCall += () =>
             {
-                if (def == null) return;
-                PBRemapPreviewWindow.Open(def, det.Value);
+                if (def == null || !det.Value.IsLiveMode) return;
+                var previewData = PBRemapPreview.GeneratePreview(def, det.Value);
+                PBRemapScenePreviewState.Instance.Activate(previewData, det.Value);
+                SceneView.RepaintAll();
             };
         }
 

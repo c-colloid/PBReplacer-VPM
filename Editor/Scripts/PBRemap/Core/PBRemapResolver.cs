@@ -273,7 +273,11 @@ namespace colloid.PBReplacer
                 AddWarningOnce(plan, $"移植元の衣装 '{srcCtx.costumeName}' と移植先の衣装 '{costumes[0].CostumeName}' は名前が異なります。移植先に衣装が1着だけなのでその衣装へ対応付けます（意図と異なる場合は衣装の配下へ直接ドロップしてください）。");
                 return costumes[0];
             }
-            return costumes.FirstOrDefault(c => c.MaPrefix == srcCtx.maPrefix && c.MaSuffix == srcCtx.maSuffix);
+            // 複数の衣装があり名前で特定できない: prefix/suffix が一致するものが1着だけならそれ。複数なら決めない（先頭を黙って採用しない）
+            var byAffix = costumes.Where(c => c.MaPrefix == srcCtx.maPrefix && c.MaSuffix == srcCtx.maSuffix).ToList();
+            if (byAffix.Count == 1) return byAffix[0];
+            AddWarningOnce(plan, $"移植先に衣装が {costumes.Count} 着ありますが、移植元の衣装 '{srcCtx.costumeName}' に対応する衣装を特定できません。対象の衣装の配下へ直接ドロップするか、表で手動対応付けしてください。");
+            return null;
         }
 
         private static void AddWarningOnce(ResolutionPlan plan, string text)

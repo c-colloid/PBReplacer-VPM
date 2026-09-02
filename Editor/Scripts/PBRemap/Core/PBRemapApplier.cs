@@ -207,6 +207,7 @@ namespace colloid.PBReplacer
                 if (newManifest != null && !newManifest.IsEmpty)
                     definition.SetManifest(newManifest);
                 PBRemapper.MarkDirty(definition);
+                PBRemapTracker.Invalidate();
             }
             catch (Exception ex)
             {

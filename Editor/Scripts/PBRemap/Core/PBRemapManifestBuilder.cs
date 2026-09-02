@@ -402,6 +402,9 @@ namespace colloid.PBReplacer
             }
             if (merged > 0)
             {
+                // 失われた参照の元の移植元（表示用）。既に引き継ぎ済みならそれを維持
+                fresh.lostSourceName = !string.IsNullOrEmpty(old.lostSourceName) ? old.lostSourceName
+                    : (old.sourceRootInstanceId != fresh.sourceRootInstanceId || old.sourceRootName != fresh.sourceRootName ? old.SourceDisplayName : "");
                 if (fresh.scaleReference.hipsToHead <= 1e-6f && old.scaleReference.hipsToHead > 1e-6f) fresh.scaleReference.hipsToHead = old.scaleReference.hipsToHead;
                 if (fresh.scaleReference.outerHipsToHead <= 1e-6f && old.scaleReference.outerHipsToHead > 1e-6f) fresh.scaleReference.outerHipsToHead = old.scaleReference.outerHipsToHead;
                 if (string.IsNullOrEmpty(fresh.outerRootName) && !string.IsNullOrEmpty(old.outerRootName)) { fresh.outerRootName = old.outerRootName; fresh.outerRootKind = old.outerRootKind; }
