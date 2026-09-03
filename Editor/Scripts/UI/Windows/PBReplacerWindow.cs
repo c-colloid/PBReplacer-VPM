@@ -159,6 +159,7 @@ namespace colloid.PBReplacer
 
 		private void OnEnable()
 		{
+			titleContent = new GUIContent(WINDOW_TITLE);
 			_settings = PBReplacerSettings.Load();
 			_visibleMask = EditorPrefs.GetInt(PrefVisibleCategories, AllCategoriesMask);
 			if ((_visibleMask & AllCategoriesMask) == 0) _visibleMask = AllCategoriesMask;

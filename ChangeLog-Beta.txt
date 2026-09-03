@@ -12,7 +12,8 @@
 共通: 確認ダイアログ（メインウィンドウの再配置、PBRemap の移植）は既定でオフ（どちらも Undo 可能なため。⚙ 詳細設定で従来通り表示可）。再配置ダイアログの文言を「n件を再配置します / 再配置する / やめる」に変更
 メインウィンドウ: ウィンドウ最小サイズを 600x400 に変更。「Avater」の誤字、ラベルが全て太字になる USS、⚙ ⋮ がアバター欄に重なる配置を修正
 共通: strip / node / apply / chip / icon-button / advanced の USS を PBReplacerCommon.uss に切り出し、PBRemap と共有（PBRemap の見た目は変更なし）
-共通: カテゴリアイコンはコンポーネント型のスクリプトアイコンを使用し、無い場合は Unity 内蔵の型（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）で代替
+共通: カテゴリアイコンはコンポーネント型のスクリプトアイコンを使用し、無い場合は Unity 内蔵の型（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）で代替（SDK 3.10.4 は固有アイコンを持たないため内蔵型が使われる）
+テスト: メインウィンドウの EditMode テスト（Tests/Editor、UI 生成・件数・レール切替・再配置と Undo・設定保存）を追加
 
 [3.0.0-beta.8]2026.09.02
 PBRemap: 設計を刷新。移植元の参照情報（マニフェスト）を「移植元にいる間」に自動保存し、Inspectorを開かなくてもPrefab化・別シーン/別プロジェクトへの持ち出し後に移植できるように

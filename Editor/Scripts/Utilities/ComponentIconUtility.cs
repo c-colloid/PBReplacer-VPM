@@ -100,7 +100,7 @@ namespace colloid.PBReplacer
 			}
 		}
 
-		/// <summary>既定の「cs Script Icon」と同一か（＝固有アイコンが無い）</summary>
+		/// <summary>既定のスクリプトアイコン（cs / dll Script Icon）と同一か（＝固有アイコンが無い）</summary>
 		private static bool IsDefaultScriptIcon(Texture2D tex)
 		{
 			if (tex == null) return true;
@@ -111,7 +111,8 @@ namespace colloid.PBReplacer
 			}
 			catch { }
 
-			foreach (var name in new[] { "cs Script Icon", "d_cs Script Icon" })
+			// C# スクリプトは "cs Script Icon"、DLL 内の型（VRC SDK など）は "dll Script Icon" が既定
+			foreach (var name in new[] { "cs Script Icon", "d_cs Script Icon", "dll Script Icon", "d_dll Script Icon" })
 			{
 				try
 				{
@@ -122,7 +123,7 @@ namespace colloid.PBReplacer
 			}
 
 			// 名前で判定できる場合（例: "d_cs Script Icon"）
-			return tex.name != null && tex.name.EndsWith("cs Script Icon", StringComparison.Ordinal);
+			return tex.name != null && tex.name.EndsWith("Script Icon", StringComparison.Ordinal);
 		}
 	}
 }
