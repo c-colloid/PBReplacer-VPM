@@ -74,6 +74,9 @@ namespace colloid.PBReplacer
 
 		// オブジェクトピッカー
 		private int _avatarPickerControlId = -1;
+
+		// このウィンドウが表示中のアバター（ドメインリロードやレイアウト復元をまたいで維持。閉じれば消える）
+		[SerializeField] private GameObject _keptAvatar;
 		#endregion
 
 		#region Data References
@@ -189,15 +192,39 @@ namespace colloid.PBReplacer
 			RegisterEvents();
 			RegisterDataManagerEvents();
 
-			// 既にアバターが設定済み（ドメインリロード後など）なら反映
-			if (AvatarFieldHelper.CurrentAvatar?.AvatarObject != null)
+			// アバターの復元は 3 段階:
+			//   1. このウィンドウが開いたまま（ドメインリロード / レイアウト復元）なら、シリアライズした _keptAvatar を戻す（設定に関係なく状態を維持）
+			//   2. 新しく開いたウィンドウで「前回のアバターを自動で読み込む」がオンなら、前回のアバターを読み込む
+			//   3. オフなら空で開く（AvatarFieldHelper が前のウィンドウのアバターを静的に保持していても引き継がない）
+			var current = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+			if (_keptAvatar != null)
 			{
-				_stateMachine.SetAvatar(true);
-				_stateMachine.OnDataLoaded();
+				if (current == _keptAvatar)
+				{
+					_stateMachine.SetAvatar(true);
+					_stateMachine.OnDataLoaded();
+				}
+				else
+				{
+					SetAvatar(_keptAvatar);
+				}
 			}
 			else if (_settings.AutoLoadLastAvatar)
 			{
-				EditorApplication.delayCall += TryLoadLastAvatar;
+				if (current != null)
+				{
+					_keptAvatar = current;
+					_stateMachine.SetAvatar(true);
+					_stateMachine.OnDataLoaded();
+				}
+				else
+				{
+					EditorApplication.delayCall += TryLoadLastAvatar;
+				}
+			}
+			else if (current != null)
+			{
+				AvatarFieldHelper.ClearAvatar();
 			}
 
 			RefreshAll();

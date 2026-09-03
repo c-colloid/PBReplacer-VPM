@@ -114,6 +114,35 @@ public class PBReplacerWindowTests
 	}
 
 	[Test]
+	public void AutoLoadOff_ReopenedWindowStartsEmpty()
+	{
+		bool saved = EditorPrefs.GetBool("PBReplacer.AutoLoadLastAvatar", true);
+		try
+		{
+			Invoke(_window, "SetAvatar", _avatar);
+			Assert.IsNotNull(AvatarFieldHelper.CurrentAvatar?.AvatarObject);
+
+			// オフにして閉じ、開き直す → 前のウィンドウのアバターを引き継がない
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", false);
+			_window.Close();
+			_window = EditorWindow.GetWindow<PBReplacerWindow>();
+			Assert.IsNull(AvatarFieldHelper.CurrentAvatar?.AvatarObject, "auto-load off: no avatar on reopen");
+			Assert.IsTrue(Get<VisualElement>(_window, "_root").Q<VisualElement>("node-avatar").ClassListContains("pbr-node--empty"));
+
+			// オンにして開き直す → 引き継ぐ（前回のアバター）
+			Invoke(_window, "SetAvatar", _avatar);
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", true);
+			_window.Close();
+			_window = EditorWindow.GetWindow<PBReplacerWindow>();
+			Assert.AreEqual(_avatar, AvatarFieldHelper.CurrentAvatar?.AvatarObject, "auto-load on: avatar kept on reopen");
+		}
+		finally
+		{
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", saved);
+		}
+	}
+
+	[Test]
 	public void SetAvatar_CountsAndStrip()
 	{
 		Invoke(_window, "SetAvatar", _avatar);

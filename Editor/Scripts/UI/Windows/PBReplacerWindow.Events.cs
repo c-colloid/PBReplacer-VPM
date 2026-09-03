@@ -60,6 +60,7 @@ namespace colloid.PBReplacer
 		{
 			// 先に Loading へ遷移させ、データ読み込みイベントが Loading 中に届くようにする
 			_stateMachine?.SetAvatar(avatarObject != null);
+			_keptAvatar = avatarObject;
 			AvatarFieldHelper.SetAvatar(avatarObject);
 			_settings?.SaveLastAvatarGUID(avatarObject);
 			_undoAvailable = false;
