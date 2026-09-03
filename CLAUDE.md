@@ -34,13 +34,24 @@ Editor/Scripts/
     Core/         - 移植コアロジック（BoneMapper、PBRemapper、ScaleCalculator、SourceDetector）
     Editor/       - 移植UI（PBRemapEditor、PBRemapPreviewWindow）
     NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
-  UI/Elements/    - カスタムUI要素
-  UI/Handlers/    - UIイベントハンドラ
-  UI/Windows/     - EditorWindowクラス
-  Utilities/      - ヘルパークラス
+  UI/Handlers/    - UIイベントハンドラ（アバタードロップ、列へのドロップ）
+  UI/Windows/     - EditorWindowクラス（PBReplacerWindow: partial 4 ファイル）
+  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得）
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
+`USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
+（ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
+同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
+
+### メインウィンドウの UI 語彙（PBRemap と共通）
+
+- ツール行: アイコンのみ（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）。説明はツールチップ
+- 流れ: `[アバター] ──(再配置 n →)── [AvatarDynamics]`。真ん中のピルが主操作。線と背景の色が状態
+- レール: `ComponentCategory` ごとのアイコンチップ。枠色=状態、右下バッジ=未処理件数。クリックで列の表示切替
+- 列: カテゴリごとの ListView。行頭 → 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
+- 文字は「オブジェクト名 / 数値 / 動詞1語」に限り、HelpBox・完了ダイアログは使わない
+- 設計の経緯と検証結果は `Docs~/MainWindow-Redesign.md`
 
 ### 主要パターン
 
@@ -61,17 +72,17 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 
 **StatusStateMachine** (`Core/StateMachine/`)
 - 状態: None → Loading → Idle → Processing → Complete/Warning/Error
-- UIのステータス表示を状態遷移で管理
+- メインウィンドウの流れ（strip）の色・ピルの有効/無効・ツールチップを状態遷移で管理
 
 **ComponentManager** (`Managers/`)
 - `ComponentManagerBase<T>`を継承したシングルトン
 - `IComponentManager<T>`インターフェースを実装
 - `Managers`静的クラスで全マネージャーへの統一アクセス
-- タブインデックス: 0=PhysBone(PB+PBC), 1=Constraint, 2=Contact
+- 処理グループ（`ComponentCategoryInfo.ProcessGroup`）: 0=PhysBone(PB+PBC), 1=Constraint, 2=Contact。PB と PBC は参照解決のため常に同時に処理する
 
 ### データフロー
 
-1. `AvatarFieldHelper`でアバター選択を管理
+1. `AvatarFieldHelper`でアバター選択を管理（ウィンドウ左ノードへのドロップ / ピッカー経由）
 2. 各`ComponentManager`がアバターからコンポーネントを検索・ロード
 3. `ComponentProcessor`がリフレクションでプロパティをコピーし再配置
 4. `ProcessingContext`で削除待ちコンポーネントを管理
