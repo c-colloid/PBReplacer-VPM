@@ -49,7 +49,7 @@
 
         <!-- 詳細設定（⚙ で開閉）。1 行 = [ラベル … 操作]。操作は右端で揃え、説明はツールチップ。保存先ごとに見出し -->
         <ui:VisualElement name="advanced" class="pbr-advanced" style="display: none;">
-            <ui:Label text="プロジェクト" class="pbr-advanced-section" tooltip="ProjectSettings/ に保存。チームで共有される" />
+            <ui:Label text="プロジェクト" class="pbr-advanced-section pbr-advanced-section--first" tooltip="ProjectSettings/ に保存。チームで共有される" />
             <uie:EnumField name="setting-find-component" class="pbr-setting pbr-setting-field" label="検索範囲" type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" tooltip="再配置の対象を探す階層" />
             <ui:Toggle name="setting-destroy-unused" class="pbr-setting pbr-switch" label="空になったフォルダを削除" tooltip="再配置後、コンポーネントが無くなって空になった GameObject を削除する" />
             <ui:Toggle name="setting-unpack-prefab" class="pbr-setting pbr-switch" label="Prefab を Unpack してから再配置" tooltip="アバターが Prefab のとき、先に Prefab との接続を解除する（以後 Prefab の更新を受けなくなる）。Ctrl+Z で戻せる" />

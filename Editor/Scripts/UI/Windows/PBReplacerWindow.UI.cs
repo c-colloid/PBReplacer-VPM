@@ -14,23 +14,52 @@ namespace colloid.PBReplacer
 		#region UXML Loading
 		private void LoadUXMLLayout()
 		{
-			if (_windowLayout == null)
+			// シリアライズ済みの参照（レイアウト保存など）が古い/壊れている場合に備え、
+			// 期待する要素（strip）が無ければ Resources から読み直す
+			var layout = _windowLayout;
+			_root = CloneLayout(layout);
+			if (_root == null || _root.Q<VisualElement>("strip") == null)
 			{
-				_windowLayout = Resources.Load<VisualTreeAsset>("UXML/PBReplacer")
-					?? Resources.Load<VisualTreeAsset>("PBReplacer");
+				var fresh = Resources.Load<VisualTreeAsset>("UXML/PBReplacer");
+				if (fresh != null && fresh != layout)
+				{
+					layout = fresh;
+					_root = CloneLayout(layout);
+				}
 			}
 
-			if (_windowLayout == null)
+			if (_root == null || _root.Q<VisualElement>("strip") == null)
 			{
-				Debug.LogError("PBReplacer UIレイアウトが見つかりません。");
+				string path = layout != null ? AssetDatabase.GetAssetPath(layout) : "(null)";
+				bool withErrors = false;
+#if UNITY_2021_2_OR_NEWER
+				withErrors = layout != null && layout.importedWithErrors;
+#endif
+				Debug.LogError($"PBReplacer: UI レイアウト（UXML/PBReplacer.uxml）を読み込めませんでした。asset={path} importedWithErrors={withErrors}\n"
+					+ "Packages/jp.colloid.pbreplacer を再インポート（右クリック → Reimport）するか、Console の UXML/USS のインポートエラーを確認してください。");
+				_root = null;
 				return;
 			}
 
-			_root = _windowLayout.CloneTree();
+			_windowLayout = layout;
 			_root.style.flexGrow = 1;
 			rootVisualElement.Add(_root);
 			PBReplacerFonts.Apply(rootVisualElement);
 			PBReplacerTheme.Apply(rootVisualElement);
+		}
+
+		private static TemplateContainer CloneLayout(VisualTreeAsset layout)
+		{
+			if (layout == null) return null;
+			try
+			{
+				return layout.CloneTree();
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
+				return null;
+			}
 		}
 
 		private void GetUIReferences()
