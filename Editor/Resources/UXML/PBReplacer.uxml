@@ -1,11 +1,17 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <ui:Template name="Column" src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/UXML/PBReplacerColumn.uxml?fileID=9197481963319205126&amp;guid=87ad64a1f98a411787cb2777e5e4ab4e&amp;type=3#PBReplacerColumn" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
 
     <ui:VisualElement name="window" class="pbr-window">
 
-        <!-- ツール行（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）: C# で生成 -->
-        <ui:VisualElement name="tools" class="pbr-tools" />
+        <!-- ツール行（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）。アイコン画像は Unity 内蔵なので C# で設定 -->
+        <ui:VisualElement name="tools" class="pbr-tools">
+            <ui:Button name="tool-reload" class="pbr-icon-button" tooltip="再読み込み"><ui:Image name="tool-reload-icon" class="pbr-icon" /></ui:Button>
+            <ui:Button name="tool-undo" class="pbr-icon-button" tooltip="直前の再配置を元に戻す (Ctrl+Z)"><ui:Image name="tool-undo-icon" class="pbr-icon" /></ui:Button>
+            <ui:Button name="tool-gear" class="pbr-icon-button" tooltip="詳細設定"><ui:Image name="tool-gear-icon" class="pbr-icon" /></ui:Button>
+            <ui:Button name="tool-menu" class="pbr-icon-button" tooltip="その他"><ui:Image name="tool-menu-icon" class="pbr-icon" /></ui:Button>
+        </ui:VisualElement>
 
         <!-- 流れ: [アバター] ──(再配置 n →)── [AvatarDynamics]  左→右 = 再配置の向き -->
         <ui:VisualElement name="strip" class="pbr-strip">
@@ -66,10 +72,41 @@
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- レール（カテゴリのアイコンチップ）+ 列（カテゴリごとの一覧）: C# で生成 -->
+        <!-- レール（カテゴリのアイコンチップ。枠色=状態、右下バッジ=未処理件数）+ 列（カテゴリごとの一覧）。
+             アイコン画像・件数・一覧データは C# がバインドする -->
         <ui:VisualElement name="body" class="pbr-body">
-            <ui:VisualElement name="rail" class="pbr-rail" />
-            <ui:VisualElement name="columns" class="pbr-columns" />
+            <ui:VisualElement name="rail" class="pbr-rail">
+            <ui:VisualElement name="chip-PhysBone" class="pbr-rail-chip">
+                <ui:Image name="chip-PhysBone-icon" class="pbr-rail-chip-icon" />
+                <ui:Label name="chip-PhysBone-badge" class="pbr-rail-badge" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="chip-PhysBoneCollider" class="pbr-rail-chip">
+                <ui:Image name="chip-PhysBoneCollider-icon" class="pbr-rail-chip-icon" />
+                <ui:Label name="chip-PhysBoneCollider-badge" class="pbr-rail-badge" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="chip-Constraint" class="pbr-rail-chip">
+                <ui:Image name="chip-Constraint-icon" class="pbr-rail-chip-icon" />
+                <ui:Label name="chip-Constraint-badge" class="pbr-rail-badge" picking-mode="Ignore" />
+            </ui:VisualElement>
+            <ui:VisualElement name="chip-Contact" class="pbr-rail-chip">
+                <ui:Image name="chip-Contact-icon" class="pbr-rail-chip-icon" />
+                <ui:Label name="chip-Contact-badge" class="pbr-rail-badge" picking-mode="Ignore" />
+            </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="columns" class="pbr-columns">
+            <ui:Instance template="Column" class="pbr-column-slot" name="column-PhysBone">
+                <AttributeOverrides element-name="title" text="PhysBone" />
+            </ui:Instance>
+            <ui:Instance template="Column" class="pbr-column-slot" name="column-PhysBoneCollider">
+                <AttributeOverrides element-name="title" text="PhysBone Collider" />
+            </ui:Instance>
+            <ui:Instance template="Column" class="pbr-column-slot" name="column-Constraint">
+                <AttributeOverrides element-name="title" text="Constraint" />
+            </ui:Instance>
+            <ui:Instance template="Column" class="pbr-column-slot" name="column-Contact">
+                <AttributeOverrides element-name="title" text="Contact" />
+            </ui:Instance>
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

@@ -4,8 +4,12 @@
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss?fileID=7433441132597879392&amp;guid=d2599c9a80cec7b45a0eb873e03b097b&amp;type=3#PBRemap" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
 
-    <!-- ツール（参照情報更新 / SceneViewプレビュー / 詳細設定）: C# でアイコンボタンを生成 -->
-    <ui:VisualElement name="tools" class="pbremap-tools" />
+    <!-- ツール（参照情報更新 / SceneViewプレビュー / 詳細設定）。アイコン画像は Unity 内蔵なので C# で設定 -->
+    <ui:VisualElement name="tools" class="pbremap-tools">
+        <ui:Button name="tool-refresh" class="pbremap-icon-button" tooltip="参照情報を取り直す（移植元にいるときだけ）"><ui:Image name="tool-refresh-icon" class="pbremap-icon" /></ui:Button>
+        <ui:Button name="tool-eye" class="pbremap-icon-button" tooltip="SceneView に対応線を表示"><ui:Image name="tool-eye-icon" class="pbremap-icon" /></ui:Button>
+        <ui:Button name="tool-gear" class="pbremap-icon-button" tooltip="詳細設定"><ui:Image name="tool-gear-icon" class="pbremap-icon" /></ui:Button>
+    </ui:VisualElement>
 
     <!-- 流れ: [移植元] ──(移植)──▶ [移植先]  左→右 = ドラッグの向き -->
     <ui:VisualElement name="strip" class="pbremap-strip">

@@ -78,7 +78,7 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 ## 4. 実装
 
 - 共通 USS: `Editor/Resources/USS/PBReplacerCommon.uss`（`PBRemap.uss` から strip / node / apply / chip / icon-button / advanced を移動。`.pbremap-*` と `.pbr-*` の両名で提供し PBRemap 側は無変更）
-- メインウィンドウ: `Editor/Resources/UXML/PBReplacer.uxml`, `USS/PBReplacer.uss`, `Editor/Scripts/UI/Windows/PBReplacerWindow.{cs,UI.cs,Columns.cs,Events.cs}`
+- メインウィンドウ: `Editor/Resources/UXML/PBReplacer.uxml`（＋列テンプレート `PBReplacerColumn.uxml`、行テンプレート `PBReplacerRow.uxml`）, `USS/PBReplacer.uss`, `Editor/Scripts/UI/Windows/PBReplacerWindow.{cs,UI.cs,Columns.cs,Events.cs}`。構成要素は UXML、C# は内蔵アイコン・イベント・データのバインドのみ
 - カテゴリ: `Editor/Scripts/Models/ComponentCategory.cs`（表示名 / 型 / 代替アイコン型 / 処理グループ）
 - アイコン: `Editor/Scripts/Utilities/ComponentIconUtility.cs`
 - ドロップ: `Editor/Scripts/UI/Handlers/ColumnDropHandler.cs`（アバターは既存 `AvatarFieldDropManipulator`。ピッカー用に `ResolveAvatarComponent` を公開）

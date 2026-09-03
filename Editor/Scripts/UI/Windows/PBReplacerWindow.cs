@@ -54,9 +54,10 @@ namespace colloid.PBReplacer
 		// 詳細設定
 		private VisualElement _advanced;
 
-		// レール + 列
+		// レール + 列（要素は UXML。行のテンプレートは PBReplacerRow.uxml）
 		private VisualElement _rail;
 		private VisualElement _columns;
+		private VisualTreeAsset _rowTemplate;
 		private readonly Dictionary<ComponentCategory, RailChip> _chips = new Dictionary<ComponentCategory, RailChip>();
 		private readonly Dictionary<ComponentCategory, CategoryColumn> _columnViews = new Dictionary<ComponentCategory, CategoryColumn>();
 		private readonly List<ColumnDropHandler> _dropHandlers = new List<ColumnDropHandler>();

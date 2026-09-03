@@ -74,21 +74,26 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// ツール行: PBRemap と同じ右寄せのアイコンボタン（説明はツールチップ）
+		/// ツール行: 要素は UXML（tools 配下）。ここでは内蔵アイコンの画像とクリックだけを結び付ける
 		/// </summary>
 		private void InitializeTools()
 		{
-			_reloadButton = PBRemapIcons.IconButton(PBRemapIcons.Refresh, "再読み込み", OnReloadButtonClicked);
-			_undoButton = PBRemapIcons.IconButton(PBRemapIcons.Undo, "直前の再配置を元に戻す (Ctrl+Z)", OnUndoButtonClicked);
-			_gearButton = PBRemapIcons.IconButton(PBRemapIcons.Settings, "詳細設定", OnGearButtonClicked);
-			_menuButton = PBRemapIcons.IconButton("_Menu", "その他", OnOverflowMenuButtonClicked);
-
-			_tools.Add(_reloadButton);
-			_tools.Add(_undoButton);
-			_tools.Add(_gearButton);
-			_tools.Add(_menuButton);
+			_reloadButton = BindIconButton("tool-reload", PBRemapIcons.Refresh, OnReloadButtonClicked);
+			_undoButton = BindIconButton("tool-undo", PBRemapIcons.Undo, OnUndoButtonClicked);
+			_gearButton = BindIconButton("tool-gear", PBRemapIcons.Settings, OnGearButtonClicked);
+			_menuButton = BindIconButton("tool-menu", "_Menu", OnOverflowMenuButtonClicked);
 
 			UpdateTools();
+		}
+
+		/// <summary>UXML 上のアイコンボタンに内蔵アイコンとクリック処理を結び付ける</summary>
+		private Button BindIconButton(string name, string iconName, Action onClick)
+		{
+			var button = _root.Q<Button>(name);
+			if (button == null) return null;
+			PBRemapIcons.Set(button.Q<Image>(), iconName);
+			button.clicked += onClick;
+			return button;
 		}
 
 		private void UpdateTools()
@@ -220,21 +225,21 @@ namespace colloid.PBReplacer
 		private bool IsAdvancedVisible => _advancedVisible;
 
 		/// <summary>
-		/// レール: カテゴリのアイコンチップ。文字は持たず、名前と件数はツールチップと列見出しに任せる。
+		/// レール: チップの要素は UXML（rail 配下の chip-{Category}）。ここではアイコン画像とクリックだけを結び付ける
 		/// </summary>
 		private void InitializeRail()
 		{
-			_rail.Clear();
 			_chips.Clear();
 
 			foreach (var category in ComponentCategoryInfo.All)
 			{
-				// SDK に固有アイコンが無ければ内蔵型で代替するが、レイアウトは常に案 i（28px + 右下バッジ）
-				var icon = ComponentIconUtility.GetCategoryIcon(category, out _);
-				var chip = new RailChip(category, icon);
+				var root = _rail.Q<VisualElement>($"chip-{category}");
+				if (root == null) continue;
+
+				// SDK に固有アイコンが無ければ内蔵型で代替（レイアウトは UXML/USS のまま）
+				var chip = new RailChip(category, root, ComponentIconUtility.GetCategoryIcon(category, out _));
 				chip.Root.RegisterCallback<ClickEvent>(evt => OnRailChipClicked(category, evt.altKey));
 				_chips[category] = chip;
-				_rail.Add(chip.Root);
 			}
 		}
 
@@ -284,7 +289,7 @@ namespace colloid.PBReplacer
 
 		#region Rail Chip
 		/// <summary>
-		/// レールのチップ 1 つ（28px 正方形 + 右下バッジ）。PBRemap のノード（アイコン + 右下バッジ）と同じ構図。
+		/// レールのチップ 1 つ。要素は UXML で定義済み（Image + Label バッジ）。C# は画像・件数・状態クラスを反映するだけ
 		/// </summary>
 		private class RailChip
 		{
@@ -293,21 +298,16 @@ namespace colloid.PBReplacer
 			public readonly Image Icon;
 			public readonly Label Badge;
 
-			public RailChip(ComponentCategory category, Texture2D icon)
+			public RailChip(ComponentCategory category, VisualElement root, Texture2D icon)
 			{
 				Category = category;
-				Root = new VisualElement { name = $"chip-{category}" };
-				Root.AddToClassList("pbr-rail-chip");
+				Root = root;
 				Root.tooltip = ComponentCategoryInfo.DisplayName(category);
 
-				Icon = new Image { image = icon, scaleMode = ScaleMode.ScaleToFit };
-				Icon.AddToClassList("pbr-rail-chip-icon");
-				Root.Add(Icon);
+				Icon = root.Q<Image>(className: "pbr-rail-chip-icon");
+				if (Icon != null) { Icon.image = icon; Icon.scaleMode = ScaleMode.ScaleToFit; }
 
-				Badge = new Label();
-				Badge.AddToClassList("pbr-rail-badge");
-				Badge.pickingMode = PickingMode.Ignore;
-				Root.Add(Badge);
+				Badge = root.Q<Label>(className: "pbr-rail-badge");
 			}
 
 			public void Update(int pending, int total, bool visible)

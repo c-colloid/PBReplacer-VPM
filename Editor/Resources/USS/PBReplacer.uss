@@ -184,6 +184,14 @@ ObjectFieldSelector {
     min-height: 0;
 }
 
+/* UXML の Instance（テンプレートの入れ物）。列本体 .pbr-column はこの中で伸びる */
+.pbr-column-slot {
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    min-height: 0;
+}
+
 .pbr-column {
     flex-grow: 1;
     flex-basis: 0;
@@ -247,7 +255,7 @@ ObjectFieldSelector {
     opacity: 0.6;
 }
 
-.pbr-column-dropzone > Image {
+.pbr-column-dropzone-icon {
     width: 10px;
     height: 10px;
 }
@@ -271,7 +279,7 @@ ObjectFieldSelector {
     padding: 12px;
 }
 
-.pbr-column-empty > Image {
+.pbr-column-empty-icon {
     width: 20px;
     height: 20px;
     opacity: 0.35;
@@ -349,6 +357,11 @@ ObjectFieldSelector {
     align-items: center;
     justify-content: center;
     border-radius: 3px;
+}
+
+.pbr-row-action-icon {
+    width: 12px;
+    height: 12px;
 }
 
 .pbr-row-fold {

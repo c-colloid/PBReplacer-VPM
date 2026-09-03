@@ -40,6 +40,12 @@ Editor/Scripts/
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
+**見た目（構成要素・クラス・文言・ツールチップ）はUXML/USSに置き、C#は要素をnameで取得して
+「内蔵アイコンの画像・イベント・データ」だけをバインドする**（内蔵アイコンはUXMLから参照できないためC#で設定）。
+- `UXML/PBReplacer.uxml`: メインウィンドウ（ツール行のボタン、流れ、詳細設定、レールのチップ×4、列のInstance×4）
+- `UXML/PBReplacerColumn.uxml`: 列テンプレート（見出し / ListView / 空状態）。列名は`AttributeOverrides`で上書き
+- `UXML/PBReplacerRow.uxml`: 行テンプレート（畳み記号 / 状態アイコン / 名前 / ホバー操作）。`ListView.makeItem`でInstantiate
+- `UXML/PBRemap.uxml`: PBRemap Inspector（ツール行のボタンを含む）。候補チップ・対応表の行はデータ駆動のためC#生成
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。

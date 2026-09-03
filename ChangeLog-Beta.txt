@@ -5,6 +5,7 @@
 メインウィンドウ: レールのアイコンチップを常に「28px 正方形＋右下バッジ」（設計の案 i）で描画（SDK に固有アイコンが無い場合も 2 段表示に切り替えない）
 メインウィンドウ: 行にホバーで「Hierarchy で表示」「削除」のボタンを表示（右クリックメニューと同じ操作。PBRemap の行操作と同じ 22×18）
 共通: 日本語フォントの適用を USS からルート要素へのインライン適用（PBReplacerFonts）に変更し、メインウィンドウ・PBRemap Inspector・移植プレビューで共通化
+内部: メインウィンドウのツール行・レールのチップ・列・行と PBRemap のツール行を UXML（PBReplacerColumn.uxml / PBReplacerRow.uxml を追加）に分離し、C# は内蔵アイコン・イベント・データのバインドのみに変更（見た目の調整を UXML/USS だけで行えるように）
 共通: UITKFontFix（jp.colloid.uitk-font-fix）に対応。導入済みで OS が日本語/中国語/韓国語のときは OS フォント（Yu Gothic UI / Meiryo / Noto Sans CJK）を使い、それ以外は同梱の Noto Sans JP を使う（未導入でも従来どおり動作）
 
 [3.0.0-beta.9]2026.09.03
