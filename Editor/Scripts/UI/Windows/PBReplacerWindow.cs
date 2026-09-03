@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -99,8 +99,7 @@ namespace colloid.PBReplacer
 		#endregion
 
 		#region Unity Methods
-		[MenuItem("Tools/PBReplacer/MainWindow")]
-		[MenuItem("GameObject/PBReplacer", false, 25)]
+		[MenuItem("Tools/PBReplacer")]
 		public static void ShowWindow()
 		{
 			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
@@ -108,7 +107,7 @@ namespace colloid.PBReplacer
 			window.minSize = new Vector2(600, 400);
 		}
 
-		[MenuItem("GameObject/PBReplacer Selected", false, 26)]
+		[MenuItem("GameObject/PBReplacer for Selected", false, 26)]
 		public static void ShowWindowWithSelection()
 		{
 			ShowWindow();
@@ -118,17 +117,6 @@ namespace colloid.PBReplacer
 			{
 				window.AcceptAvatarObject(Selection.activeGameObject);
 			}
-		}
-
-		/// <summary>
-		/// 設定は別ウィンドウではなくメインウィンドウの ⚙ パネル（旧 Tools/PBReplacer/Settings の導線を維持）
-		/// </summary>
-		[MenuItem("Tools/PBReplacer/Settings", false, 21)]
-		public static void ShowSettings()
-		{
-			ShowWindow();
-			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
-			window.SetAdvancedVisible(true);
 		}
 
 		/// <summary>
