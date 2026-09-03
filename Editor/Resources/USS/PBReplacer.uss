@@ -51,7 +51,8 @@ ObjectFieldSelector {
     margin: 8px 0 2px 0;
 }
 
-.pbr-advanced-section:first-child {
+/* USS には :first-child が無い（Unity がエラーを出す）ので、先頭の見出しはクラスで指定 */
+.pbr-advanced-section--first {
     margin-top: 4px;
 }
 
