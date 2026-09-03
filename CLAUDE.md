@@ -36,7 +36,7 @@ Editor/Scripts/
     NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
   UI/Handlers/    - UIイベントハンドラ（アバタードロップ、列へのドロップ）
   UI/Windows/     - EditorWindowクラス（PBReplacerWindow: partial 4 ファイル）
-  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得）
+  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得、PBReplacerFonts: ルートへの日本語フォント適用）
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
@@ -95,6 +95,8 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 ### 条件付きコンパイル
 
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
+
+`#if UITK_FONT_FIX`でUITKFontFix（`jp.colloid.uitk-font-fix`）によるOSフォント適用をサポート（`versionDefines`で自動定義）。未導入時は同梱のNoto Sans JPを`PBReplacerFonts.Apply(root)`がルートにインラインで適用する。USSで`-unity-font-definition`を各要素に書くと継承が壊れるので書かない。
 
 `#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
 PBRemapコンポーネントを`BuildPhase.Resolving`で自動処理し、ランタイムでは除去する。

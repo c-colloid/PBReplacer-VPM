@@ -45,7 +45,7 @@ PBRemap Inspector の再設計（`PBRemap-Redesign.md` §6, §7）と同じ 7 �
 | 2. 気持ちよさ | 成功時に流れが緑に光って戻る（PBRemap と同じ transition）。確認ダイアログは既定オフ（Undo 可能）。↶ で直前の再配置を戻せる |
 | 3. 必要最小限 | レールの文字を削除（列見出しと重複）、ListView 10 個→カテゴリ 4 列、設定ウィンドウ廃止、進捗バー設定を UI から削除 |
 | 4. 誤解ゼロ | → / ✔ の記号と枠色の二重コード。赤はバッチ失敗だけ。Unpack には「元に戻せません」。ピルのラベルは「再配置 n」で対象件数を明示 |
-| 5. アイコン圧縮 | カテゴリはコンポーネント型のスクリプトアイコン（Inspector / Add Component と同じ記号）。無ければ内蔵型で代替し、レールをアイコン＋件数の 2 段に切替。ホバーで名前と件数のツールチップ |
+| 5. アイコン圧縮 | カテゴリはコンポーネント型のスクリプトアイコン（Inspector / Add Component と同じ記号）。無ければ内蔵型で代替（レイアウトは常に案 i）。ホバーで名前と件数のツールチップ |
 | 6. 共通認識 | Console のフィルタチップ（クリックで表示切替、Alt+クリックで Solo）、Prefab の Linked、Hierarchy からのドロップ、内蔵アイコン（Refresh / back / Settings / Valid / forward / FolderEmpty / Prefab） |
 | 7. 向きと動作 | 左→右＝再配置の向き（PBRemap の移植元→移植先と同一）。ドロップ先は左ノード（アバター）と列（コンポーネント追加） |
 
@@ -70,7 +70,7 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 | 検証項目 | 結果 |
 |---|---|
 | 行の ✖（個別の失敗）状態 | `ComponentProcessor` はバッチ全体の例外しか返さず、RootTransform 未設定は自動補完される。行の記号は → / ✔ の 2 種に削減し、赤は流れ（バッチ失敗）だけに残した |
-| アイコンの入手性 | SDK が固有アイコンを持つかは実機依存。名前文字列ではなく `AssetPreview.GetMiniThumbnail(component)` で型から取得し、既定のスクリプトアイコンと同じなら内蔵型（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）で代替。代替時はレールを 2 段表示に切替 |
+| アイコンの入手性 | SDK が固有アイコンを持つかは実機依存。名前文字列ではなく `AssetPreview.GetMiniThumbnail(component)` で型から取得し、既定のスクリプトアイコンと同じなら内蔵型（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）で代替。レイアウトは常に案 i（beta.10 で 2 段表示への切替を廃止） |
 | 一覧性 | 650×450 で列の高さ ≈ 340px、行高 20px で約 17 行 × 最大 4 列。最小サイズ 600×400 |
 | ライトテーマ | strip / chip / rail の色は全て半透明のオーバーレイ。内蔵アイコンは `PBRemapIcons.Get` が d_ の有無を切り替える |
 | ドロップ | `ListViewDragHandler`（一時コンポーネントでプレビューする方式）を廃止し、列ルートで TrickleDown で受ける `ColumnDropHandler` に置換。Constraint / Contact は型をメニューで選ぶ |
@@ -90,6 +90,12 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 - コンパイル: エラーなし。EditMode テスト 6 件（`Tests/Editor/PBReplacerWindowTests.cs`）すべて合格
 - SDK の VRCPhysBone 等は固有アイコンを持たず既定の「dll Script Icon」だった。型ベース判定が代替（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）を選び、レールは 2 段表示になる
 - 未設定 / 未処理あり / 全件配置済み / ⚙ 展開 の 4 状態を Xvfb 上で描画して確認（流れの色・ピル・レールのバッジ・列の ✔ 畳み込みが設計どおり）
+
+## 5.1 beta.10 での差異解消
+
+- レールは SDK アイコンの有無にかかわらず案 i（28px＋右下バッジ）。beta.9 では VRChat SDK に固有アイコンが無いため常に 2 段表示（案 ii）になっていた
+- 行のホバー操作（Hierarchy で表示 / 削除）を追加。右クリックメニューは維持
+- フォント適用を USS の `.unity-text-element` 指定からルートへのインライン適用（`PBReplacerFonts.Apply`）に変更。UITKFontFix 導入時は OS フォントを優先し、無ければ同梱 Noto Sans JP
 
 ## 6. 未決（後続）
 

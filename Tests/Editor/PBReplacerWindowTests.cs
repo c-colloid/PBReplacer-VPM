@@ -101,6 +101,8 @@ public class PBReplacerWindowTests
 		Assert.AreEqual(4, root.Q<VisualElement>("tools").childCount, "4 tool buttons");
 		Assert.IsNotNull(root.Q<VisualElement>("strip"));
 		Assert.AreEqual(4, root.Q<VisualElement>("rail").childCount, "4 rail chips");
+		Assert.IsFalse(root.Q<VisualElement>("chip-PhysBone").ClassListContains("pbr-rail-chip--fallback"), "rail always uses the 案 i layout");
+		Assert.IsNotNull(_window.rootVisualElement.style.unityFontDefinition.value.fontAsset ?? (object)_window.rootVisualElement.style.unityFontDefinition.value.font, "font applied on root");
 		Assert.AreEqual(4, root.Q<VisualElement>("columns").childCount, "4 columns");
 		Assert.AreEqual(DisplayStyle.None, root.Q<VisualElement>("advanced").style.display.value, "advanced closed by default");
 
@@ -139,6 +141,10 @@ public class PBReplacerWindowTests
 		// 列の件数
 		var pbCol = root.Q<VisualElement>("column-PhysBone");
 		Assert.AreEqual("3 / 3", pbCol.Q<Label>(className: "pbr-column-count").text);
+
+		// 行にはホバーで出る操作（Ping / 削除）がある
+		var rowElement = pbCol.Q<ListView>().makeItem();
+		Assert.AreEqual(2, rowElement.Q<VisualElement>(className: "pbr-row-actions").childCount, "ping + delete actions");
 	}
 
 	[Test]

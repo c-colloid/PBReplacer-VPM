@@ -77,6 +77,7 @@ namespace colloid.PBReplacer
 			var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
 			if (styleSheet != null)
 				root.styleSheets.Add(styleSheet);
+			PBReplacerFonts.Apply(root);
 
 			_summaryLabel = root.Q<Label>("preview-summary");
 			_filterBar = root.Q<VisualElement>("preview-filter-bar");

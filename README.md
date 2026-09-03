@@ -45,6 +45,11 @@
 * 左のレールはカテゴリ（PhysBone / PhysBone Collider / Constraint / Contact）のアイコン。右下の数字が未処理件数で、クリックで列の表示切替、Alt+クリックでその列だけ表示
 * 各列は行頭の → が未処理、✔ が配置済み（列末尾に畳めます）。Hierarchy のオブジェクトを列へドロップするとそのカテゴリのコンポーネントを追加できます
 * 右上の ↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定（検索範囲・空フォルダ削除・Prefab の Unpack・自動読み込み・確認ダイアログ）/ ⋮ その他
+* 行にマウスを乗せると「Hierarchy で表示」「削除」のボタンが出ます（右クリックでも同じ操作ができます）
+
+### フォント（任意）
+
+UI の日本語は同梱の Noto Sans JP で表示します。[UITKFontFix](https://github.com/c-colloid/UITKFontFix)（`jp.colloid.uitk-font-fix`）を導入すると、OS が日本語/中国語/韓国語のときは OS のフォント（Yu Gothic UI / Meiryo / Noto Sans CJK）で表示されます。Package Manager の「Add package from git URL...」に `https://github.com/c-colloid/UITKFontFix.git?path=jp.colloid.uitk-font-fix` を指定してください。
 
 ## その他仕様
 

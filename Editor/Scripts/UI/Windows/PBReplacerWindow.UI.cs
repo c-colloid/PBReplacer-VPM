@@ -29,6 +29,7 @@ namespace colloid.PBReplacer
 			_root = _windowLayout.CloneTree();
 			_root.style.flexGrow = 1;
 			rootVisualElement.Add(_root);
+			PBReplacerFonts.Apply(rootVisualElement);
 		}
 
 		private void GetUIReferences()
@@ -220,29 +221,20 @@ namespace colloid.PBReplacer
 
 		/// <summary>
 		/// レール: カテゴリのアイコンチップ。文字は持たず、名前と件数はツールチップと列見出しに任せる。
-		/// SDK の型アイコンが無いカテゴリが 1 つでもあればレール全体を「アイコン＋件数の 2 段」にする（案 ii）。
 		/// </summary>
 		private void InitializeRail()
 		{
 			_rail.Clear();
 			_chips.Clear();
 
-			bool anyFallback = false;
 			foreach (var category in ComponentCategoryInfo.All)
 			{
-				var icon = ComponentIconUtility.GetCategoryIcon(category, out bool isFallback);
-				anyFallback |= isFallback;
-
-				var chip = new RailChip(category, icon, isFallback);
+				// SDK に固有アイコンが無ければ内蔵型で代替するが、レイアウトは常に案 i（28px + 右下バッジ）
+				var icon = ComponentIconUtility.GetCategoryIcon(category, out _);
+				var chip = new RailChip(category, icon);
 				chip.Root.RegisterCallback<ClickEvent>(evt => OnRailChipClicked(category, evt.altKey));
 				_chips[category] = chip;
 				_rail.Add(chip.Root);
-			}
-
-			_rail.EnableInClassList("pbr-rail--fallback", anyFallback);
-			if (anyFallback)
-			{
-				foreach (var chip in _chips.Values) chip.Root.AddToClassList("pbr-rail-chip--fallback");
 			}
 		}
 
@@ -301,7 +293,7 @@ namespace colloid.PBReplacer
 			public readonly Image Icon;
 			public readonly Label Badge;
 
-			public RailChip(ComponentCategory category, Texture2D icon, bool isFallback)
+			public RailChip(ComponentCategory category, Texture2D icon)
 			{
 				Category = category;
 				Root = new VisualElement { name = $"chip-{category}" };

@@ -135,6 +135,17 @@ namespace colloid.PBReplacer
 			name.AddToClassList("pbr-row-name");
 			row.Add(name);
 
+			// ホバーで出る操作: Hierarchy で表示 / 削除（右クリックメニューと同じ内容）
+			var actions = new VisualElement();
+			actions.AddToClassList("pbr-row-actions");
+			var pingButton = PBRemapIcons.IconButton("UnityEditor.SceneHierarchyWindow", "Hierarchy で表示", () => PingRowComponent(row), 12);
+			pingButton.AddToClassList("pbr-row-action");
+			actions.Add(pingButton);
+			var deleteButton = PBRemapIcons.IconButton(PBRemapIcons.Trash, "このコンポーネントを削除", () => DeleteRowComponent(row), 12);
+			deleteButton.AddToClassList("pbr-row-action");
+			actions.Add(deleteButton);
+			row.Add(actions);
+
 			// 見出し行のクリック = 配置済みの開閉
 			row.RegisterCallback<ClickEvent>(evt =>
 			{
@@ -151,31 +162,44 @@ namespace colloid.PBReplacer
 				if (!(row.userData is RowItem item) || item.IsDoneHeader || item.Component == null) return;
 				var target = item.Component;
 
-				evt.menu.AppendAction("Hierarchy で表示", _ =>
-				{
-					if (target == null) return;
-					Selection.activeGameObject = target.gameObject;
-					EditorGUIUtility.PingObject(target.gameObject);
-				});
-
+				evt.menu.AppendAction("Hierarchy で表示", _ => PingComponent(target));
 				evt.menu.AppendSeparator();
-				evt.menu.AppendAction("このコンポーネントを削除", _ =>
-				{
-					if (target == null) return;
-					bool confirmed = EditorUtility.DisplayDialog(
-						"コンポーネントの削除",
-						$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
-						"削除する",
-						"やめる");
-					if (!confirmed) return;
-
-					Undo.DestroyObjectImmediate(target);
-					DataManagerHelper.NotifyComponentsRemoved(target);
-					DataManagerHelper.ReloadData();
-				});
+				evt.menu.AppendAction("このコンポーネントを削除", _ => DeleteComponent(target));
 			}));
 
 			return row;
+		}
+
+		private static void PingRowComponent(VisualElement row)
+		{
+			if (row.userData is RowItem item && !item.IsDoneHeader) PingComponent(item.Component);
+		}
+
+		private static void DeleteRowComponent(VisualElement row)
+		{
+			if (row.userData is RowItem item && !item.IsDoneHeader) DeleteComponent(item.Component);
+		}
+
+		private static void PingComponent(Component target)
+		{
+			if (target == null) return;
+			Selection.activeGameObject = target.gameObject;
+			EditorGUIUtility.PingObject(target.gameObject);
+		}
+
+		private static void DeleteComponent(Component target)
+		{
+			if (target == null) return;
+			bool confirmed = EditorUtility.DisplayDialog(
+				"コンポーネントの削除",
+				$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
+				"削除する",
+				"やめる");
+			if (!confirmed) return;
+
+			Undo.DestroyObjectImmediate(target);
+			DataManagerHelper.NotifyComponentsRemoved(target);
+			DataManagerHelper.ReloadData();
 		}
 
 		private void BindRow(CategoryColumn column, VisualElement element, int index)
@@ -187,6 +211,8 @@ namespace colloid.PBReplacer
 			var fold = element.Q<Image>(className: "pbr-row-fold");
 			var icon = element.Q<Image>(className: "pbr-row-icon");
 			var name = element.Q<Label>(className: "pbr-row-name");
+			var actions = element.Q<VisualElement>(className: "pbr-row-actions");
+			actions.EnableInClassList("pbr-row-actions--hidden", item.IsDoneHeader || item.Component == null);
 
 			element.EnableInClassList("pbr-row--header", item.IsDoneHeader);
 			element.EnableInClassList("pbr-row--done", item.Processed && !item.IsDoneHeader);
