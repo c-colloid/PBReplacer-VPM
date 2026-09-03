@@ -8,7 +8,7 @@
 内部: メインウィンドウのツール行・レールのチップ・列・行と PBRemap のツール行を UXML（PBReplacerColumn.uxml / PBReplacerRow.uxml を追加）に分離し、C# は内蔵アイコン・イベント・データのバインドのみに変更（見た目の調整を UXML/USS だけで行えるように）
 共通: UITKFontFix（jp.colloid.uitk-font-fix）に対応。導入済みで OS が日本語/中国語/韓国語のときは OS フォント（Yu Gothic UI / Meiryo / Noto Sans CJK）を使い、それ以外は同梱の Noto Sans JP を使う（未導入でも従来どおり動作）
 共通: ライトテーマに対応。エディタのスキンに応じてルートに pbr-theme-light クラスを付け（PBReplacerTheme）、流れ・レール・列・チップ・詳細設定の半透明の色と琥珀/緑/赤のアクセントを明るい地で読める濃さに置換（メインウィンドウ・PBRemap Inspector・移植プレビュー共通。ダークテーマの見た目は変更なし）
-修正: 環境によってメインウィンドウが開けない（NullReferenceException / 「UI レイアウトを読み込めませんでした importedWithErrors=True」）問題。UXML 内の Template / Instance / Style src はインポート順で参照先が見つからずインポート失敗になるため廃止し、列テンプレートと USS は C# が Resources から読む形に変更。読み込みに失敗した場合は例外ではなく原因を Console に表示
+修正: UXML のインポートに失敗している（importedWithErrors）とメインウィンドウが NullReferenceException で開けなかった問題。読み込み失敗時は原因を Console に表示して中断するようにし、列は PBReplacerColumn.uxml を C# が Instantiate する形に変更（UXML の Template/Instance を廃止）
 メインウィンドウ: ⚙ 詳細設定を「1 行 = ラベル … 操作」に整理。操作（スイッチ / ドロップダウン）を右端で揃え、行の高さを統一、見出しを「プロジェクト」「この PC のみ」に短縮（保存先の詳細はツールチップ）
 メインウィンドウ: 詳細設定のチェックボックスをスイッチ（レール＋ノブ、オンは緑）に変更。Toggle に pbr-switch クラスを付けるだけで USS が描く（PBRemap 側でも同じクラスが使える）
 メインウィンドウ: Prefab の Unpack 設定にあった「元に戻せません」の注記を削除（Unpack も Ctrl+Z で戻せるため誤解を招いていた）。ラベルを「Prefab を Unpack してから再配置」にし、Prefab との接続が切れる旨はツールチップに記載

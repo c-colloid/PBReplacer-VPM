@@ -49,8 +49,9 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
-**UXML の中で `<ui:Template>` / `<ui:Instance>` / `<Style src>` は使わない。** インポート順によって参照先が未インポートだと
-`importedWithErrors` になりウィンドウが組めない。USS とテンプレートは C# が `Resources.Load` で読む。
+列テンプレートは UXML の `<ui:Template>`/`<ui:Instance>` ではなく C# が `Resources.Load` して `Instantiate` する（列はデータ駆動のため）。
+UXML はインポートに失敗すると（XML 不正、マージの衝突マーカーの残りなど）`importedWithErrors` になり、ウィンドウは
+「UI レイアウトを読み込めませんでした」を Console に出して中断する。UXML を編集したら Console のインポートエラーを確認する。
 設定の行は `pbr-setting`（ラベルが伸びて操作を右端で揃える 1 行）、オン/オフは `Toggle` に `pbr-switch` を付けてスイッチとして描く（標準のチェックボックスは使わない）。説明はラベルではなくツールチップに置く。
 
 ### テーマ（ダーク / ライト）
