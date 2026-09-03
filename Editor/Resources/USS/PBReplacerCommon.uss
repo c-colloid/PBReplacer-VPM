@@ -275,6 +275,65 @@
     background-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ---- 設定の行: [ラベル … 操作]。ラベルが伸びて操作を右端で揃える。Toggle / EnumField にそのまま付ける ---- */
+.pbremap-setting, .pbr-setting {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+}
+
+.pbremap-setting > .unity-base-field__label, .pbr-setting > .unity-base-field__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pbremap-setting-field > .unity-base-field__input, .pbr-setting-field > .unity-base-field__input,
+.pbremap-setting-field > .unity-base-popup-field__input, .pbr-setting-field > .unity-base-popup-field__input,
+.pbremap-setting-field > .unity-enum-field__input, .pbr-setting-field > .unity-enum-field__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    width: 170px;
+    min-width: 170px;
+    margin: 0;
+}
+
+.pbremap-setting--sub, .pbr-setting--sub {
+    margin-left: 14px;
+}
+
+.pbremap-setting-label, .pbr-setting-label {
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+}
+
+.pbremap-setting-label--grow, .pbr-setting-label--grow {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pbremap-setting-number, .pbr-setting-number {
+    width: 40px;
+    margin: 0 4px;
+}
+
+.pbremap-setting-number > .unity-base-field__input, .pbr-setting-number > .unity-base-field__input {
+    -unity-text-align: middle-right;
+}
+
 /* ---- スイッチ（設定のオン/オフ。標準のチェックボックスの代わりに Toggle に .pbr-switch を付ける） ----
    構造は Toggle のまま: __input をレール、__checkmark をノブとして描く。C# は不要 */
 .pbremap-switch > .unity-toggle__input, .pbr-switch > .unity-toggle__input {
@@ -354,6 +413,12 @@
 .pbremap-switch:focus > .unity-toggle__input, .pbr-switch:focus > .unity-toggle__input {
     border-width: 1px;
     border-color: rgba(90, 160, 255, 0.9);
+}
+
+.pbremap-switch, .pbr-switch {
+    margin: 0;
+    flex-shrink: 0;
+    align-items: center;
 }
 
 .pbremap-switch:disabled, .pbr-switch:disabled {

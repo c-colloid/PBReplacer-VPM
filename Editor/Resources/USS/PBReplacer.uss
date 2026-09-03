@@ -39,43 +39,27 @@ ObjectFieldSelector {
     display: none;
 }
 
-/* ---- 詳細設定（行内） ---- */
+/* ---- 詳細設定（行内）。1 行 = [ラベル … 操作]。行の語彙 .pbr-setting は PBReplacerCommon.uss ---- */
+.pbr-window .pbr-advanced {
+    padding: 2px 8px 6px 8px;
+}
+
 .pbr-advanced-section {
     font-size: 10px;
     letter-spacing: 0.5px;
-    opacity: 0.6;
-    margin: 4px 2px 1px 2px;
+    opacity: 0.55;
+    margin: 8px 0 2px 0;
 }
 
-.pbr-advanced .unity-toggle {
-    margin-left: 2px;
-}
-
-.pbr-advanced .unity-base-field__label {
-    min-width: 160px;
-}
-
-.pbr-advanced-row {
-    flex-direction: row;
-    align-items: center;
-}
-
-.pbr-advanced-row > .unity-integer-field {
-    width: 48px;
-    margin: 0 4px;
-}
-
-.pbr-advanced-note {
-    font-size: 10px;
-    color: rgb(220, 180, 50);
-    margin-left: 4px;
+.pbr-advanced-section:first-child {
+    margin-top: 4px;
 }
 
 .pbr-advanced-footer {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    margin-top: 4px;
+    margin-top: 8px;
 }
 
 .pbr-advanced-version {
@@ -390,10 +374,6 @@ ObjectFieldSelector {
 
 .pbr-theme-light .pbr-node--clickable:hover {
     background-color: rgba(0, 0, 0, 0.06);
-}
-
-.pbr-theme-light .pbr-advanced-note {
-    color: rgb(160, 105, 0);
 }
 
 .pbr-theme-light .pbr-link-button {

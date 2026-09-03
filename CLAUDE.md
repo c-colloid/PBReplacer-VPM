@@ -49,7 +49,7 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
-設定のオン/オフは `Toggle` に `pbr-switch` を付けてスイッチとして描く（標準のチェックボックスは使わない）。
+設定の行は `pbr-setting`（ラベルが伸びて操作を右端で揃える 1 行）、オン/オフは `Toggle` に `pbr-switch` を付けてスイッチとして描く（標準のチェックボックスは使わない）。説明はラベルではなくツールチップに置く。
 
 ### テーマ（ダーク / ライト）
 
