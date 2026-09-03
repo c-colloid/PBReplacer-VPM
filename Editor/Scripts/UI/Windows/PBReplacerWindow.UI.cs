@@ -43,6 +43,13 @@ namespace colloid.PBReplacer
 
 			_windowLayout = layout;
 			_root.style.flexGrow = 1;
+			// USS は UXML の Style src ではなくここで読む（インポート時の他アセット参照を避ける）
+			foreach (var sheetName in new[] { "USS/PBReplacerCommon", "USS/PBReplacer" })
+			{
+				var sheet = Resources.Load<StyleSheet>(sheetName);
+				if (sheet != null) _root.styleSheets.Add(sheet);
+				else Debug.LogError($"PBReplacer: スタイルシート {sheetName}.uss が見つかりません。");
+			}
 			rootVisualElement.Add(_root);
 			PBReplacerFonts.Apply(rootVisualElement);
 			PBReplacerTheme.Apply(rootVisualElement);

@@ -43,21 +43,29 @@ namespace colloid.PBReplacer
 
 		#region Column Binding
 		/// <summary>
-		/// 列の要素は UXML（columns 配下の column-{Category}、PBReplacerColumn.uxml のインスタンス）。
-		/// ここでは各列にアイコン・一覧の生成/バインド・ドロップ処理を結び付けるだけ
+		/// 列の見た目は PBReplacerColumn.uxml。ComponentCategory ごとに Instantiate して columns に並べる
+		/// （UXML の Template/Instance はインポート順で失敗することがあるため C# で行う）。
+		/// ここでは各列に名前・アイコン・一覧の生成/バインド・ドロップ処理を結び付けるだけ
 		/// </summary>
 		private void InitializeColumns()
 		{
 			CleanupDropHandlers();
 			_columnViews.Clear();
+			_columns.Clear();
 
 			_rowTemplate = Resources.Load<VisualTreeAsset>("UXML/PBReplacerRow");
 			if (_rowTemplate == null) Debug.LogError("PBReplacerRow.uxml が見つかりません。");
+			var columnTemplate = Resources.Load<VisualTreeAsset>("UXML/PBReplacerColumn");
+			if (columnTemplate == null) { Debug.LogError("PBReplacerColumn.uxml が見つかりません。"); return; }
 
 			foreach (var category in ComponentCategoryInfo.All)
 			{
-				var root = _columns.Q<VisualElement>($"column-{category}");
-				if (root == null) continue;
+				var root = columnTemplate.Instantiate();
+				root.name = $"column-{category}";
+				root.AddToClassList("pbr-column-slot");
+				var title = root.Q<Label>("title");
+				if (title != null) title.text = ComponentCategoryInfo.DisplayName(category);
+				_columns.Add(root);
 
 				var column = BindColumn(category, root);
 				_columnViews[category] = column;

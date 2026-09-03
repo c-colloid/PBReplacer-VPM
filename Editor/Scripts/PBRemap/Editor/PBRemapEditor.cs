@@ -94,6 +94,9 @@ namespace colloid.PBReplacer
             if (commonSheet != null) _root.styleSheets.Add(commonSheet);
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null) _root.styleSheets.Add(styleSheet);
+            // 旧 UXML の Style src で参照していた分（UXML 側の src は廃止）
+            var mainSheet = Resources.Load<StyleSheet>("USS/PBReplacer");
+            if (mainSheet != null) _root.styleSheets.Add(mainSheet);
             PBReplacerFonts.Apply(_root);
             PBReplacerTheme.Apply(_root);
             LoadStringResources();

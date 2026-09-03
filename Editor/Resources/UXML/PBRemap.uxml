@@ -1,8 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
 
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBRemap.uss?fileID=7433441132597879392&amp;guid=d2599c9a80cec7b45a0eb873e03b097b&amp;type=3#PBRemap" />
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
 
     <!-- ツール（参照情報更新 / SceneViewプレビュー / 詳細設定）。アイコン画像は Unity 内蔵なので C# で設定 -->
     <ui:VisualElement name="tools" class="pbremap-tools">

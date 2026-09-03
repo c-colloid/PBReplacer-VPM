@@ -1,7 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <ui:Template name="Column" src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/UXML/PBReplacerColumn.uxml?fileID=9197481963319205126&amp;guid=87ad64a1f98a411787cb2777e5e4ab4e&amp;type=3#PBReplacerColumn" />
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
-    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
+    <!-- USS（PBReplacerCommon.uss / PBReplacer.uss）と列テンプレート（PBReplacerColumn.uxml）は C# が Resources.Load で読む。
+         インポート時に他アセットを参照する Template / Style src は使わない（インポート順で失敗し importedWithErrors になるため） -->
 
     <ui:VisualElement name="window" class="pbr-window">
 
@@ -92,18 +91,7 @@
             </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="columns" class="pbr-columns">
-            <ui:Instance template="Column" class="pbr-column-slot" name="column-PhysBone">
-                <AttributeOverrides element-name="title" text="PhysBone" />
-            </ui:Instance>
-            <ui:Instance template="Column" class="pbr-column-slot" name="column-PhysBoneCollider">
-                <AttributeOverrides element-name="title" text="PhysBone Collider" />
-            </ui:Instance>
-            <ui:Instance template="Column" class="pbr-column-slot" name="column-Constraint">
-                <AttributeOverrides element-name="title" text="Constraint" />
-            </ui:Instance>
-            <ui:Instance template="Column" class="pbr-column-slot" name="column-Contact">
-                <AttributeOverrides element-name="title" text="Contact" />
-            </ui:Instance>
+            <!-- 列は ComponentCategory ごとに PBReplacerColumn.uxml を C#（InitializeColumns）が Instantiate して入れる -->
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
