@@ -371,3 +371,90 @@ ObjectFieldSelector {
     flex-shrink: 0;
     opacity: 0.6;
 }
+
+/* ============================================================
+   ライトテーマ（.pbr-theme-light はルートに PBReplacerTheme.Apply が付ける）
+   共通語彙（strip / chip / advanced）は PBReplacerCommon.uss 側で上書き済み。ここはメイン固有のみ
+   ============================================================ */
+
+.pbr-theme-light .pbr-node--clickable:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.pbr-theme-light .pbr-advanced-note {
+    color: rgb(160, 105, 0);
+}
+
+.pbr-theme-light .pbr-link-button {
+    color: rgb(20, 90, 200);
+}
+
+.pbr-theme-light .pbr-link-button:hover {
+    color: rgb(60, 125, 235);
+}
+
+.pbr-theme-light .pbr-body {
+    border-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbr-rail {
+    background-color: rgba(0, 0, 0, 0.06);
+    border-right-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbr-rail-chip {
+    border-color: rgba(0, 0, 0, 0.20);
+    background-color: rgba(255, 255, 255, 0.55);
+}
+
+.pbr-theme-light .pbr-rail-chip:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.pbr-theme-light .pbr-rail-chip--pending {
+    border-color: rgba(190, 130, 0, 0.8);
+}
+
+.pbr-theme-light .pbr-rail-chip--done {
+    border-color: rgba(40, 150, 80, 0.7);
+}
+
+.pbr-theme-light .pbr-rail-badge {
+    border-color: rgba(0, 0, 0, 0.30);
+    background-color: rgb(238, 238, 238);
+}
+
+.pbr-theme-light .pbr-rail-badge--pending {
+    background-color: rgb(175, 120, 20);
+    border-color: rgba(0, 0, 0, 0);
+}
+
+.pbr-theme-light .pbr-rail-badge--done {
+    background-color: rgb(238, 238, 238);
+    border-color: rgb(40, 140, 60);
+    color: rgb(30, 120, 50);
+}
+
+.pbr-theme-light .pbr-column {
+    border-right-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbr-column--drop-hover {
+    border-top-color: rgba(50, 120, 230, 0.9);
+    background-color: rgba(50, 120, 230, 0.10);
+}
+
+.pbr-theme-light .pbr-column-header {
+    background-color: rgba(0, 0, 0, 0.04);
+    border-bottom-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbr-column-dropzone {
+    border-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .pbr-row--header {
+    background-color: rgba(0, 0, 0, 0.07);
+    border-top-color: rgba(0, 0, 0, 0.18);
+    border-bottom-color: rgba(0, 0, 0, 0.18);
+}

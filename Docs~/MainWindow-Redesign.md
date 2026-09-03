@@ -72,7 +72,7 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 | 行の ✖（個別の失敗）状態 | `ComponentProcessor` はバッチ全体の例外しか返さず、RootTransform 未設定は自動補完される。行の記号は → / ✔ の 2 種に削減し、赤は流れ（バッチ失敗）だけに残した |
 | アイコンの入手性 | SDK が固有アイコンを持つかは実機依存。名前文字列ではなく `AssetPreview.GetMiniThumbnail(component)` で型から取得し、既定のスクリプトアイコンと同じなら内蔵型（HingeJoint / CapsuleCollider / ParentConstraint / SphereCollider）で代替。レイアウトは常に案 i（beta.10 で 2 段表示への切替を廃止） |
 | 一覧性 | 650×450 で列の高さ ≈ 340px、行高 20px で約 17 行 × 最大 4 列。最小サイズ 600×400 |
-| ライトテーマ | strip / chip / rail の色は全て半透明のオーバーレイ。内蔵アイコンは `PBRemapIcons.Get` が d_ の有無を切り替える |
+| ライトテーマ | 内蔵アイコンは `PBRemapIcons.Get` が d_ の有無を切り替える。色はダーク前提の白系オーバーレイのままでは線・枠・琥珀の注記が読めなかったため、beta.10 でルートの `pbr-theme-light` クラスによる USS 上書きを追加（§5.2） |
 | ドロップ | `ListViewDragHandler`（一時コンポーネントでプレビューする方式）を廃止し、列ルートで TrickleDown で受ける `ColumnDropHandler` に置換。Constraint / Contact は型をメニューで選ぶ |
 
 ## 4. 実装
@@ -97,8 +97,26 @@ PhysBone と Collider は参照解決のため常に同じグループで処理�
 - 行のホバー操作（Hierarchy で表示 / 削除）を追加。右クリックメニューは維持
 - フォント適用を USS の `.unity-text-element` 指定からルートへのインライン適用（`PBReplacerFonts.Apply`）に変更。UITKFontFix 導入時は OS フォントを優先し、無ければ同梱 Noto Sans JP
 
+## 5.2 beta.10 ライトテーマ
+
+ライトスキン（`UserSkin=0`）で描画すると、線 rgba(255,255,255,.18)・空ノードやチップの白系の枠・レールの白系オーバーレイが背景に溶け、「元に戻せません」の琥珀 rgb(220,180,50) と「初期値に戻す」の青 rgb(90,160,255) が読めなかった。ピルの塗り（緑 / 琥珀）と内蔵アイコン（d_ 無し版）は問題なし。
+
+対応: `PBReplacerTheme.Apply(root)` が `EditorGUIUtility.isProSkin` が false のときルートに `pbr-theme-light` を付け、USS 側で色だけを上書きする（構造・寸法は共通）。
+
+| 要素 | ダーク | ライト |
+|---|---|---|
+| strip 背景 | rgba(0,0,0,.12) / home 緑 .08 / displaced 琥珀 .10 | rgba(0,0,0,.06) / home rgba(40,150,80,.12) / displaced rgba(210,150,0,.14) |
+| 線 | rgba(255,255,255,.18) / 琥珀 .7 / 緑 .55 | rgba(0,0,0,.22) / rgba(200,140,0,.85) / rgba(40,150,80,.75) |
+| 空ノード・ドロップ枠 | rgba(255,255,255,.28) | rgba(0,0,0,.30) |
+| チップ・レールチップ | 枠 白 .12 / 地 白 .04 | 枠 rgba(0,0,0,.20) / 地 白 .45〜.55（レールの黒 .06 の上に浮かせる） |
+| レールのバッジ | rgb(58,58,58) + 白 .25 | rgb(238,238,238) + 黒 .30。pending は rgb(175,120,20)、done は rgb(30,120,50) |
+| 注記（琥珀）/ リンク（青） | rgb(220,180,50) / rgb(90,160,255) | rgb(160,105,0) / rgb(20,90,200) |
+| 列見出し / 配置済み見出し行 | 白 .04 / 黒 .18 | 黒 .04 / 黒 .07 |
+| PBRemap の行（unresolved / ambiguous / auto）、プレビューの赤・琥珀文字 | rgb(220,80,80) / rgb(220,180,50) | rgb(190,40,40) / rgb(160,105,0) |
+
+実機検証（Xvfb、ライト）: 未設定 / 未処理あり / 全件配置済み / ⚙ 展開 の 4 状態を描画して確認。ダークは変更なし（同じ状態で再描画して確認）。EditMode テストはライト・ダークの両方で 13 件合格。
+
 ## 6. 未決（後続）
 
-- ライトテーマでの明度（実機の GUI で確認）
 - Hierarchy の未処理コンポーネント行への → バッジ（`PBRemapHierarchyBadge` と同じ仕組みで追加可能）
 - 複数選択中の「選択した n 件だけ再配置」（B 案で検討。ProcessXxxCommand が対象指定を受けるようになれば追加）

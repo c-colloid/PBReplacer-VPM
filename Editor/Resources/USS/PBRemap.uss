@@ -378,3 +378,77 @@
     color: var(--unity-colors-label-text);
     -unity-font-style: normal;
 }
+
+/* ============================================================
+   ライトテーマ（.pbr-theme-light はルートに PBReplacerTheme.Apply が付ける）
+   共通語彙は PBReplacerCommon.uss。ここは PBRemap Inspector / プレビュー固有の色だけ
+   ============================================================ */
+
+.pbr-theme-light .pbremap-row--unresolved {
+    background-color: rgba(200, 50, 50, 0.10);
+}
+
+.pbr-theme-light .pbremap-row--ambiguous {
+    background-color: rgba(200, 140, 0, 0.12);
+}
+
+.pbr-theme-light .pbremap-row--auto {
+    background-color: rgba(200, 140, 0, 0.07);
+}
+
+.pbr-theme-light .pbremap-row--unresolved > ObjectField > .unity-object-field__input {
+    border-color: rgba(200, 50, 50, 0.8);
+}
+
+.pbr-theme-light .pbremap-row-ghost {
+    color: rgb(160, 105, 0);
+}
+
+.pbr-theme-light .pbremap-manifest-info {
+    color: rgb(100, 100, 100);
+}
+
+.pbr-theme-light .pbremap-hint-toggle-button-active {
+    background-color: rgba(40, 150, 80, 0.2);
+    color: rgb(30, 120, 50);
+}
+
+.pbr-theme-light .remap-rule-hint {
+    color: rgb(110, 110, 110);
+}
+
+.pbr-theme-light .remap-rule-error {
+    border-left-color: rgb(200, 50, 50);
+    background-color: rgba(200, 50, 50, 0.08);
+}
+
+.pbr-theme-light .remap-rule-error-label {
+    color: rgb(190, 40, 40);
+}
+
+.pbr-theme-light .preview-filter-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.pbr-theme-light .preview-filter-toggle-active {
+    border-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .preview-filter-toggle-inactive {
+    border-color: rgba(0, 0, 0, 0.10);
+}
+
+.pbr-theme-light .preview-bone-destlabel:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.pbr-theme-light .preview-bone-auto-creatable,
+.pbr-theme-light .preview-bone-auto-creatable > Label,
+.pbr-theme-light .preview-warning-item > Label {
+    color: rgb(160, 105, 0);
+}
+
+.pbr-theme-light .preview-bone-unresolved,
+.pbr-theme-light .preview-bone-unresolved > Label {
+    color: rgb(190, 40, 40);
+}

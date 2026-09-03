@@ -36,7 +36,7 @@ Editor/Scripts/
     NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
   UI/Handlers/    - UIイベントハンドラ（アバタードロップ、列へのドロップ）
   UI/Windows/     - EditorWindowクラス（PBReplacerWindow: partial 4 ファイル）
-  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得、PBReplacerFonts: ルートへの日本語フォント適用）
+  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得、PBReplacerFonts: ルートへの日本語フォント適用、PBReplacerTheme: ライトテーマ時にルートへ pbr-theme-light を付与）
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
@@ -49,6 +49,13 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
+
+### テーマ（ダーク / ライト）
+
+USS の色はダーク前提の白系半透明オーバーレイで書く。ライトテーマは `PBReplacerTheme.Apply(root)` が
+`EditorGUIUtility.isProSkin` を見てルートに `pbr-theme-light` を付け、各 USS 末尾の
+`.pbr-theme-light .pbr-xxx` / `.pbr-theme-light .pbremap-xxx` が色だけを上書きする（黒系オーバーレイ、濃いアクセント色）。
+C# で色を決めない。新しい色を USS に足すときはライト側の上書きも同じファイルの末尾に足す。
 
 ### メインウィンドウの UI 語彙（PBRemap と共通）
 

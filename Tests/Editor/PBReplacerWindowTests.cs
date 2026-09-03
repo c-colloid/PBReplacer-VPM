@@ -104,6 +104,7 @@ public class PBReplacerWindowTests
 		Assert.IsFalse(root.Q<VisualElement>("chip-PhysBone").ClassListContains("pbr-rail-chip--fallback"), "rail always uses the 案 i layout");
 		Assert.IsNotNull(_window.rootVisualElement.style.unityFontDefinition.value.fontAsset ?? (object)_window.rootVisualElement.style.unityFontDefinition.value.font, "font applied on root");
 		Assert.AreEqual(4, root.Q<VisualElement>("columns").childCount, "4 columns");
+		Assert.AreEqual(!EditorGUIUtility.isProSkin, _window.rootVisualElement.ClassListContains("pbr-theme-light"), "light theme class follows the editor skin");
 		Assert.AreEqual(DisplayStyle.None, root.Q<VisualElement>("advanced").style.display.value, "advanced closed by default");
 
 		// アバター未設定: ピルは無効

@@ -274,3 +274,108 @@
     border-radius: 4px;
     background-color: rgba(0, 0, 0, 0.08);
 }
+
+/* ============================================================
+   ライトテーマ（ルートに .pbr-theme-light を PBReplacerTheme.Apply が付ける）
+   規則: 白系の半透明オーバーレイ → 黒系に置換、アクセント色は明るい地でも読める濃さに。
+   ダーク側の値は上で定義したまま、ここでは色だけを上書きする。
+   ============================================================ */
+
+.pbr-theme-light .pbremap-icon-button--on, .pbr-theme-light .pbr-icon-button--on {
+    background-color: rgba(50, 120, 230, 0.30);
+}
+
+.pbr-theme-light .pbremap-strip, .pbr-theme-light .pbr-strip {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.pbr-theme-light .pbremap-strip--home, .pbr-theme-light .pbr-strip--home {
+    background-color: rgba(40, 150, 80, 0.12);
+}
+
+.pbr-theme-light .pbremap-strip--displaced, .pbr-theme-light .pbr-strip--displaced {
+    background-color: rgba(210, 150, 0, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--broken, .pbr-theme-light .pbr-strip--broken {
+    background-color: rgba(220, 120, 30, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--error, .pbr-theme-light .pbr-strip--error {
+    background-color: rgba(220, 50, 50, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--flash, .pbr-theme-light .pbr-strip--flash {
+    background-color: rgba(40, 170, 90, 0.45);
+}
+
+.pbr-theme-light .pbremap-node--drop-hover, .pbr-theme-light .pbr-node--drop-hover {
+    background-color: rgba(50, 120, 230, 0.20);
+    border-color: rgba(50, 120, 230, 0.9);
+}
+
+.pbr-theme-light .pbremap-node--empty, .pbr-theme-light .pbr-node--empty {
+    border-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .pbremap-line, .pbr-theme-light .pbr-line {
+    background-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbremap-line--active, .pbr-theme-light .pbr-line--active {
+    background-color: rgba(200, 140, 0, 0.85);
+}
+
+.pbr-theme-light .pbremap-line--home, .pbr-theme-light .pbr-line--home {
+    background-color: rgba(40, 150, 80, 0.75);
+}
+
+.pbr-theme-light .pbremap-apply, .pbr-theme-light .pbr-apply {
+    background-color: rgba(0, 0, 0, 0.14);
+}
+
+.pbr-theme-light .pbremap-apply--ready, .pbr-theme-light .pbr-apply--ready {
+    background-color: rgb(40, 130, 80);
+}
+
+.pbr-theme-light .pbremap-apply--ready:hover, .pbr-theme-light .pbr-apply--ready:hover {
+    background-color: rgb(52, 150, 95);
+}
+
+.pbr-theme-light .pbremap-apply--partial, .pbr-theme-light .pbr-apply--partial {
+    background-color: rgb(175, 120, 20);
+}
+
+.pbr-theme-light .pbremap-apply--partial:hover, .pbr-theme-light .pbr-apply--partial:hover {
+    background-color: rgb(195, 140, 30);
+}
+
+.pbr-theme-light .pbremap-chip, .pbr-theme-light .pbr-chip {
+    border-color: rgba(0, 0, 0, 0.20);
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+.pbr-theme-light .pbremap-chip:hover, .pbr-theme-light .pbr-chip:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.pbr-theme-light .pbremap-chip--resolved, .pbr-theme-light .pbr-chip--resolved {
+    border-color: rgba(40, 150, 80, 0.7);
+}
+
+.pbr-theme-light .pbremap-chip--auto, .pbr-theme-light .pbr-chip--auto,
+.pbr-theme-light .pbremap-chip--ambiguous, .pbr-theme-light .pbr-chip--ambiguous {
+    border-color: rgba(190, 130, 0, 0.8);
+}
+
+.pbr-theme-light .pbremap-chip--unresolved, .pbr-theme-light .pbr-chip--unresolved {
+    border-color: rgba(200, 50, 50, 0.7);
+}
+
+.pbr-theme-light .pbremap-chip--manual, .pbr-theme-light .pbr-chip--manual {
+    border-color: rgba(50, 120, 230, 0.7);
+}
+
+.pbr-theme-light .pbremap-advanced, .pbr-theme-light .pbr-advanced {
+    background-color: rgba(0, 0, 0, 0.05);
+}

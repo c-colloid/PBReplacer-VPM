@@ -95,6 +95,7 @@ namespace colloid.PBReplacer
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null) _root.styleSheets.Add(styleSheet);
             PBReplacerFonts.Apply(_root);
+            PBReplacerTheme.Apply(_root);
             LoadStringResources();
 
             _tools = _root.Q<VisualElement>("tools");

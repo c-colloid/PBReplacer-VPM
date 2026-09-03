@@ -7,6 +7,7 @@
 共通: 日本語フォントの適用を USS からルート要素へのインライン適用（PBReplacerFonts）に変更し、メインウィンドウ・PBRemap Inspector・移植プレビューで共通化
 内部: メインウィンドウのツール行・レールのチップ・列・行と PBRemap のツール行を UXML（PBReplacerColumn.uxml / PBReplacerRow.uxml を追加）に分離し、C# は内蔵アイコン・イベント・データのバインドのみに変更（見た目の調整を UXML/USS だけで行えるように）
 共通: UITKFontFix（jp.colloid.uitk-font-fix）に対応。導入済みで OS が日本語/中国語/韓国語のときは OS フォント（Yu Gothic UI / Meiryo / Noto Sans CJK）を使い、それ以外は同梱の Noto Sans JP を使う（未導入でも従来どおり動作）
+共通: ライトテーマに対応。エディタのスキンに応じてルートに pbr-theme-light クラスを付け（PBReplacerTheme）、流れ・レール・列・チップ・詳細設定の半透明の色と琥珀/緑/赤のアクセントを明るい地で読める濃さに置換（メインウィンドウ・PBRemap Inspector・移植プレビュー共通。ダークテーマの見た目は変更なし）
 
 [3.0.0-beta.9]2026.09.03
 メインウィンドウ: UI を PBRemap Inspector と同じ語彙で刷新。「[アバター] ──(再配置 n →)── [AvatarDynamics]」の流れ表示を上部に置き、真ん中のピルがそのまま主操作（表示中のカテゴリの未処理件数を表示。全件配置済みなら ✔ に変わる）

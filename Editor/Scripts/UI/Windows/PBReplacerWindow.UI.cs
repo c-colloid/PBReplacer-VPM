@@ -30,6 +30,7 @@ namespace colloid.PBReplacer
 			_root.style.flexGrow = 1;
 			rootVisualElement.Add(_root);
 			PBReplacerFonts.Apply(rootVisualElement);
+			PBReplacerTheme.Apply(rootVisualElement);
 		}
 
 		private void GetUIReferences()
