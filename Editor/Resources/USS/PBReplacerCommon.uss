@@ -345,7 +345,7 @@
     margin: 0;
     border-radius: 8px;
     border-width: 0;
-    justify-content: center;
+    
     background-color: rgba(255, 255, 255, 0.18);
     transition-property: background-color;
     transition-duration: 0.15s;
@@ -386,7 +386,7 @@
 .pbr-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark {
     width: 12px;
     height: 12px;
-    margin: 0 0 0 2px;
+    margin: 0 0 0 0px;
     padding: 0;
     border-width: 0;
     border-radius: 6px;
