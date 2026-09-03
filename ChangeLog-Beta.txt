@@ -8,6 +8,9 @@
 内部: メインウィンドウのツール行・レールのチップ・列・行と PBRemap のツール行を UXML（PBReplacerColumn.uxml / PBReplacerRow.uxml を追加）に分離し、C# は内蔵アイコン・イベント・データのバインドのみに変更（見た目の調整を UXML/USS だけで行えるように）
 共通: UITKFontFix（jp.colloid.uitk-font-fix）に対応。導入済みで OS が日本語/中国語/韓国語のときは OS フォント（Yu Gothic UI / Meiryo / Noto Sans CJK）を使い、それ以外は同梱の Noto Sans JP を使う（未導入でも従来どおり動作）
 共通: ライトテーマに対応。エディタのスキンに応じてルートに pbr-theme-light クラスを付け（PBReplacerTheme）、流れ・レール・列・チップ・詳細設定の半透明の色と琥珀/緑/赤のアクセントを明るい地で読める濃さに置換（メインウィンドウ・PBRemap Inspector・移植プレビュー共通。ダークテーマの見た目は変更なし）
+メインウィンドウ: 「元に戻す」ボタンのアイコンを ◀（back）から Unity の Undo History と同じ記号に変更（◀ は「戻る」と誤読されるため）
+共通: UITK Font Fix（jp.colloid.uitk-font-fix）を VPM の依存関係に追加（VCC で PBReplacer を入れると一緒に入る。パッケージリストにも同梱）
+ドキュメント: README の使い方（メインウィンドウ / PBRemap）を実機のスクリーンショットと番号付きの表に置き換え
 修正: UXML のインポートに失敗している（importedWithErrors）とメインウィンドウが NullReferenceException で開けなかった問題。読み込み失敗時は原因を Console に表示して中断するようにし、列は PBReplacerColumn.uxml を C# が Instantiate する形に変更（UXML の Template/Instance を廃止）
 修正: 「前回のアバターを自動で読み込む」をオフにしてもウィンドウを開き直すと前のアバターが表示されていた問題（前のウィンドウのアバターを静的に引き継いでいた）。オフのときは空で開く。開いたままのウィンドウはドメインリロード後も設定に関係なく表示中のアバターを維持する
 メインウィンドウ: ⚙ 詳細設定を「1 行 = ラベル … 操作」に整理。操作（スイッチ / ドロップダウン）を右端で揃え、行の高さを統一、見出しを「プロジェクト」「この PC のみ」に短縮（保存先の詳細はツールチップ）

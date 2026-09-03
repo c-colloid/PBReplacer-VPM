@@ -59,9 +59,9 @@
 
 変更はその場で保存されます。「プロジェクト」の項目はチームで共有され（ProjectSettings/）、「この PC のみ」の項目は個人設定（EditorPrefs）です。各項目の説明はマウスを乗せると表示されます。
 
-### フォント（任意）
+### フォント
 
-UI の日本語は同梱の Noto Sans JP で表示します。[UITKFontFix](https://github.com/c-colloid/UITKFontFix)（`jp.colloid.uitk-font-fix`）を導入すると、OS が日本語/中国語/韓国語のときは OS のフォント（Yu Gothic UI / Meiryo / Noto Sans CJK）で表示されます。Package Manager の「Add package from git URL...」に `https://github.com/c-colloid/UITKFontFix.git?path=jp.colloid.uitk-font-fix` を指定してください。
+UI の日本語表示には [UITK Font Fix](https://github.com/c-colloid/UITKFontFix)（`jp.colloid.uitk-font-fix`）を使います。VCC の依存関係になっているので、PBReplacer を入れると一緒に入ります。OS が日本語/中国語/韓国語のときは OS のフォント（Yu Gothic UI / Meiryo / Noto Sans CJK）、それ以外は同梱の Noto Sans JP で表示します。
 
 ## その他仕様
 
@@ -71,42 +71,47 @@ UI の日本語は同梱の Noto Sans JP で表示します。[UITKFontFix](http
 
 ### PBRemap（移植機能）
 
-あるアバター/衣装/小物のAvatarDynamics配下（PhysBone等）を、別のアバター/衣装/小物へボーン構成の違いを吸収しながら移植する機能です。
-**AvatarDynamicsのGameObjectを移植先へドラッグ＆ドロップするだけ**で移植できます。
+AvatarDynamics 配下の PhysBone 等を、別のアバター/衣装/小物へボーン構成の違いを吸収しながら移植します。
+**AvatarDynamics を移植先へドラッグ＆ドロップするだけ**です。
 
-1. 移植元でPBReplacerのApplyを実行し、AvatarDynamics階層を作ります
-2. PBReplacerメインウィンドウ右上の「⋮」→「他のアバターへ移植 (PBRemap)...」を選ぶと、AvatarDynamicsにPBRemapコンポーネントが付き、移植元のボーン参照情報（マニフェスト）が自動保存されます
-   （Add Component から「PBReplacer/PB Remap」を付けても同じです。Inspectorを開かなくても参照情報はバックグラウンドで保存されます）
-3. AvatarDynamics（PBRemap付き）を移植先アバターの子階層へドラッグ＆ドロップします
-   - Inspector の上部に「移植元 → 移植先」の流れが表示されます。真ん中の **→ 移植** ボタンを押すと移植されます（Ctrl+Z で取り消せます）
-   - Hierarchy の PBRemap 行にも状態アイコンが出ます（🔗 接続済み / → 移植できる / 参照切れ / 置き場所が認識できない）
-   - 「AutoOnDrop」にすると、ドロップした時点で自動で移植します（Project からの Prefab ドロップやペーストも対象）。対応先の候補が複数ある参照がある場合だけ保留して選択を促し、移植先に対応物が無い参照は移植元を指したまま残して Console に警告します
-   - 「BuildOnly」にすると編集時には何もせず、NDMF ビルド（再生）時に非破壊で移植します。Hierarchy と Inspector には ▶ が出て「ビルド時に移植される」ことを示します。VRC アバター配下ではない置き場所（単体の衣装・小物・Animator だけのオブジェクト）は NDMF が処理しないため、再生開始時に PBRemap 自身が非破壊で移植します（VRChat へのビルドには含まれません）
-4. Prefab化して別シーン・別プロジェクトへ持ち出した場合も、保存済みの参照情報から解決できます
+1. 移植元で PBReplacer の再配置を実行し、AvatarDynamics を作る
+2. メインウィンドウ右上の ⋮ →「他のアバターへ移植 (PBRemap)...」で AvatarDynamics に PB Remap を付ける（Add Component からでも同じ）。移植元のボーン参照情報は自動で保存されます
+3. AvatarDynamics を移植先アバターの子へドラッグ＆ドロップし、Inspector の **移植 ▶** を押す ①（Ctrl+Z で取り消せます）
 
-Inspector の見かた:
+![PBRemap の手順](Docs~/images/remap-steps.png)
 
-* 流れの行: 左が移植元、右が移植先（置き場所）。右のノードへ Hierarchy からアバター/衣装をドロップすると、その配下へ移動します
-* チップ: ✔ 解決済み / ＋ 自動作成 / ⚠ 要選択 / ✖ 未解決 の件数（クリックで表の表示を切り替え）と、スケール比（クリックで 自動/手動/なし）
-* 表: 問題のある行だけが出ます。右の欄へボーンをドロップすると手動で対応付け、⚠ の行は ▾ から候補を選べます
-* ↻ 参照情報の取り直し / 👁 SceneView に対応線を表示 / ⚙ 詳細設定（ドロップ時の動作、名前の対応ルール、手動指定、参照情報）
-* SceneView: 青の輪（移植元）→ 緑の点（移植先）を曲線と矢印で結びます。赤✕（対応先なし）をクリックすると「ボーン対応」ツールが起動し、移植先の骨に出る点をクリックして対応を決められます。琥珀▾の候補は輪をクリックで確定。オーバーレイのアイコンで線/名前/件数の絞り込みを切り替えます
+移植後は流れが緑の 🔗 になり、以後そのアバターの一部として扱われます。Prefab 化して別シーン・別プロジェクトへ持ち出しても、保存済みの参照情報から解決できます。
 
-衣装だけを移植する（アバター本体には触れない）:
+#### Inspector の見方
 
-* 衣装ルート（MergeArmature を持つ Armature の親）の配下に置いた AvatarDynamics は **衣装を単位** として扱われます。
-  同じアバター内の衣装 v1 → v2、AvatarA に着せた衣装 → AvatarB に着せた同じ衣装、いずれも衣装の AvatarDynamics をドラッグするだけで、アバター本体のボーンや本体の AvatarDynamics には手を触れません
-* 衣装ボーンへの参照は衣装同士の寸法比で、アバターボーンへの参照（帽子の Constraint など）はアバター同士の寸法比で補正されます
-* 衣装 Prefab に AvatarDynamics を同梱して別のアバターへ置いた場合、失われたアバターボーン参照は参照情報から復元されます
+![PBRemap Inspector の見方](Docs~/images/remap-guide.png)
+
+| # | 部位 | 操作 |
+|---|---|---|
+| ① | ツール行 | ↻ 参照情報の取り直し / 👁 SceneView に対応線を表示 / ⚙ 詳細設定 |
+| ② | 流れ | 左が移植元、右が移植先（置き場所）。右のノードへ Hierarchy からアバター/衣装をドロップすると、その配下へ移動 |
+| ③ | チップ | ✔ 解決済み / ＋ 自動作成 / ▾ 要選択 / ✖ 未解決 の件数。クリックで表の表示を切り替え |
+| ④ | スケール比 | クリックで 自動 / 手動 / なし。radius や height はこの比で補正（何度実行しても二重に補正されません） |
+| ⑤ | 表 | 対応付けの一覧。右の欄へボーンをドロップすると手動で対応付け、▾ の行は候補から選択 |
+
+SceneView では青の輪（移植元）→ 緑の点（移植先）を線で結びます。赤 ✕（対応先なし）をクリックすると「ボーン対応」ツールが起動し、移植先の骨に出る点をクリックして対応を決められます。Hierarchy の PBRemap 行にも状態アイコン（🔗 接続済み / ▶ 移植できる / 参照切れ）が出ます。
+
+#### 詳細設定（⚙）
+
+![PBRemap の詳細設定](Docs~/images/remap-settings.png)
+
+| 項目 | 内容 |
+|---|---|
+| ドロップ時 | **Confirm**: 置いた後に Inspector の ▶ で移植 / **AutoOnDrop**: ドロップした時点で自動で移植（候補が複数ある参照だけ保留） / **BuildOnly**: 編集時は何もせず NDMF ビルド時に非破壊で移植 |
+| スケール | Auto: Hips-Head 距離比 → ボーン間距離比 / Manual: 世界寸法比を手入力 / None: 補正しない |
+| 名前の対応ルール | ボーン名やパスが異なるアバター間で使う対応ルール（双方向に適用） |
+| 手動指定 | 自動検出が正しく動かないときに移植元/移植先を指定 |
 
 対応している移植元/移植先:
 
-* VRCAvatarDescriptor付きアバター（Humanoidボーンで対応付け）
-* Modular Avatar の MergeArmature 付き衣装（prefix/suffixを考慮。着せ替え済みアバターでは本体・衣装それぞれのボーンを別コンテキストとして扱います）
-* Animator/Descriptorの無い小物（SkinnedMeshRendererを持つオブジェクト。パス/名前で対応付け）
-
-解決できないボーンは Inspector の表で手動指定（Transformをドロップ、または同名候補から選択）できます。
-PhysBone等のradius/height等は「移植元の元値 × 世界寸法比 × 移植元/移植先ボーンのlossyScale比」で補正されるため、何度実行しても（NDMFビルドで再実行されても）二重に補正されません。
+* VRCAvatarDescriptor 付きアバター（Humanoid ボーンで対応付け）
+* Modular Avatar の MergeArmature 付き衣装（prefix/suffix を考慮）。衣装ルート配下に置いた AvatarDynamics は**衣装を単位**として扱われ、アバター本体のボーンや本体の AvatarDynamics には触れません
+* Animator/Descriptor の無い小物（SkinnedMeshRenderer を持つオブジェクト。パス/名前で対応付け）
 
 # 注意
 

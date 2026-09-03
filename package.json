@@ -9,7 +9,8 @@
   "repo": "https://c-colloid.github.io/PBReplacer-VPM/index.json",
   "gitDependencies": {},
   "vpmDependencies": {
-    "com.vrchat.avatars": ""
+    "com.vrchat.avatars": "",
+    "jp.colloid.uitk-font-fix": "^0.4.0"
   },
   "legacyFolders": {
     "Assets\\Editor\\PBReplacer": ""

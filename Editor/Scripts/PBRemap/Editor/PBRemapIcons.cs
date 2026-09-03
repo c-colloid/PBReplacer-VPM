@@ -38,7 +38,7 @@ namespace colloid.PBReplacer
         public const string Dropdown = "icon dropdown";             // 候補から選ぶ
         public const string Empty = "FolderEmpty Icon";             // 対象なし
         public const string Prefab = "Prefab Icon";
-        public const string Undo = "back";
+        public const string Undo = "UndoHistory";                // 元に戻す（Undo History と同じ記号。◀ は「戻る」と誤読される）
         public const string Pick = "eyeDropper.Large";              // ボーン対応ツール（スポイト = 指して選ぶ）
         public const string Labels = "FilterByLabel";               // 名前ラベル
 
