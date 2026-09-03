@@ -275,6 +275,91 @@
     background-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ---- スイッチ（設定のオン/オフ。標準のチェックボックスの代わりに Toggle に .pbr-switch を付ける） ----
+   構造は Toggle のまま: __input をレール、__checkmark をノブとして描く。C# は不要 */
+.pbremap-switch > .unity-toggle__input, .pbr-switch > .unity-toggle__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    width: 30px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    border-radius: 8px;
+    border-width: 0;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.18);
+    transition-property: background-color;
+    transition-duration: 0.15s;
+}
+
+.pbremap-switch:hover > .unity-toggle__input, .pbr-switch:hover > .unity-toggle__input {
+    background-color: rgba(255, 255, 255, 0.26);
+}
+
+.pbremap-switch:checked > .unity-toggle__input, .pbr-switch:checked > .unity-toggle__input,
+.pbremap-switch:checked:hover > .unity-toggle__input, .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(52, 140, 92);
+}
+
+.pbremap-switch:checked:hover > .unity-toggle__input, .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(64, 168, 110);
+}
+
+.pbremap-switch > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark {
+    width: 12px;
+    height: 12px;
+    margin: 0 0 0 2px;
+    padding: 0;
+    border-width: 0;
+    border-radius: 6px;
+    background-image: none;
+    background-color: rgb(235, 235, 235);
+    transition-property: margin-left;
+    transition-duration: 0.15s;
+}
+
+.pbremap-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark {
+    margin-left: 16px;
+    background-color: white;
+}
+
+.pbremap-switch:focus > .unity-toggle__input, .pbr-switch:focus > .unity-toggle__input {
+    border-width: 1px;
+    border-color: rgba(90, 160, 255, 0.9);
+}
+
+.pbremap-switch:disabled, .pbr-switch:disabled {
+    opacity: 0.4;
+}
+
 /* ============================================================
    ライトテーマ（ルートに .pbr-theme-light を PBReplacerTheme.Apply が付ける）
    規則: 白系の半透明オーバーレイ → 黒系に置換、アクセント色は明るい地でも読める濃さに。
@@ -378,4 +463,24 @@
 
 .pbr-theme-light .pbremap-advanced, .pbr-theme-light .pbr-advanced {
     background-color: rgba(0, 0, 0, 0.05);
+}
+
+.pbr-theme-light .pbremap-switch > .unity-toggle__input, .pbr-theme-light .pbr-switch > .unity-toggle__input {
+    background-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbremap-switch:hover > .unity-toggle__input, .pbr-theme-light .pbr-switch:hover > .unity-toggle__input {
+    background-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .pbremap-switch:checked > .unity-toggle__input, .pbr-theme-light .pbr-switch:checked > .unity-toggle__input {
+    background-color: rgb(40, 130, 80);
+}
+
+.pbr-theme-light .pbremap-switch:checked:hover > .unity-toggle__input, .pbr-theme-light .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(52, 150, 95);
+}
+
+.pbr-theme-light .pbremap-switch:focus > .unity-toggle__input, .pbr-theme-light .pbr-switch:focus > .unity-toggle__input {
+    border-color: rgba(50, 120, 230, 0.9);
 }

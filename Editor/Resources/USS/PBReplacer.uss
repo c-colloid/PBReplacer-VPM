@@ -2,7 +2,7 @@
    PBReplacer メインウィンドウ
    流れ（strip）: [アバター] ──(再配置 n →)── [AvatarDynamics]
    左のレール: カテゴリのアイコンチップ（Console のフィルタと同じ操作）
-   右の列: カテゴリごとの一覧（→ 未処理 / ✔ 配置済み）
+   右の列: カテゴリごとの一覧（○ 未処理 / ✔ 配置済み）
    共通語彙（strip / chip / icon-button / advanced）は PBReplacerCommon.uss
    ============================================================ */
 
@@ -320,6 +320,17 @@ ObjectFieldSelector {
     opacity: 0.8;
 }
 
+/* 未処理: 琥珀のリング（▶ は畳み記号と紛らわしいので使わない。配置済みは ✔ 画像） */
+.pbr-row-icon--pending {
+    width: 9px;
+    height: 9px;
+    margin-left: 2px;
+    margin-right: 5px;
+    border-radius: 5px;
+    border-width: 1.5px;
+    border-color: rgba(220, 180, 50, 0.85);
+}
+
 .pbr-row--header {
     background-color: rgba(0, 0, 0, 0.18);
     border-top-width: 1px;
@@ -457,4 +468,8 @@ ObjectFieldSelector {
     background-color: rgba(0, 0, 0, 0.07);
     border-top-color: rgba(0, 0, 0, 0.18);
     border-bottom-color: rgba(0, 0, 0, 0.18);
+}
+
+.pbr-theme-light .pbr-row-icon--pending {
+    border-color: rgba(190, 130, 0, 0.9);
 }

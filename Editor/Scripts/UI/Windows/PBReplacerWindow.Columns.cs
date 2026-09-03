@@ -190,6 +190,7 @@ namespace colloid.PBReplacer
 			element.EnableInClassList("pbr-row--header", item.IsDoneHeader);
 			element.EnableInClassList("pbr-row--done", item.Processed && !item.IsDoneHeader);
 
+			icon.RemoveFromClassList("pbr-row-icon--pending");
 			if (item.IsDoneHeader)
 			{
 				fold.style.display = DisplayStyle.Flex;
@@ -212,7 +213,10 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			PBRemapIcons.Set(icon, item.Processed ? PBRemapIcons.Resolved : PBRemapIcons.Apply);
+			// 未処理は USS のリング（画像なし）、配置済みは ✔
+			icon.EnableInClassList("pbr-row-icon--pending", !item.Processed);
+			if (item.Processed) PBRemapIcons.Set(icon, PBRemapIcons.Resolved);
+			else icon.image = null;
 			name.text = component.name;
 			element.tooltip = (item.Processed ? "配置済み: " : "未処理: ") + item.Path;
 		}

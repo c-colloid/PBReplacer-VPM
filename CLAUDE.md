@@ -49,6 +49,7 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
+設定のオン/オフは `Toggle` に `pbr-switch` を付けてスイッチとして描く（標準のチェックボックスは使わない）。
 
 ### テーマ（ダーク / ライト）
 
@@ -62,7 +63,7 @@ C# で色を決めない。新しい色を USS に足すときはライト側の
 - ツール行: アイコンのみ（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）。説明はツールチップ
 - 流れ: `[アバター] ──(再配置 n →)── [AvatarDynamics]`。真ん中のピルが主操作。線と背景の色が状態
 - レール: `ComponentCategory` ごとのアイコンチップ。枠色=状態、右下バッジ=未処理件数。クリックで列の表示切替
-- 列: カテゴリごとの ListView。行頭 → 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
+- 列: カテゴリごとの ListView。行頭 ○ 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
 - 文字は「オブジェクト名 / 数値 / 動詞1語」に限り、HelpBox・完了ダイアログは使わない
 - 設計の経緯と検証結果は `Docs~/MainWindow-Redesign.md`
 

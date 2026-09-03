@@ -51,17 +51,17 @@
         <ui:VisualElement name="advanced" class="pbr-advanced" style="display: none;">
             <ui:Label text="プロジェクト設定 — チームで共有 (ProjectSettings/)" class="pbr-advanced-section" />
             <uie:EnumField name="setting-find-component" label="検索範囲" type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" tooltip="再配置の対象を探す階層" />
-            <ui:Toggle name="setting-destroy-unused" label="再配置後、空になったフォルダを削除" />
+            <ui:Toggle name="setting-destroy-unused" class="pbr-switch" label="再配置後、空になったフォルダを削除" />
             <ui:VisualElement class="pbr-advanced-row">
-                <ui:Toggle name="setting-unpack-prefab" label="再配置前に Prefab を完全に Unpack" />
+                <ui:Toggle name="setting-unpack-prefab" class="pbr-switch" label="再配置前に Prefab を完全に Unpack" />
                 <ui:Label text="元に戻せません" class="pbr-advanced-note" />
             </ui:VisualElement>
 
             <ui:Label text="個人設定 — この PC のみ (EditorPrefs)" class="pbr-advanced-section" />
-            <ui:Toggle name="setting-auto-load" label="前回のアバターを自動で読み込む" />
-            <ui:Toggle name="setting-confirm" label="再配置・移植の前に確認する" tooltip="メインウィンドウの再配置と PBRemap の移植（→）で共通。どちらも Ctrl+Z で元に戻せるため既定はオフ" />
+            <ui:Toggle name="setting-auto-load" class="pbr-switch" label="前回のアバターを自動で読み込む" />
+            <ui:Toggle name="setting-confirm" class="pbr-switch" label="再配置・移植の前に確認する" tooltip="メインウィンドウの再配置と PBRemap の移植（→）で共通。どちらも Ctrl+Z で元に戻せるため既定はオフ" />
             <ui:VisualElement name="setting-skip-row" class="pbr-advanced-row">
-                <ui:Toggle name="setting-skip-small" label="　未処理が" />
+                <ui:Toggle name="setting-skip-small" class="pbr-switch" label="　未処理が" />
                 <uie:IntegerField name="setting-skip-threshold" value="5" />
                 <ui:Label text="件以下なら確認を省略" />
             </ui:VisualElement>
