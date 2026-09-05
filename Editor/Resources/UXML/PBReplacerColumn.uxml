@@ -1,0 +1,17 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
+    <ui:VisualElement name="column" class="pbr-column">
+        <ui:VisualElement name="header" class="pbr-column-header" style="flex-shrink: 0;">
+            <ui:Image name="header-icon" class="pbr-column-header-icon" />
+            <ui:Label name="title" text="Category" class="pbr-column-title" />
+            <ui:Label name="count" class="pbr-column-count" />
+            <ui:VisualElement name="dropzone" tooltip="Hierarchy のオブジェクトをこの列へドロップで追加" class="pbr-column-dropzone">
+                <ui:Image name="dropzone-icon" class="pbr-column-dropzone-icon" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:ListView name="list" fixed-item-height="20" selection-type="Multiple" show-border="false" />
+        <ui:VisualElement name="empty" tooltip="Armature 内に対象がありません&#10;Hierarchy のオブジェクトをこの列へドロップすると追加できます" class="pbr-column-empty" style="display: none;">
+            <ui:Image name="empty-icon" class="pbr-column-empty-icon" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

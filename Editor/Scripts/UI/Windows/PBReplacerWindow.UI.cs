@@ -14,21 +14,52 @@ namespace colloid.PBReplacer
 		#region UXML Loading
 		private void LoadUXMLLayout()
 		{
-			if (_windowLayout == null)
+			// シリアライズ済みの参照（レイアウト保存など）が古い/壊れている場合に備え、
+			// 期待する要素（strip）が無ければ Resources から読み直す
+			var layout = _windowLayout;
+			_root = CloneLayout(layout);
+			if (_root == null || _root.Q<VisualElement>("strip") == null)
 			{
-				_windowLayout = Resources.Load<VisualTreeAsset>("UXML/PBReplacer")
-					?? Resources.Load<VisualTreeAsset>("PBReplacer");
+				var fresh = Resources.Load<VisualTreeAsset>("UXML/PBReplacer");
+				if (fresh != null && fresh != layout)
+				{
+					layout = fresh;
+					_root = CloneLayout(layout);
+				}
 			}
 
-			if (_windowLayout == null)
+			if (_root == null || _root.Q<VisualElement>("strip") == null)
 			{
-				Debug.LogError("PBReplacer UIレイアウトが見つかりません。");
+				string path = layout != null ? AssetDatabase.GetAssetPath(layout) : "(null)";
+				bool withErrors = false;
+#if UNITY_2021_2_OR_NEWER
+				withErrors = layout != null && layout.importedWithErrors;
+#endif
+				Debug.LogError($"PBReplacer: UI レイアウト（UXML/PBReplacer.uxml）を読み込めませんでした。asset={path} importedWithErrors={withErrors}\n"
+					+ "Packages/jp.colloid.pbreplacer を再インポート（右クリック → Reimport）するか、Console の UXML/USS のインポートエラーを確認してください。");
+				_root = null;
 				return;
 			}
 
-			_root = _windowLayout.CloneTree();
+			_windowLayout = layout;
 			_root.style.flexGrow = 1;
 			rootVisualElement.Add(_root);
+			PBReplacerFonts.Apply(rootVisualElement);
+			PBReplacerTheme.Apply(rootVisualElement);
+		}
+
+		private static TemplateContainer CloneLayout(VisualTreeAsset layout)
+		{
+			if (layout == null) return null;
+			try
+			{
+				return layout.CloneTree();
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
+				return null;
+			}
 		}
 
 		private void GetUIReferences()
@@ -73,21 +104,26 @@ namespace colloid.PBReplacer
 		}
 
 		/// <summary>
-		/// ツール行: PBRemap と同じ右寄せのアイコンボタン（説明はツールチップ）
+		/// ツール行: 要素は UXML（tools 配下）。ここでは内蔵アイコンの画像とクリックだけを結び付ける
 		/// </summary>
 		private void InitializeTools()
 		{
-			_reloadButton = PBRemapIcons.IconButton(PBRemapIcons.Refresh, "再読み込み", OnReloadButtonClicked);
-			_undoButton = PBRemapIcons.IconButton(PBRemapIcons.Undo, "直前の再配置を元に戻す (Ctrl+Z)", OnUndoButtonClicked);
-			_gearButton = PBRemapIcons.IconButton(PBRemapIcons.Settings, "詳細設定", OnGearButtonClicked);
-			_menuButton = PBRemapIcons.IconButton("_Menu", "その他", OnOverflowMenuButtonClicked);
-
-			_tools.Add(_reloadButton);
-			_tools.Add(_undoButton);
-			_tools.Add(_gearButton);
-			_tools.Add(_menuButton);
+			_reloadButton = BindIconButton("tool-reload", PBRemapIcons.Refresh, OnReloadButtonClicked);
+			_undoButton = BindIconButton("tool-undo", PBRemapIcons.Undo, OnUndoButtonClicked);
+			_gearButton = BindIconButton("tool-gear", PBRemapIcons.Settings, OnGearButtonClicked);
+			_menuButton = BindIconButton("tool-menu", "_Menu", OnOverflowMenuButtonClicked);
 
 			UpdateTools();
+		}
+
+		/// <summary>UXML 上のアイコンボタンに内蔵アイコンとクリック処理を結び付ける</summary>
+		private Button BindIconButton(string name, string iconName, Action onClick)
+		{
+			var button = _root.Q<Button>(name);
+			if (button == null) return null;
+			PBRemapIcons.Set(button.Q<Image>(), iconName);
+			button.clicked += onClick;
+			return button;
 		}
 
 		private void UpdateTools()
@@ -219,30 +255,21 @@ namespace colloid.PBReplacer
 		private bool IsAdvancedVisible => _advancedVisible;
 
 		/// <summary>
-		/// レール: カテゴリのアイコンチップ。文字は持たず、名前と件数はツールチップと列見出しに任せる。
-		/// SDK の型アイコンが無いカテゴリが 1 つでもあればレール全体を「アイコン＋件数の 2 段」にする（案 ii）。
+		/// レール: チップの要素は UXML（rail 配下の chip-{Category}）。ここではアイコン画像とクリックだけを結び付ける
 		/// </summary>
 		private void InitializeRail()
 		{
-			_rail.Clear();
 			_chips.Clear();
 
-			bool anyFallback = false;
 			foreach (var category in ComponentCategoryInfo.All)
 			{
-				var icon = ComponentIconUtility.GetCategoryIcon(category, out bool isFallback);
-				anyFallback |= isFallback;
+				var root = _rail.Q<VisualElement>($"chip-{category}");
+				if (root == null) continue;
 
-				var chip = new RailChip(category, icon, isFallback);
+				// SDK に固有アイコンが無ければ内蔵型で代替（レイアウトは UXML/USS のまま）
+				var chip = new RailChip(category, root, ComponentIconUtility.GetCategoryIcon(category, out _));
 				chip.Root.RegisterCallback<ClickEvent>(evt => OnRailChipClicked(category, evt.altKey));
 				_chips[category] = chip;
-				_rail.Add(chip.Root);
-			}
-
-			_rail.EnableInClassList("pbr-rail--fallback", anyFallback);
-			if (anyFallback)
-			{
-				foreach (var chip in _chips.Values) chip.Root.AddToClassList("pbr-rail-chip--fallback");
 			}
 		}
 
@@ -292,7 +319,7 @@ namespace colloid.PBReplacer
 
 		#region Rail Chip
 		/// <summary>
-		/// レールのチップ 1 つ（28px 正方形 + 右下バッジ）。PBRemap のノード（アイコン + 右下バッジ）と同じ構図。
+		/// レールのチップ 1 つ。要素は UXML で定義済み（Image + Label バッジ）。C# は画像・件数・状態クラスを反映するだけ
 		/// </summary>
 		private class RailChip
 		{
@@ -301,21 +328,16 @@ namespace colloid.PBReplacer
 			public readonly Image Icon;
 			public readonly Label Badge;
 
-			public RailChip(ComponentCategory category, Texture2D icon, bool isFallback)
+			public RailChip(ComponentCategory category, VisualElement root, Texture2D icon)
 			{
 				Category = category;
-				Root = new VisualElement { name = $"chip-{category}" };
-				Root.AddToClassList("pbr-rail-chip");
+				Root = root;
 				Root.tooltip = ComponentCategoryInfo.DisplayName(category);
 
-				Icon = new Image { image = icon, scaleMode = ScaleMode.ScaleToFit };
-				Icon.AddToClassList("pbr-rail-chip-icon");
-				Root.Add(Icon);
+				Icon = root.Q<Image>(className: "pbr-rail-chip-icon");
+				if (Icon != null) { Icon.image = icon; Icon.scaleMode = ScaleMode.ScaleToFit; }
 
-				Badge = new Label();
-				Badge.AddToClassList("pbr-rail-badge");
-				Badge.pickingMode = PickingMode.Ignore;
-				Root.Add(Badge);
+				Badge = root.Q<Label>(className: "pbr-rail-badge");
 			}
 
 			public void Update(int pending, int total, bool visible)

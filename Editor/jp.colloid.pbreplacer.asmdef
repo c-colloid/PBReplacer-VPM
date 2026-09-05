@@ -10,7 +10,9 @@
         "GUID:fc900867c0f47cd49b6e2ae4ef907300",
         "GUID:46b240ba6ff100649be07bf79579f8ac",
         "GUID:a1b2c3d4e5f6078900112233aabbccdd",
-        "GUID:62f0aee1-1571-4c01-a9d7-5fded2ab6b8e"
+        "GUID:62f0aee1-1571-4c01-a9d7-5fded2ab6b8e",
+        "Colloid.UitkFontFix",
+        "Colloid.UitkFontFix.Editor"
     ],
     "includePlatforms": [
         "Editor"
@@ -37,6 +39,11 @@
             "name": "nadena.dev.ndmf",
             "expression": "",
             "define": "NDMF"
+        },
+        {
+            "name": "jp.colloid.uitk-font-fix",
+            "expression": "",
+            "define": "UITK_FONT_FIX"
         }
     ],
     "noEngineReferences": false

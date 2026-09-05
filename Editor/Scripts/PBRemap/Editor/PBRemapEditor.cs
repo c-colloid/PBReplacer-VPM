@@ -94,6 +94,8 @@ namespace colloid.PBReplacer
             if (commonSheet != null) _root.styleSheets.Add(commonSheet);
             var styleSheet = Resources.Load<StyleSheet>("USS/PBRemap");
             if (styleSheet != null) _root.styleSheets.Add(styleSheet);
+            PBReplacerFonts.Apply(_root);
+            PBReplacerTheme.Apply(_root);
             LoadStringResources();
 
             _tools = _root.Q<VisualElement>("tools");
@@ -128,10 +130,10 @@ namespace colloid.PBReplacer
             _applyButton.clicked += OnApplyClicked;
 
             // ツール行
-            _refreshButton = PBRemapIcons.IconButton(PBRemapIcons.Refresh, "参照情報を取り直す（移植元にいるときだけ）", OnRefreshManifestClicked);
-            _eyeButton = PBRemapIcons.IconButton(PBRemapIcons.EyeOff, "SceneView に対応線を表示", OnEyeClicked);
-            _gearButton = PBRemapIcons.IconButton(PBRemapIcons.Settings, "詳細設定", OnGearClicked);
-            _tools.Add(_refreshButton); _tools.Add(_eyeButton); _tools.Add(_gearButton);
+            // ツール行の要素は UXML。ここでは内蔵アイコンの画像とクリックだけを結び付ける
+            _refreshButton = BindToolButton("tool-refresh", PBRemapIcons.Refresh, OnRefreshManifestClicked);
+            _eyeButton = BindToolButton("tool-eye", PBRemapIcons.EyeOff, OnEyeClicked);
+            _gearButton = BindToolButton("tool-gear", PBRemapIcons.Settings, OnGearClicked);
             bool adv = EditorPrefs.GetBool(PrefAdvanced, false);
             _advanced.style.display = adv ? DisplayStyle.Flex : DisplayStyle.None;
             _gearButton.EnableInClassList("pbremap-icon-button--on", adv);
@@ -904,6 +906,22 @@ namespace colloid.PBReplacer
                 SceneView.RepaintAll();
             }
             UpdateTools(_detection?.Situation ?? new PBRemapSituation());
+        }
+
+        /// <summary>UXML 上のアイコンボタンに内蔵アイコンとクリック処理を結び付ける（無ければ生成してツール行に足す）</summary>
+        private Button BindToolButton(string name, string iconName, System.Action onClick)
+        {
+            var button = _tools.Q<Button>(name);
+            if (button == null)
+            {
+                button = PBRemapIcons.IconButton(iconName, null, onClick);
+                button.name = name;
+                _tools.Add(button);
+                return button;
+            }
+            PBRemapIcons.Set(button.Q<Image>(), iconName);
+            button.clicked += onClick;
+            return button;
         }
 
         private void OnGearClicked()

@@ -1,15 +1,23 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
     <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacer.uss?fileID=7433441132597879392&amp;guid=315c19ce5d24dfb4ba0de347a8fe18a1&amp;type=3#PBReplacer" />
-
     <ui:VisualElement name="window" class="pbr-window">
-
-        <!-- ツール行（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）: C# で生成 -->
-        <ui:VisualElement name="tools" class="pbr-tools" />
-
-        <!-- 流れ: [アバター] ──(再配置 n →)── [AvatarDynamics]  左→右 = 再配置の向き -->
+        <ui:VisualElement name="tools" class="pbr-tools">
+            <ui:Button name="tool-reload" tooltip="再読み込み" class="pbr-icon-button">
+                <ui:Image name="tool-reload-icon" class="pbr-icon" />
+            </ui:Button>
+            <ui:Button name="tool-undo" tooltip="直前の再配置を元に戻す (Ctrl+Z)" class="pbr-icon-button">
+                <ui:Image name="tool-undo-icon" class="pbr-icon" />
+            </ui:Button>
+            <ui:Button name="tool-gear" tooltip="詳細設定" class="pbr-icon-button">
+                <ui:Image name="tool-gear-icon" class="pbr-icon" />
+            </ui:Button>
+            <ui:Button name="tool-menu" tooltip="その他" class="pbr-icon-button">
+                <ui:Image name="tool-menu-icon" class="pbr-icon" />
+            </ui:Button>
+        </ui:VisualElement>
         <ui:VisualElement name="strip" class="pbr-strip">
-            <ui:VisualElement name="node-avatar" class="pbr-node pbr-node--clickable" tooltip="アバターをドロップ、またはクリックで選択">
+            <ui:VisualElement name="node-avatar" tooltip="アバターをドロップ、またはクリックで選択" class="pbr-node pbr-node--clickable">
                 <ui:VisualElement class="pbr-node-iconwrap">
                     <ui:Image name="node-avatar-icon" class="pbr-node-icon" />
                     <ui:Image name="node-avatar-badge" class="pbr-node-badge" />
@@ -19,7 +27,6 @@
                     <ui:Label name="node-avatar-sub" class="pbr-node-sub" />
                 </ui:VisualElement>
             </ui:VisualElement>
-
             <ui:VisualElement name="connector" class="pbr-connector">
                 <ui:VisualElement name="line-left" class="pbr-line" />
                 <ui:Button name="apply-button" class="pbr-apply">
@@ -29,47 +36,60 @@
                 <ui:Image name="connector-state" class="pbr-connector-state" style="display: none;" />
                 <ui:VisualElement name="line-right" class="pbr-line" />
             </ui:VisualElement>
-
             <ui:VisualElement name="node-dynamics" class="pbr-node pbr-node--clickable">
                 <ui:VisualElement class="pbr-node-iconwrap">
                     <ui:Image name="node-dynamics-icon" class="pbr-node-icon" />
                 </ui:VisualElement>
                 <ui:VisualElement class="pbr-node-text">
-                    <ui:Label name="node-dynamics-name" class="pbr-node-name" text="AvatarDynamics" />
+                    <ui:Label name="node-dynamics-name" text="AvatarDynamics" class="pbr-node-name" />
                     <ui:Label name="node-dynamics-sub" class="pbr-node-sub" />
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- 詳細設定（⚙ で開閉。保存先ごとに見出し） -->
+        <!-- 詳細設定（⚙ で開閉）。1 行 = [ラベル … 操作]。操作は右端で揃え、説明はツールチップ。保存先ごとに見出し -->
         <ui:VisualElement name="advanced" class="pbr-advanced" style="display: none;">
-            <ui:Label text="プロジェクト設定 — チームで共有 (ProjectSettings/)" class="pbr-advanced-section" />
-            <uie:EnumField name="setting-find-component" label="検索範囲" type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" tooltip="再配置の対象を探す階層" />
-            <ui:Toggle name="setting-destroy-unused" label="再配置後、空になったフォルダを削除" />
-            <ui:VisualElement class="pbr-advanced-row">
-                <ui:Toggle name="setting-unpack-prefab" label="再配置前に Prefab を完全に Unpack" />
-                <ui:Label text="元に戻せません" class="pbr-advanced-note" />
-            </ui:VisualElement>
+            <ui:Label text="プロジェクト" class="pbr-advanced-section pbr-advanced-section--first" tooltip="ProjectSettings/ に保存。チームで共有される" />
+            <uie:EnumField name="setting-find-component" class="pbr-setting pbr-setting-field" label="検索範囲" type="colloid.PBReplacer.FindComponent, jp.colloid.pbreplacer" tooltip="再配置の対象を探す階層" />
+            <ui:Toggle name="setting-destroy-unused" class="pbr-setting pbr-switch" label="空になったフォルダを削除" tooltip="再配置後、コンポーネントが無くなって空になった GameObject を削除する" />
+            <ui:Toggle name="setting-unpack-prefab" class="pbr-setting pbr-switch" label="Prefab を Unpack してから再配置" tooltip="アバターが Prefab のとき、先に Prefab との接続を解除する（以後 Prefab の更新を受けなくなる）。Ctrl+Z で戻せる" />
 
-            <ui:Label text="個人設定 — この PC のみ (EditorPrefs)" class="pbr-advanced-section" />
-            <ui:Toggle name="setting-auto-load" label="前回のアバターを自動で読み込む" />
-            <ui:Toggle name="setting-confirm" label="再配置・移植の前に確認する" tooltip="メインウィンドウの再配置と PBRemap の移植（→）で共通。どちらも Ctrl+Z で元に戻せるため既定はオフ" />
-            <ui:VisualElement name="setting-skip-row" class="pbr-advanced-row">
-                <ui:Toggle name="setting-skip-small" label="　未処理が" />
-                <uie:IntegerField name="setting-skip-threshold" value="5" />
-                <ui:Label text="件以下なら確認を省略" />
+            <ui:Label text="この PC のみ" class="pbr-advanced-section" tooltip="EditorPrefs に保存。共有されない" />
+            <ui:Toggle name="setting-auto-load" class="pbr-setting pbr-switch" label="前回のアバターを自動で読み込む" tooltip="ウィンドウを開いたとき、前回のアバターを自動で設定する" />
+            <ui:Toggle name="setting-confirm" class="pbr-setting pbr-switch" label="再配置・移植の前に確認する" tooltip="メインウィンドウの再配置と PBRemap の移植（→）で共通。どちらも Ctrl+Z で戻せるため既定はオフ" />
+            <ui:VisualElement name="setting-skip-row" class="pbr-setting pbr-setting--sub" tooltip="未処理がこの件数以下なら確認を出さない">
+                <ui:Label text="未処理が" class="pbr-setting-label" />
+                <uie:IntegerField name="setting-skip-threshold" value="5" class="pbr-setting-number" />
+                <ui:Label text="件以下なら確認を省略" class="pbr-setting-label pbr-setting-label--grow" />
+                <ui:Toggle name="setting-skip-small" class="pbr-switch" />
             </ui:VisualElement>
-
             <ui:VisualElement class="pbr-advanced-footer">
                 <ui:Label name="version-label" class="pbr-advanced-version" />
                 <ui:Button name="setting-reset" text="初期値に戻す…" class="pbr-link-button" />
             </ui:VisualElement>
         </ui:VisualElement>
-
-        <!-- レール（カテゴリのアイコンチップ）+ 列（カテゴリごとの一覧）: C# で生成 -->
         <ui:VisualElement name="body" class="pbr-body">
-            <ui:VisualElement name="rail" class="pbr-rail" />
-            <ui:VisualElement name="columns" class="pbr-columns" />
+            <ui:VisualElement name="rail" class="pbr-rail">
+                <ui:VisualElement name="chip-PhysBone" class="pbr-rail-chip">
+                    <ui:Image name="chip-PhysBone-icon" class="pbr-rail-chip-icon" />
+                    <ui:Label name="chip-PhysBone-badge" picking-mode="Ignore" class="pbr-rail-badge" />
+                </ui:VisualElement>
+                <ui:VisualElement name="chip-PhysBoneCollider" class="pbr-rail-chip">
+                    <ui:Image name="chip-PhysBoneCollider-icon" class="pbr-rail-chip-icon" />
+                    <ui:Label name="chip-PhysBoneCollider-badge" picking-mode="Ignore" class="pbr-rail-badge" />
+                </ui:VisualElement>
+                <ui:VisualElement name="chip-Constraint" class="pbr-rail-chip">
+                    <ui:Image name="chip-Constraint-icon" class="pbr-rail-chip-icon" />
+                    <ui:Label name="chip-Constraint-badge" picking-mode="Ignore" class="pbr-rail-badge" />
+                </ui:VisualElement>
+                <ui:VisualElement name="chip-Contact" class="pbr-rail-chip">
+                    <ui:Image name="chip-Contact-icon" class="pbr-rail-chip-icon" />
+                    <ui:Label name="chip-Contact-badge" picking-mode="Ignore" class="pbr-rail-badge" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement name="columns" class="pbr-columns">
+                <!-- 列は ComponentCategory ごとに PBReplacerColumn.uxml を C#（InitializeColumns）が Instantiate して入れる -->
+            </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

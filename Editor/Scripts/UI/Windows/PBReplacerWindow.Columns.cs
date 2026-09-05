@@ -29,7 +29,8 @@ namespace colloid.PBReplacer
 		private class CategoryColumn
 		{
 			public ComponentCategory Category;
-			public VisualElement Root;
+			public VisualElement Root;   // UXML の Instance（表示切替に使う）
+			public VisualElement Body;   // 列本体 .pbr-column（状態クラス・ドロップ先）
 			public Label Count;
 			public ListView List;
 			public VisualElement Empty;
@@ -40,62 +41,57 @@ namespace colloid.PBReplacer
 		}
 		#endregion
 
-		#region Column Construction
+		#region Column Binding
+		/// <summary>
+		/// 列の見た目は PBReplacerColumn.uxml。ComponentCategory ごとに Instantiate して columns に並べる
+		/// （UXML の Template/Instance はインポート順で失敗することがあるため C# で行う）。
+		/// ここでは各列に名前・アイコン・一覧の生成/バインド・ドロップ処理を結び付けるだけ
+		/// </summary>
 		private void InitializeColumns()
 		{
 			CleanupDropHandlers();
-			_columns.Clear();
 			_columnViews.Clear();
+			_columns.Clear();
 
-			var categories = ComponentCategoryInfo.All;
-			for (int i = 0; i < categories.Length; i++)
+			_rowTemplate = Resources.Load<VisualTreeAsset>("UXML/PBReplacerRow");
+			if (_rowTemplate == null) Debug.LogError("PBReplacerRow.uxml が見つかりません。");
+			var columnTemplate = Resources.Load<VisualTreeAsset>("UXML/PBReplacerColumn");
+			if (columnTemplate == null) { Debug.LogError("PBReplacerColumn.uxml が見つかりません。"); return; }
+
+			foreach (var category in ComponentCategoryInfo.All)
 			{
-				var column = CreateColumn(categories[i]);
-				if (i == categories.Length - 1) column.Root.AddToClassList("pbr-column--last");
-				_columnViews[categories[i]] = column;
-				_columns.Add(column.Root);
+				var root = columnTemplate.Instantiate();
+				root.name = $"column-{category}";
+				root.AddToClassList("pbr-column-slot");
+				var title = root.Q<Label>("title");
+				if (title != null) title.text = ComponentCategoryInfo.DisplayName(category);
+				_columns.Add(root);
+
+				var column = BindColumn(category, root);
+				_columnViews[category] = column;
 
 				// 列全体がドロップ先（見出しの ＋ はその目印）
-				_dropHandlers.Add(new ColumnDropHandler(column.Root, categories[i], OnColumnDropped));
+				_dropHandlers.Add(new ColumnDropHandler(column.Body, category, OnColumnDropped));
 			}
 
 			ApplyVisibility();
 		}
 
-		private CategoryColumn CreateColumn(ComponentCategory category)
+		private CategoryColumn BindColumn(ComponentCategory category, VisualElement root)
 		{
-			var column = new CategoryColumn { Category = category };
+			var column = new CategoryColumn { Category = category, Root = root };
+			column.Body = root.Q<VisualElement>("column") ?? root;
 
-			column.Root = new VisualElement { name = $"column-{category}" };
-			column.Root.AddToClassList("pbr-column");
+			var headerIcon = root.Q<Image>("header-icon");
+			if (headerIcon != null) { headerIcon.image = ComponentIconUtility.GetCategoryIcon(category, out _); headerIcon.scaleMode = ScaleMode.ScaleToFit; }
+			PBRemapIcons.Set(root.Q<Image>("dropzone-icon"), PBRemapIcons.AutoCreate);
+			PBRemapIcons.Set(root.Q<Image>("empty-icon"), PBRemapIcons.Empty);
 
-			// 見出し: [アイコン] 名前  未処理/全   [＋]
-			var header = new VisualElement();
-			header.AddToClassList("pbr-column-header");
-			var icon = new Image { image = ComponentIconUtility.GetCategoryIcon(category, out _), scaleMode = ScaleMode.ScaleToFit };
-			icon.AddToClassList("pbr-column-header-icon");
-			header.Add(icon);
-			var title = new Label(ComponentCategoryInfo.DisplayName(category));
-			title.AddToClassList("pbr-column-title");
-			header.Add(title);
-			column.Count = new Label();
-			column.Count.AddToClassList("pbr-column-count");
-			header.Add(column.Count);
-			var dropZone = new VisualElement { tooltip = "Hierarchy のオブジェクトをこの列へドロップで追加" };
-			dropZone.AddToClassList("pbr-column-dropzone");
-			dropZone.Add(PBRemapIcons.Image(PBRemapIcons.AutoCreate, 10));
-			header.Add(dropZone);
-			column.Root.Add(header);
+			column.Count = root.Q<Label>("count");
+			column.Empty = root.Q<VisualElement>("empty");
 
-			// 一覧
-			column.List = new ListView();
+			column.List = root.Q<ListView>("list");
 			column.List.itemsSource = column.Rows;
-#if UNITY_2021_2_OR_NEWER
-			column.List.fixedItemHeight = 20;
-#else
-			column.List.itemHeight = 20;
-#endif
-			column.List.selectionType = SelectionType.Multiple;
 			column.List.makeItem = () => MakeRow(column);
 			column.List.bindItem = (element, index) => BindRow(column, element, index);
 #if UNITY_2022_2_OR_NEWER
@@ -105,35 +101,30 @@ namespace colloid.PBReplacer
 			column.List.onSelectionChange += items => OnRowsSelected(column, items);
 			column.List.onItemsChosen += items => OnRowsChosen(items);
 #endif
-			column.Root.Add(column.List);
-
-			// 空状態: 対象なしのアイコンだけ（説明はツールチップ）
-			column.Empty = new VisualElement { tooltip = "Armature 内に対象がありません\nHierarchy のオブジェクトをこの列へドロップすると追加できます" };
-			column.Empty.AddToClassList("pbr-column-empty");
-			column.Empty.Add(PBRemapIcons.Image(PBRemapIcons.Empty, 20));
-			column.Empty.style.display = DisplayStyle.None;
-			column.Root.Add(column.Empty);
-
 			return column;
 		}
 
-		/// <summary>行の要素。状態アイコン + 名前。右クリックで Ping / 削除</summary>
+		/// <summary>行の要素は PBReplacerRow.uxml。ここでは内蔵アイコンとクリック / 右クリックを結び付ける</summary>
 		private VisualElement MakeRow(CategoryColumn column)
 		{
-			var row = new VisualElement();
-			row.AddToClassList("pbr-row");
+			var instance = _rowTemplate != null ? _rowTemplate.Instantiate() : null;
+			var row = instance?.Q<VisualElement>("row");
+			if (row == null)
+			{
+				row = new VisualElement();
+				row.AddToClassList("pbr-row");
+				return row;
+			}
+			row.RemoveFromHierarchy();
 
-			var fold = PBRemapIcons.Image(PBRemapIcons.Dropdown, 10);
-			fold.AddToClassList("pbr-row-fold");
-			row.Add(fold);
+			PBRemapIcons.Set(row.Q<Image>("fold"), PBRemapIcons.Dropdown);
+			PBRemapIcons.Set(row.Q<Image>("action-ping-icon"), "UnityEditor.SceneHierarchyWindow");
+			PBRemapIcons.Set(row.Q<Image>("action-delete-icon"), PBRemapIcons.Trash);
 
-			var icon = new Image { scaleMode = ScaleMode.ScaleToFit };
-			icon.AddToClassList("pbr-row-icon");
-			row.Add(icon);
-
-			var name = new Label();
-			name.AddToClassList("pbr-row-name");
-			row.Add(name);
+			var pingButton = row.Q<Button>("action-ping");
+			if (pingButton != null) pingButton.clicked += () => PingRowComponent(row);
+			var deleteButton = row.Q<Button>("action-delete");
+			if (deleteButton != null) deleteButton.clicked += () => DeleteRowComponent(row);
 
 			// 見出し行のクリック = 配置済みの開閉
 			row.RegisterCallback<ClickEvent>(evt =>
@@ -151,31 +142,44 @@ namespace colloid.PBReplacer
 				if (!(row.userData is RowItem item) || item.IsDoneHeader || item.Component == null) return;
 				var target = item.Component;
 
-				evt.menu.AppendAction("Hierarchy で表示", _ =>
-				{
-					if (target == null) return;
-					Selection.activeGameObject = target.gameObject;
-					EditorGUIUtility.PingObject(target.gameObject);
-				});
-
+				evt.menu.AppendAction("Hierarchy で表示", _ => PingComponent(target));
 				evt.menu.AppendSeparator();
-				evt.menu.AppendAction("このコンポーネントを削除", _ =>
-				{
-					if (target == null) return;
-					bool confirmed = EditorUtility.DisplayDialog(
-						"コンポーネントの削除",
-						$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
-						"削除する",
-						"やめる");
-					if (!confirmed) return;
-
-					Undo.DestroyObjectImmediate(target);
-					DataManagerHelper.NotifyComponentsRemoved(target);
-					DataManagerHelper.ReloadData();
-				});
+				evt.menu.AppendAction("このコンポーネントを削除", _ => DeleteComponent(target));
 			}));
 
 			return row;
+		}
+
+		private static void PingRowComponent(VisualElement row)
+		{
+			if (row.userData is RowItem item && !item.IsDoneHeader) PingComponent(item.Component);
+		}
+
+		private static void DeleteRowComponent(VisualElement row)
+		{
+			if (row.userData is RowItem item && !item.IsDoneHeader) DeleteComponent(item.Component);
+		}
+
+		private static void PingComponent(Component target)
+		{
+			if (target == null) return;
+			Selection.activeGameObject = target.gameObject;
+			EditorGUIUtility.PingObject(target.gameObject);
+		}
+
+		private static void DeleteComponent(Component target)
+		{
+			if (target == null) return;
+			bool confirmed = EditorUtility.DisplayDialog(
+				"コンポーネントの削除",
+				$"以下のコンポーネントを削除します（1件）\n\n{target.name}\n\nこの操作はCtrl+Zで元に戻せます",
+				"削除する",
+				"やめる");
+			if (!confirmed) return;
+
+			Undo.DestroyObjectImmediate(target);
+			DataManagerHelper.NotifyComponentsRemoved(target);
+			DataManagerHelper.ReloadData();
 		}
 
 		private void BindRow(CategoryColumn column, VisualElement element, int index)
@@ -184,13 +188,17 @@ namespace colloid.PBReplacer
 			var item = column.Rows[index];
 			element.userData = item;
 
-			var fold = element.Q<Image>(className: "pbr-row-fold");
-			var icon = element.Q<Image>(className: "pbr-row-icon");
-			var name = element.Q<Label>(className: "pbr-row-name");
+			var fold = element.Q<Image>("fold");
+			var icon = element.Q<Image>("state");
+			var name = element.Q<Label>("name");
+			var actions = element.Q<VisualElement>("actions");
+			if (fold == null || icon == null || name == null) return;
+			actions?.EnableInClassList("pbr-row-actions--hidden", item.IsDoneHeader || item.Component == null);
 
 			element.EnableInClassList("pbr-row--header", item.IsDoneHeader);
 			element.EnableInClassList("pbr-row--done", item.Processed && !item.IsDoneHeader);
 
+			icon.RemoveFromClassList("pbr-row-icon--pending");
 			if (item.IsDoneHeader)
 			{
 				fold.style.display = DisplayStyle.Flex;
@@ -213,7 +221,10 @@ namespace colloid.PBReplacer
 				return;
 			}
 
-			PBRemapIcons.Set(icon, item.Processed ? PBRemapIcons.Resolved : PBRemapIcons.Apply);
+			// 未処理は USS のリング（画像なし）、配置済みは ✔
+			icon.EnableInClassList("pbr-row-icon--pending", !item.Processed);
+			if (item.Processed) PBRemapIcons.Set(icon, PBRemapIcons.Resolved);
+			else icon.image = null;
 			name.text = component.name;
 			element.tooltip = (item.Processed ? "配置済み: " : "未処理: ") + item.Path;
 		}
@@ -352,7 +363,7 @@ namespace colloid.PBReplacer
 				if (!_columnViews.TryGetValue(category, out var column)) continue;
 				bool visible = IsCategoryVisible(category);
 				column.Root.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-				column.Root.RemoveFromClassList("pbr-column--last");
+				column.Body.RemoveFromClassList("pbr-column--last");
 				if (visible) lastVisible = column;
 
 				if (_chips.TryGetValue(category, out var chip))
@@ -360,7 +371,7 @@ namespace colloid.PBReplacer
 					chip.Update(column.Pending, column.All.Count, visible);
 				}
 			}
-			lastVisible?.Root.AddToClassList("pbr-column--last");
+			lastVisible?.Body.AddToClassList("pbr-column--last");
 		}
 
 		private void RepaintListView(ListView listView)

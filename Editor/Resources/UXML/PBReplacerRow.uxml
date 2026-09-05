@@ -1,0 +1,16 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
+    <Style src="project://database/Packages/jp.colloid.pbreplacer/Editor/Resources/USS/PBReplacerCommon.uss?fileID=7433441132597879392&amp;guid=93c673357a8947738951515276961893&amp;type=3#PBReplacerCommon" />
+    <ui:VisualElement name="row" class="pbr-row">
+        <ui:Image name="fold" class="pbr-row-fold" style="display: none;" />
+        <ui:Image name="state" class="pbr-row-icon" />
+        <ui:Label name="name" class="pbr-row-name" />
+        <ui:VisualElement name="actions" class="pbr-row-actions">
+            <ui:Button name="action-ping" tooltip="Hierarchy で表示" class="pbr-icon-button pbr-row-action">
+                <ui:Image name="action-ping-icon" class="pbr-icon pbr-row-action-icon" />
+            </ui:Button>
+            <ui:Button name="action-delete" tooltip="このコンポーネントを削除" class="pbr-icon-button pbr-row-action">
+                <ui:Image name="action-delete-icon" class="pbr-icon pbr-row-action-icon" />
+            </ui:Button>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

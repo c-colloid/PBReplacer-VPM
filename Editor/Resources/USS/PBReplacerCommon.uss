@@ -274,3 +274,278 @@
     border-radius: 4px;
     background-color: rgba(0, 0, 0, 0.08);
 }
+
+/* ---- 設定の行: [ラベル … 操作]。ラベルが伸びて操作を右端で揃える。Toggle / EnumField にそのまま付ける ---- */
+.pbremap-setting, .pbr-setting {
+    flex-direction: row;
+    align-items: center;
+    height: 22px;
+    margin: 0;
+    padding: 0;
+}
+
+.pbremap-setting > .unity-base-field__label, .pbr-setting > .unity-base-field__label {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pbremap-setting-field > .unity-base-field__input, .pbr-setting-field > .unity-base-field__input,
+.pbremap-setting-field > .unity-base-popup-field__input, .pbr-setting-field > .unity-base-popup-field__input,
+.pbremap-setting-field > .unity-enum-field__input, .pbr-setting-field > .unity-enum-field__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: auto;
+    width: 170px;
+    min-width: 170px;
+    margin: 0;
+}
+
+.pbremap-setting--sub, .pbr-setting--sub {
+    margin-left: 14px;
+}
+
+.pbremap-setting-label, .pbr-setting-label {
+    margin: 0;
+    padding: 0;
+    -unity-text-align: middle-left;
+    white-space: nowrap;
+}
+
+.pbremap-setting-label--grow, .pbr-setting-label--grow {
+    flex-grow: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.pbremap-setting-number, .pbr-setting-number {
+    width: 40px;
+    margin: 0 4px;
+}
+
+.pbremap-setting-number > .unity-base-field__input, .pbr-setting-number > .unity-base-field__input {
+    -unity-text-align: middle-right;
+}
+
+/* ---- スイッチ（設定のオン/オフ。標準のチェックボックスの代わりに Toggle に .pbr-switch を付ける） ----
+   構造は Toggle のまま: __input をレール、__checkmark をノブとして描く。C# は不要 */
+.pbremap-switch > .unity-toggle__input, .pbr-switch > .unity-toggle__input {
+    flex-grow: 0;
+    flex-shrink: 0;
+    width: 30px;
+    height: 16px;
+    padding: 0;
+    margin: 0;
+    border-radius: 8px;
+    border-width: 0;
+    
+    background-color: rgba(255, 255, 255, 0.18);
+    transition-property: background-color;
+    transition-duration: 0.15s;
+}
+
+.pbremap-switch:hover > .unity-toggle__input, .pbr-switch:hover > .unity-toggle__input {
+    background-color: rgba(255, 255, 255, 0.26);
+}
+
+.pbremap-switch:checked > .unity-toggle__input, .pbr-switch:checked > .unity-toggle__input,
+.pbremap-switch:checked:hover > .unity-toggle__input, .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(52, 140, 92);
+}
+
+.pbremap-switch:checked:hover > .unity-toggle__input, .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(64, 168, 110);
+}
+
+.pbremap-switch > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark {
+    width: 12px;
+    height: 12px;
+    margin: 0 0 0 0px;
+    padding: 0;
+    border-width: 0;
+    border-radius: 6px;
+    background-image: none;
+    background-color: rgb(235, 235, 235);
+    transition-property: margin-left;
+    transition-duration: 0.15s;
+}
+
+.pbremap-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:hover > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:focus > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:active > .unity-toggle__input > .unity-toggle__checkmark,
+.pbremap-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark,
+.pbr-switch:checked:disabled > .unity-toggle__input > .unity-toggle__checkmark {
+    margin-left: 16px;
+    background-color: white;
+}
+
+.pbremap-switch:focus > .unity-toggle__input, .pbr-switch:focus > .unity-toggle__input {
+    border-width: 1px;
+    border-color: rgba(90, 160, 255, 0.9);
+}
+
+.pbremap-switch, .pbr-switch {
+    margin: 0;
+    flex-shrink: 0;
+    align-items: center;
+}
+
+.pbremap-switch:disabled, .pbr-switch:disabled {
+    opacity: 0.4;
+}
+
+/* ============================================================
+   ライトテーマ（ルートに .pbr-theme-light を PBReplacerTheme.Apply が付ける）
+   規則: 白系の半透明オーバーレイ → 黒系に置換、アクセント色は明るい地でも読める濃さに。
+   ダーク側の値は上で定義したまま、ここでは色だけを上書きする。
+   ============================================================ */
+
+.pbr-theme-light .pbremap-icon-button--on, .pbr-theme-light .pbr-icon-button--on {
+    background-color: rgba(50, 120, 230, 0.30);
+}
+
+.pbr-theme-light .pbremap-strip, .pbr-theme-light .pbr-strip {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+.pbr-theme-light .pbremap-strip--home, .pbr-theme-light .pbr-strip--home {
+    background-color: rgba(40, 150, 80, 0.12);
+}
+
+.pbr-theme-light .pbremap-strip--displaced, .pbr-theme-light .pbr-strip--displaced {
+    background-color: rgba(210, 150, 0, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--broken, .pbr-theme-light .pbr-strip--broken {
+    background-color: rgba(220, 120, 30, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--error, .pbr-theme-light .pbr-strip--error {
+    background-color: rgba(220, 50, 50, 0.14);
+}
+
+.pbr-theme-light .pbremap-strip--flash, .pbr-theme-light .pbr-strip--flash {
+    background-color: rgba(40, 170, 90, 0.45);
+}
+
+.pbr-theme-light .pbremap-node--drop-hover, .pbr-theme-light .pbr-node--drop-hover {
+    background-color: rgba(50, 120, 230, 0.20);
+    border-color: rgba(50, 120, 230, 0.9);
+}
+
+.pbr-theme-light .pbremap-node--empty, .pbr-theme-light .pbr-node--empty {
+    border-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .pbremap-line, .pbr-theme-light .pbr-line {
+    background-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbremap-line--active, .pbr-theme-light .pbr-line--active {
+    background-color: rgba(200, 140, 0, 0.85);
+}
+
+.pbr-theme-light .pbremap-line--home, .pbr-theme-light .pbr-line--home {
+    background-color: rgba(40, 150, 80, 0.75);
+}
+
+.pbr-theme-light .pbremap-apply, .pbr-theme-light .pbr-apply {
+    background-color: rgba(0, 0, 0, 0.14);
+}
+
+.pbr-theme-light .pbremap-apply--ready, .pbr-theme-light .pbr-apply--ready {
+    background-color: rgb(40, 130, 80);
+}
+
+.pbr-theme-light .pbremap-apply--ready:hover, .pbr-theme-light .pbr-apply--ready:hover {
+    background-color: rgb(52, 150, 95);
+}
+
+.pbr-theme-light .pbremap-apply--partial, .pbr-theme-light .pbr-apply--partial {
+    background-color: rgb(175, 120, 20);
+}
+
+.pbr-theme-light .pbremap-apply--partial:hover, .pbr-theme-light .pbr-apply--partial:hover {
+    background-color: rgb(195, 140, 30);
+}
+
+.pbr-theme-light .pbremap-chip, .pbr-theme-light .pbr-chip {
+    border-color: rgba(0, 0, 0, 0.20);
+    background-color: rgba(255, 255, 255, 0.45);
+}
+
+.pbr-theme-light .pbremap-chip:hover, .pbr-theme-light .pbr-chip:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+}
+
+.pbr-theme-light .pbremap-chip--resolved, .pbr-theme-light .pbr-chip--resolved {
+    border-color: rgba(40, 150, 80, 0.7);
+}
+
+.pbr-theme-light .pbremap-chip--auto, .pbr-theme-light .pbr-chip--auto,
+.pbr-theme-light .pbremap-chip--ambiguous, .pbr-theme-light .pbr-chip--ambiguous {
+    border-color: rgba(190, 130, 0, 0.8);
+}
+
+.pbr-theme-light .pbremap-chip--unresolved, .pbr-theme-light .pbr-chip--unresolved {
+    border-color: rgba(200, 50, 50, 0.7);
+}
+
+.pbr-theme-light .pbremap-chip--manual, .pbr-theme-light .pbr-chip--manual {
+    border-color: rgba(50, 120, 230, 0.7);
+}
+
+.pbr-theme-light .pbremap-advanced, .pbr-theme-light .pbr-advanced {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.pbr-theme-light .pbremap-switch > .unity-toggle__input, .pbr-theme-light .pbr-switch > .unity-toggle__input {
+    background-color: rgba(0, 0, 0, 0.22);
+}
+
+.pbr-theme-light .pbremap-switch:hover > .unity-toggle__input, .pbr-theme-light .pbr-switch:hover > .unity-toggle__input {
+    background-color: rgba(0, 0, 0, 0.30);
+}
+
+.pbr-theme-light .pbremap-switch:checked > .unity-toggle__input, .pbr-theme-light .pbr-switch:checked > .unity-toggle__input {
+    background-color: rgb(40, 130, 80);
+}
+
+.pbr-theme-light .pbremap-switch:checked:hover > .unity-toggle__input, .pbr-theme-light .pbr-switch:checked:hover > .unity-toggle__input {
+    background-color: rgb(52, 150, 95);
+}
+
+.pbr-theme-light .pbremap-switch:focus > .unity-toggle__input, .pbr-theme-light .pbr-switch:focus > .unity-toggle__input {
+    border-color: rgba(50, 120, 230, 0.9);
+}

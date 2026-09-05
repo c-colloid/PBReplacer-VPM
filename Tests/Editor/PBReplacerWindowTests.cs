@@ -101,13 +101,45 @@ public class PBReplacerWindowTests
 		Assert.AreEqual(4, root.Q<VisualElement>("tools").childCount, "4 tool buttons");
 		Assert.IsNotNull(root.Q<VisualElement>("strip"));
 		Assert.AreEqual(4, root.Q<VisualElement>("rail").childCount, "4 rail chips");
+		Assert.IsFalse(root.Q<VisualElement>("chip-PhysBone").ClassListContains("pbr-rail-chip--fallback"), "rail always uses the 案 i layout");
+		Assert.IsNotNull(_window.rootVisualElement.style.unityFontDefinition.value.fontAsset ?? (object)_window.rootVisualElement.style.unityFontDefinition.value.font, "font applied on root");
 		Assert.AreEqual(4, root.Q<VisualElement>("columns").childCount, "4 columns");
+		Assert.AreEqual(!EditorGUIUtility.isProSkin, _window.rootVisualElement.ClassListContains("pbr-theme-light"), "light theme class follows the editor skin");
 		Assert.AreEqual(DisplayStyle.None, root.Q<VisualElement>("advanced").style.display.value, "advanced closed by default");
 
 		// アバター未設定: ピルは無効
 		var apply = root.Q<Button>("apply-button");
 		Assert.IsFalse(apply.enabledSelf, "apply disabled without avatar");
 		Assert.IsTrue(root.Q<VisualElement>("node-avatar").ClassListContains("pbr-node--empty"));
+	}
+
+	[Test]
+	public void AutoLoadOff_ReopenedWindowStartsEmpty()
+	{
+		bool saved = EditorPrefs.GetBool("PBReplacer.AutoLoadLastAvatar", true);
+		try
+		{
+			Invoke(_window, "SetAvatar", _avatar);
+			Assert.IsNotNull(AvatarFieldHelper.CurrentAvatar?.AvatarObject);
+
+			// オフにして閉じ、開き直す → 前のウィンドウのアバターを引き継がない
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", false);
+			_window.Close();
+			_window = EditorWindow.GetWindow<PBReplacerWindow>();
+			Assert.IsNull(AvatarFieldHelper.CurrentAvatar?.AvatarObject, "auto-load off: no avatar on reopen");
+			Assert.IsTrue(Get<VisualElement>(_window, "_root").Q<VisualElement>("node-avatar").ClassListContains("pbr-node--empty"));
+
+			// オンにして開き直す → 引き継ぐ（前回のアバター）
+			Invoke(_window, "SetAvatar", _avatar);
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", true);
+			_window.Close();
+			_window = EditorWindow.GetWindow<PBReplacerWindow>();
+			Assert.AreEqual(_avatar, AvatarFieldHelper.CurrentAvatar?.AvatarObject, "auto-load on: avatar kept on reopen");
+		}
+		finally
+		{
+			EditorPrefs.SetBool("PBReplacer.AutoLoadLastAvatar", saved);
+		}
 	}
 
 	[Test]
@@ -139,6 +171,10 @@ public class PBReplacerWindowTests
 		// 列の件数
 		var pbCol = root.Q<VisualElement>("column-PhysBone");
 		Assert.AreEqual("3 / 3", pbCol.Q<Label>(className: "pbr-column-count").text);
+
+		// 行にはホバーで出る操作（Ping / 削除）がある
+		var rowElement = pbCol.Q<ListView>().makeItem();
+		Assert.AreEqual(2, rowElement.Q<VisualElement>(className: "pbr-row-actions").childCount, "ping + delete actions");
 	}
 
 	[Test]

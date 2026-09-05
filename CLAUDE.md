@@ -36,20 +36,37 @@ Editor/Scripts/
     NDMF/         - NDMFビルド時統合（条件付き: #if NDMF）
   UI/Handlers/    - UIイベントハンドラ（アバタードロップ、列へのドロップ）
   UI/Windows/     - EditorWindowクラス（PBReplacerWindow: partial 4 ファイル）
-  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得）
+  Utilities/      - ヘルパークラス（ComponentIconUtility: 型からカテゴリアイコンを取得、PBReplacerFonts: ルートへの日本語フォント適用、PBReplacerTheme: ライトテーマ時にルートへ pbr-theme-light を付与）
 ```
 
 UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
+**見た目（構成要素・クラス・文言・ツールチップ）はUXML/USSに置き、C#は要素をnameで取得して
+「内蔵アイコンの画像・イベント・データ」だけをバインドする**（内蔵アイコンはUXMLから参照できないためC#で設定）。
+- `UXML/PBReplacer.uxml`: メインウィンドウ（ツール行のボタン、流れ、詳細設定、レールのチップ×4、列の入れ物）
+- `UXML/PBReplacerColumn.uxml`: 列テンプレート（見出し / ListView / 空状態）。`ComponentCategory`ごとにC#が`Instantiate`し列名を設定
+- `UXML/PBReplacerRow.uxml`: 行テンプレート（畳み記号 / 状態アイコン / 名前 / ホバー操作）。`ListView.makeItem`でInstantiate
+- `UXML/PBRemap.uxml`: PBRemap Inspector（ツール行のボタンを含む）。候補チップ・対応表の行はデータ駆動のためC#生成
 `USS/PBReplacerCommon.uss` はメインウィンドウと PBRemap Inspector で共有する UI 語彙
 （ツール行のアイコンボタン / 流れ strip・node・apply / チップ / 詳細設定パネル）。
 同じ規則を `.pbremap-*` と `.pbr-*` の両方のクラス名で提供する。
+列テンプレートは UXML の `<ui:Template>`/`<ui:Instance>` ではなく C# が `Resources.Load` して `Instantiate` する（列はデータ駆動のため）。
+UXML はインポートに失敗すると（XML 不正、マージの衝突マーカーの残りなど）`importedWithErrors` になり、ウィンドウは
+「UI レイアウトを読み込めませんでした」を Console に出して中断する。UXML を編集したら Console のインポートエラーを確認する。
+設定の行は `pbr-setting`（ラベルが伸びて操作を右端で揃える 1 行）、オン/オフは `Toggle` に `pbr-switch` を付けてスイッチとして描く（標準のチェックボックスは使わない）。説明はラベルではなくツールチップに置く。
+
+### テーマ（ダーク / ライト）
+
+USS の色はダーク前提の白系半透明オーバーレイで書く。ライトテーマは `PBReplacerTheme.Apply(root)` が
+`EditorGUIUtility.isProSkin` を見てルートに `pbr-theme-light` を付け、各 USS 末尾の
+`.pbr-theme-light .pbr-xxx` / `.pbr-theme-light .pbremap-xxx` が色だけを上書きする（黒系オーバーレイ、濃いアクセント色）。
+C# で色を決めない。新しい色を USS に足すときはライト側の上書きも同じファイルの末尾に足す。
 
 ### メインウィンドウの UI 語彙（PBRemap と共通）
 
 - ツール行: アイコンのみ（↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他）。説明はツールチップ
 - 流れ: `[アバター] ──(再配置 n →)── [AvatarDynamics]`。真ん中のピルが主操作。線と背景の色が状態
 - レール: `ComponentCategory` ごとのアイコンチップ。枠色=状態、右下バッジ=未処理件数。クリックで列の表示切替
-- 列: カテゴリごとの ListView。行頭 → 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
+- 列: カテゴリごとの ListView。行頭 ○ 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
 - 文字は「オブジェクト名 / 数値 / 動詞1語」に限り、HelpBox・完了ダイアログは使わない
 - 設計の経緯と検証結果は `Docs~/MainWindow-Redesign.md`
 
@@ -95,6 +112,8 @@ UI ToolkitのUXML/USSファイルは`Editor/Resources/`に配置。
 ### 条件付きコンパイル
 
 `#if MODULAR_AVATAR`でModularAvatarのMergeArmatureコンポーネント検出をサポート（`versionDefines`で自動定義）。
+
+`#if UITK_FONT_FIX`でUITKFontFix（`jp.colloid.uitk-font-fix`）によるOSフォント適用をサポート（`versionDefines`で自動定義）。未導入時は同梱のNoto Sans JPを`PBReplacerFonts.Apply(root)`がルートにインラインで適用する。USSで`-unity-font-definition`を各要素に書くと継承が壊れるので書かない。
 
 `#if NDMF`でNDMFビルドパイプラインへの統合をサポート（`versionDefines`で自動定義）。
 PBRemapコンポーネントを`BuildPhase.Resolving`で自動処理し、ランタイムでは除去する。

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -13,7 +13,7 @@ namespace colloid.PBReplacer
 	///   ツール行  … ↻ 再読み込み / ↶ 元に戻す / ⚙ 詳細設定 / ⋮ その他（アイコンのみ、説明はツールチップ）
 	///   流れ      … [アバター] ──(再配置 n →)── [AvatarDynamics]。真ん中のピルがそのまま主操作
 	///   レール    … カテゴリのアイコンチップ（枠色=状態、右下に未処理件数）。クリックで列の表示切替、Alt+クリックで単独表示
-	///   列        … カテゴリごとの一覧。→ 未処理 / ✔ 配置済み（列末尾に畳む）。列へのドロップで追加
+	///   列        … カテゴリごとの一覧。○ 未処理 / ✔ 配置済み（列末尾に畳む）。列へのドロップで追加
 	/// partial クラスとして以下のファイルに分割:
 	/// - PBReplacerWindow.cs         (フィールド / メニュー / Unity メソッド)
 	/// - PBReplacerWindow.UI.cs      (UI 構築: ツール行・流れ・詳細設定・レール)
@@ -54,9 +54,10 @@ namespace colloid.PBReplacer
 		// 詳細設定
 		private VisualElement _advanced;
 
-		// レール + 列
+		// レール + 列（要素は UXML。行のテンプレートは PBReplacerRow.uxml）
 		private VisualElement _rail;
 		private VisualElement _columns;
+		private VisualTreeAsset _rowTemplate;
 		private readonly Dictionary<ComponentCategory, RailChip> _chips = new Dictionary<ComponentCategory, RailChip>();
 		private readonly Dictionary<ComponentCategory, CategoryColumn> _columnViews = new Dictionary<ComponentCategory, CategoryColumn>();
 		private readonly List<ColumnDropHandler> _dropHandlers = new List<ColumnDropHandler>();
@@ -73,6 +74,9 @@ namespace colloid.PBReplacer
 
 		// オブジェクトピッカー
 		private int _avatarPickerControlId = -1;
+
+		// このウィンドウが表示中のアバター（ドメインリロードやレイアウト復元をまたいで維持。閉じれば消える）
+		[SerializeField] private GameObject _keptAvatar;
 		#endregion
 
 		#region Data References
@@ -98,8 +102,7 @@ namespace colloid.PBReplacer
 		#endregion
 
 		#region Unity Methods
-		[MenuItem("Tools/PBReplacer/MainWindow")]
-		[MenuItem("GameObject/PBReplacer", false, 25)]
+		[MenuItem("Tools/PBReplacer")]
 		public static void ShowWindow()
 		{
 			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
@@ -107,7 +110,7 @@ namespace colloid.PBReplacer
 			window.minSize = new Vector2(600, 400);
 		}
 
-		[MenuItem("GameObject/PBReplacer Selected", false, 26)]
+		[MenuItem("GameObject/PBReplacer for Selected", false, 26)]
 		public static void ShowWindowWithSelection()
 		{
 			ShowWindow();
@@ -117,17 +120,6 @@ namespace colloid.PBReplacer
 			{
 				window.AcceptAvatarObject(Selection.activeGameObject);
 			}
-		}
-
-		/// <summary>
-		/// 設定は別ウィンドウではなくメインウィンドウの ⚙ パネル（旧 Tools/PBReplacer/Settings の導線を維持）
-		/// </summary>
-		[MenuItem("Tools/PBReplacer/Settings", false, 21)]
-		public static void ShowSettings()
-		{
-			ShowWindow();
-			PBReplacerWindow window = GetWindow<PBReplacerWindow>();
-			window.SetAdvancedVisible(true);
 		}
 
 		/// <summary>
@@ -188,15 +180,39 @@ namespace colloid.PBReplacer
 			RegisterEvents();
 			RegisterDataManagerEvents();
 
-			// 既にアバターが設定済み（ドメインリロード後など）なら反映
-			if (AvatarFieldHelper.CurrentAvatar?.AvatarObject != null)
+			// アバターの復元は 3 段階:
+			//   1. このウィンドウが開いたまま（ドメインリロード / レイアウト復元）なら、シリアライズした _keptAvatar を戻す（設定に関係なく状態を維持）
+			//   2. 新しく開いたウィンドウで「前回のアバターを自動で読み込む」がオンなら、前回のアバターを読み込む
+			//   3. オフなら空で開く（AvatarFieldHelper が前のウィンドウのアバターを静的に保持していても引き継がない）
+			var current = AvatarFieldHelper.CurrentAvatar?.AvatarObject;
+			if (_keptAvatar != null)
 			{
-				_stateMachine.SetAvatar(true);
-				_stateMachine.OnDataLoaded();
+				if (current == _keptAvatar)
+				{
+					_stateMachine.SetAvatar(true);
+					_stateMachine.OnDataLoaded();
+				}
+				else
+				{
+					SetAvatar(_keptAvatar);
+				}
 			}
 			else if (_settings.AutoLoadLastAvatar)
 			{
-				EditorApplication.delayCall += TryLoadLastAvatar;
+				if (current != null)
+				{
+					_keptAvatar = current;
+					_stateMachine.SetAvatar(true);
+					_stateMachine.OnDataLoaded();
+				}
+				else
+				{
+					EditorApplication.delayCall += TryLoadLastAvatar;
+				}
+			}
+			else if (current != null)
+			{
+				AvatarFieldHelper.ClearAvatar();
 			}
 
 			RefreshAll();
