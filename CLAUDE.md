@@ -68,7 +68,7 @@ C# で色を決めない。新しい色を USS に足すときはライト側の
 - レール: `ComponentCategory` ごとのアイコンチップ。枠色=状態、右下バッジ=未処理件数。クリックで列の表示切替
 - 列: カテゴリごとの ListView。行頭 ○ 未処理 / ✔ 配置済み。列へのドロップで追加（`ColumnDropHandler`）
 - 文字は「オブジェクト名 / 数値 / 動詞1語」に限り、HelpBox・完了ダイアログは使わない
-- 設計の経緯と検証結果は `Docs~/MainWindow-Redesign.md`
+- 設計の経緯と検証結果は `Docs~/design/MainWindow-Redesign.md`
 
 ### 主要パターン
 
