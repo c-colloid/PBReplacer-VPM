@@ -1,0 +1,42 @@
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><style>
+h2{font-size:46px}
+.lbl{position:absolute;top:214px;font-size:21px;color:#8a93a0;font-weight:600;letter-spacing:.04em}
+.stage{position:absolute;left:88px;right:88px;top:244px;display:flex;align-items:center;gap:24px}
+.tree{width:470px;height:300px;flex:none;font-size:20px;line-height:1.45;padding:14px 26px}
+.mid{flex:1;display:flex;justify-content:center}
+.win{position:absolute;left:88px;width:1024px;overflow:hidden;border-radius:6px;box-shadow:0 8px 24px rgba(20,26,34,.16),0 0 0 1px rgba(0,0,0,.06)}
+.win img{width:1024px;display:block}
+.tagl{position:absolute;left:88px;font-size:20px;color:#8a93a0;font-weight:600;letter-spacing:.04em}
+</style></head><body>
+<div class="wrap"><h2>散らばった PhysBone をひとつにまとめる</h2></div>
+<div class="lbl" style="left:88px">BEFORE</div>
+<div class="lbl" style="left:642px">AFTER</div>
+<div class="stage">
+<div class="tree">
+<div class="root">Armature</div>
+<div>└ Hips</div>
+<div>   ├ Spine</div>
+<div>   │  └ Chest <span class="pb">● PhysBone</span></div>
+<div>   │     └ Head <span class="pb">● PhysBone</span></div>
+<div>   │        ├ Hair_L <span class="pb">● PhysBone</span></div>
+<div>   │        └ Hair_R <span class="pb">● PhysBone</span></div>
+<div>   └ UpperLeg_L</div>
+<div>      └ Skirt_L <span class="pb">● PhysBone</span></div>
+</div>
+<div class="mid"><div class="arrow">→</div></div>
+<div class="tree">
+<div class="dim">Armature</div>
+<div class="root">AvatarDynamics</div>
+<div>└ PhysBone</div>
+<div>   ├ Chest <span class="pb">● PhysBone</span></div>
+<div>   ├ Head <span class="pb">● PhysBone</span></div>
+<div>   ├ Hair_L <span class="pb">● PhysBone</span></div>
+<div>   ├ Hair_R <span class="pb">● PhysBone</span></div>
+<div>   └ Skirt_L <span class="pb">● PhysBone</span></div>
+</div>
+</div>
+<div class="tagl" style="top:580px">BEFORE ─ 再配置前</div>
+<div class="win" style="top:612px"><img src="img/before-strip.png"></div>
+<div class="tagl" style="top:870px">AFTER ─ 再配置後</div>
+<div class="win" style="top:902px"><img src="img/after-strip.png"></div>
+</body></html>

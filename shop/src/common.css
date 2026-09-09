@@ -1,0 +1,23 @@
+@font-face{font-family:NSJP;src:url(NotoSansJP.ttf);font-weight:100 900}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{width:1200px;height:1200px;overflow:hidden;font-family:NSJP,'Yu Gothic UI',sans-serif;color:#1c2129;background:#f2f3f5;position:relative}
+.wrap{position:absolute;inset:0;padding:88px}
+h1{font-size:104px;font-weight:700;letter-spacing:-.02em;margin:0;line-height:1;color:#1c2129}
+h2{font-size:54px;font-weight:700;margin:0;line-height:1.35;letter-spacing:-.01em;color:#1c2129}
+.tag{font-size:30px;font-weight:400;color:#5f6672;margin:0;line-height:1.6}
+.accent{color:#2E86D9}
+.shot{border-radius:6px;box-shadow:0 10px 30px rgba(20,26,34,.16),0 0 0 1px rgba(0,0,0,.06);display:block}
+.card{background:#fff;border:1px solid #e1e4e9;border-radius:8px;padding:36px 40px}
+.num{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:#2E86D9;color:#fff;font-weight:700;font-size:28px;flex:none}
+.pill{display:inline-flex;align-items:center;padding:8px 22px;border-radius:999px;font-size:24px;font-weight:600;background:#e4e7ec;color:#4a515c}
+.pill.on{background:#2E86D9;color:#fff}
+.foot{position:absolute;left:88px;right:88px;bottom:56px;display:flex;justify-content:space-between;font-size:22px;color:#8a93a0}
+.arrow{color:#2E86D9;font-size:64px;line-height:1}
+/* text tree */
+.tree{font-family:Consolas,'Cascadia Mono',NSJP,monospace;font-size:25px;line-height:1.8;background:#fff;border-radius:8px;padding:28px 32px;border:1px solid #e1e4e9}
+.tree div{white-space:pre;color:#3a4049}
+.tree .pb{color:#2E86D9;font-weight:600}
+.tree .dim{color:#9aa1ab}
+.tree .root{font-weight:700;color:#1c2129}
+.tree .sel{background:#2E86D9;color:#fff;margin:0 -32px;padding:0 32px}

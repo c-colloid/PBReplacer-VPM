@@ -1,0 +1,24 @@
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><style>
+.row{position:absolute;left:88px;top:250px;width:1024px;height:590px;display:flex;gap:24px}
+.scene{width:700px;height:590px;overflow:hidden;border-radius:6px;box-shadow:0 14px 40px rgba(20,26,34,.2),0 0 0 1px rgba(0,0,0,.08);position:relative;flex:none}
+.scene img{width:900px;display:block;margin-left:-100px}
+.cap{position:absolute;left:20px;top:20px;display:flex;gap:8px}
+.cap span{background:rgba(20,26,34,.72);color:#fff;font-size:19px;padding:5px 14px;border-radius:6px}
+.side{flex:1;display:flex;flex-direction:column;gap:24px}
+.side .box{flex:1;min-height:0;overflow:hidden;border-radius:6px;box-shadow:0 8px 24px rgba(20,26,34,.16),0 0 0 1px rgba(0,0,0,.06);position:relative}
+.side img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.side .t{position:absolute;left:0;right:0;bottom:0;background:rgba(20,26,34,.72);color:#fff;font-size:19px;padding:6px 12px}
+.kw{position:absolute;left:88px;right:88px;top:910px;display:flex;align-items:center}
+.kw div{flex:1;text-align:center;font-size:26px;font-weight:600;color:#3a4049;padding:10px 0;border-left:1px solid #cfd3d9}
+.kw div:first-child{border-left:0}
+</style></head><body>
+<div class="wrap"><h2>PBRemap<span style="font-size:34px;font-weight:400;color:#5f6672;margin-left:28px">別のアバターや衣装へ PhysBone を移植</span></h2></div>
+<div class="row">
+<div class="scene"><img src="img/remap-scene.png"><div class="cap"><span>移植元</span><span>→</span><span>移植先</span></div></div>
+<div class="side">
+<div class="box"><img src="img/remap-insp.png" style="object-position:0 0"><div class="t">Inspector ─ 移植 ▶ を押すだけ</div></div>
+<div class="box"><img src="img/remap-hierarchy.png" style="object-position:bottom"><div class="t" style="top:0;bottom:auto">Hierarchy ─ ドロップで配置</div></div>
+</div>
+</div>
+<div class="kw"><div>ボーン名の違いを吸収</div><div>スケール比を自動補正</div><div>Modular Avatar 対応</div></div>
+</body></html>

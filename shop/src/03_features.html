@@ -1,0 +1,55 @@
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="common.css"><style>
+.cols{position:absolute;left:88px;right:88px;top:260px;display:flex;gap:32px}
+.col{flex:1;display:flex;flex-direction:column;gap:28px}
+.tree{width:100%;height:600px;font-size:24px;line-height:1.8;padding:26px 26px;overflow:hidden}
+.tree .sel{margin:0 -26px;padding:0 26px}
+.col h3{font-size:33px;margin:0 0 8px;font-weight:700;line-height:1.3;color:#1c2129}
+.col p{font-size:25px;margin:0;color:#5f6672;line-height:1.6}
+.stack{width:100%;height:600px;display:flex;flex-direction:column;gap:12px}
+.stack img{width:100%;flex:1;min-height:0;object-fit:cover;border-radius:6px;box-shadow:0 8px 24px rgba(20,26,34,.16),0 0 0 1px rgba(0,0,0,.06)}
+.tree .sw{display:inline-block;width:38px;height:20px;border-radius:10px;background:#c9ced6;vertical-align:middle;margin-left:14px;position:relative}
+.tree .sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.tree .sw.on{background:#2E86D9}.tree .sw.on::after{left:21px;background:#fff}
+</style></head><body>
+<div class="wrap"><h2>整理すると、できること</h2></div>
+<div class="cols">
+<div class="col">
+<div class="tree">
+<div class="root">AvatarDynamics</div>
+<div>└ PhysBone</div>
+<div>   ├ Chest</div>
+<div>   ├ Head</div>
+<div class="sel">   ├ Hair_L</div>
+<div class="sel">   ├ Hair_R</div>
+<div class="sel">   ├ Skirt_L</div>
+<div class="sel">   └ Skirt_R</div>
+<div class="dim"> </div>
+<div class="dim">4 selected</div>
+<div class="dim">Pull       0.2</div>
+<div class="dim">Spring     0.3</div>
+</div>
+<div><h3>複数選択で一括編集</h3><p>選ぶだけで、まとめて調整</p></div>
+</div>
+<div class="col">
+<div class="tree">
+<div class="root">Outfit_A<span class="sw on"></span></div>
+<div>├ Skirt</div>
+<div>└ AvatarDynamics</div>
+<div>   ├ Skirt_L <span class="pb">● PhysBone</span></div>
+<div>   ├ Skirt_R <span class="pb">● PhysBone</span></div>
+<div>   └ Ribbon <span class="pb">● PhysBone</span></div>
+<div class="dim"> </div>
+<div class="dim">Outfit_B<span class="sw"></span></div>
+<div class="dim">├ Jacket</div>
+<div class="dim">└ AvatarDynamics</div>
+<div class="dim">   ├ Hood <span class="pb" style="color:#a9c9e8">● PhysBone</span></div>
+<div class="dim">   └ Strap <span class="pb" style="color:#a9c9e8">● PhysBone</span></div>
+</div>
+<div><h3>服と一緒に ON/OFF</h3><p>服のオンオフに追従します</p></div>
+</div>
+<div class="col">
+<div class="stack"><img src="img/remap-scene.png" style="object-position:50% 40%"><img src="img/remap-insp.png" style="object-position:0 0"></div>
+<div><h3>別のアバターへ移植</h3><p>ドロップするだけで移植</p></div>
+</div>
+</div>
+</body></html>
